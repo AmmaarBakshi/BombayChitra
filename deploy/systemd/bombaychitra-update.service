@@ -1,0 +1,21 @@
+# Downloads a newer dataset when one has been published and restarts the server to serve it.
+# Started weekly by bombaychitra-update.timer; run it by hand with: sudo systemctl start bombaychitra-update
+[Unit]
+Description=Update the BombayChitra dataset
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=bombaychitra
+Group=bombaychitra
+StateDirectory=bombaychitra
+Environment=BC_DATA=/var/lib/bombaychitra
+EnvironmentFile=-/etc/bombaychitra/env
+ExecStart=/usr/local/bin/bombaychitra download
+# "+" runs the restart with full privileges; try-restart does nothing if the server is stopped.
+ExecStartPost=+/usr/bin/systemctl try-restart bombaychitra.service
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes

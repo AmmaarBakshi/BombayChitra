@@ -1,0 +1,12 @@
+# Weekly data refresh. The Data workflow publishes a new data-latest release on Mondays at 02:30 UTC and takes
+# under an hour, so this runs at 04:00 UTC (09:30 IST), with a random delay to spread load on GitHub.
+[Unit]
+Description=Weekly BombayChitra dataset update
+
+[Timer]
+OnCalendar=Mon *-*-* 04:00:00 UTC
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

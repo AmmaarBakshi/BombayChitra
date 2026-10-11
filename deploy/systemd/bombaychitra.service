@@ -1,0 +1,43 @@
+# BombayChitra map server. Install:
+#   sudo useradd --system --home-dir /var/lib/bombaychitra --shell /usr/sbin/nologin bombaychitra
+#   sudo install -m 0755 bombaychitra /usr/local/bin/
+#   sudo cp bombaychitra*.service bombaychitra-update.timer /etc/systemd/system/
+#   sudo systemctl enable --now bombaychitra.service bombaychitra-update.timer
+# Settings can be overridden in /etc/bombaychitra/env (BC_PUBLIC_URL, BC_API_KEYS, ...).
+[Unit]
+Description=BombayChitra map server
+Documentation=https://github.com/AmmaarBakshi/BombayChitra/blob/main/docs/deployment.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=bombaychitra
+Group=bombaychitra
+StateDirectory=bombaychitra
+Environment=BC_DATA=/var/lib/bombaychitra BC_ADDR=127.0.0.1:8080 BC_LOG_FORMAT=json
+Environment=BC_TRUST_PROXY=true BC_RATE_LIMIT=300 BC_RATE_BURST=60 BC_METRICS_ADDR=127.0.0.1:9091
+EnvironmentFile=-/etc/bombaychitra/env
+# Fetch the dataset on the first start; a failed download does not stop a server that already has data.
+ExecStartPre=-/usr/local/bin/bombaychitra download
+ExecStart=/usr/local/bin/bombaychitra serve
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the server only reads its data directory and listens on a socket.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
