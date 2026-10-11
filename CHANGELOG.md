@@ -34,3 +34,22 @@ project uses [Semantic Versioning](https://semver.org/).
 - Documentation site and API reference generated from `api/openapi.yaml`; examples in 11 languages.
 - Build scripts (Bash, PowerShell), Makefile, Dockerfiles, Docker Compose, CI, weekly data release and release
   workflows.
+- `ROADMAP.md` with the plan for the next releases.
+- Rate limiting for public servers: per-client token buckets (`--rate-limit`, `--rate-burst`; route searches cost
+  more), `429` with `Retry-After` and `X-RateLimit-*` headers, and optional API keys (`--api-keys`, `--require-key`)
+  sent in `X-API-Key`.
+- `/api/v1/health` (database, tiles and routing checks, dataset age; `503` when the database is unreadable) and
+  Prometheus `/metrics` (requests, latency and bytes per route pattern, route searches, build info), optionally on a
+  private address (`--metrics-addr`).
+- `bombaychitra download`: fetches the published dataset with checksum verification, so a server runs without Java
+  or a pipeline build. The weekly data release now includes `SHA256SUMS`.
+- Tagged releases attach the dataset and checksums next to the binaries and take their notes from this changelog.
+- Ready-made deployments in `deploy/`: Fly.io (public demo), Docker Compose with Caddy and automatic HTTPS, and
+  hardened systemd units with a weekly data refresh timer.
+- Tests: pipeline unit tests with JUnit (`scripts/test-pipeline.sh`, no build tool) and web unit tests with Vitest
+  (`npm test`), both run in CI.
+
+### Fixed
+
+- Overture places were dropped as duplicates of a different nearby business that shared only generic words with
+  them ("ICICI Bank ATM" next to "HDFC Bank ATM"); names must now share a distinctive word.
