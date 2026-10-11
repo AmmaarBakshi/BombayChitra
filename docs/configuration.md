@@ -21,7 +21,7 @@ database, and compiled into the web app, so a change flows through the whole sta
 | `transit.routeOverrides[]` | Corrections for route relations whose tags match `match`: `ref`, `label`, `network`, `colour`, `operator`. The first matching entry applies. |
 | `transit.trackLines[]` | Lines assembled from track ways whose tags match `match`, for lines without a route relation: `mode`, `network`, `ref`, `label`, `colour`, `operator`. |
 
-`match` objects use the same rule syntax as `config/categories.json`: a value, a list of values, `"*"` or `"!value"`.
+`match` objects use the same rule syntax as `config/categories.json`: a value, a list of values, `"*"`, `"!value"` or `"!*"`.
 
 ### Transit lines without route relations
 
@@ -115,6 +115,10 @@ A rule is an object of tag conditions that must **all** match:
 | `["x", "y"]` | tag is one of the values | `{ "amenity": ["bar", "pub"] }` |
 | `"*"` | tag present and not `no` | `{ "building": "*", "name": "*" }` |
 | `"!x"` / `["!x", "!y"]` | tag absent or different | `{ "leisure": "swimming_pool", "access": ["!private", "!no"] }` |
+| `"!*"` | tag absent | `{ "building": "school", "name": "*", "amenity": "!*" }` |
+
+Institutions in India are often mapped only as a building (`building=school`, `building=college`,
+`building=hospital`), so those categories also match named buildings that carry no `amenity` tag of their own.
 
 **Order matters:** categories are tried from top to bottom and the first match wins. Put specific categories before
 general ones — `metro_station` before `railway_station`, and catch-alls such as `shop` last in their group.

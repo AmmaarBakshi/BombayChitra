@@ -69,7 +69,11 @@
       "colour": "#E5484D",
       "categories": [
         { "id": "hospital", "label": "Hospitals", "icon": "hospital", "rank": 1, "minzoom": 12,
-          "match": [{ "amenity": "hospital" }, { "healthcare": "hospital" }] },
+          "match": [
+            { "amenity": "hospital" },
+            { "healthcare": "hospital" },
+            { "building": "hospital", "name": "*", "amenity": "!*", "healthcare": "!*" }
+          ] },
         { "id": "clinic", "label": "Clinics & doctors", "icon": "doctor", "rank": 3, "minzoom": 15,
           "match": [
             { "amenity": ["clinic", "doctors"] },
@@ -95,11 +99,11 @@
         { "id": "research", "label": "Research institutes", "icon": "college", "rank": 2, "minzoom": 13,
           "match": [{ "amenity": "research_institute" }, { "office": "research" }] },
         { "id": "college", "label": "Colleges", "icon": "college", "rank": 2, "minzoom": 13,
-          "match": [{ "amenity": "college" }] },
+          "match": [{ "amenity": "college" }, { "building": "college", "name": "*", "amenity": "!*" }] },
         { "id": "school", "label": "Schools", "icon": "school", "rank": 2, "minzoom": 14,
-          "match": [{ "amenity": "school" }] },
+          "match": [{ "amenity": "school" }, { "building": "school", "name": "*", "amenity": "!*" }] },
         { "id": "kindergarten", "label": "Pre-schools & daycare", "icon": "school", "rank": 4, "minzoom": 15,
-          "match": [{ "amenity": ["kindergarten", "childcare"] }] },
+          "match": [{ "amenity": ["kindergarten", "childcare"] }, { "building": "kindergarten", "name": "*", "amenity": "!*" }] },
         { "id": "library", "label": "Libraries", "icon": "library", "rank": 3, "minzoom": 14,
           "match": [{ "amenity": "library" }] },
         { "id": "coaching", "label": "Coaching & training", "icon": "school", "rank": 4, "minzoom": 15,

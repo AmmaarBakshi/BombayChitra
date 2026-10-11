@@ -10,8 +10,10 @@ project uses [Semantic Versioning](https://semver.org/).
 - Data pipeline (Java + Planetiler): one pass over OpenStreetMap produces a 13-layer vector tileset (PMTiles) and a
   SQLite database with R*Tree spatial indexes, FTS5 search, area membership and statistics.
 - Ocean polygons built from the coastline, with no global water-polygon download.
-- 89-category place taxonomy in `config/categories.json`; region and areas (Mumbai City, Mumbai Suburban, MaKaBo,
-  Thane District, Thane, Navi Mumbai, Mira-Bhayandar, Kalyan-Dombivli, Vasai-Virar, Panvel) in `config/region.json`.
+- 89-category place taxonomy in `config/categories.json`, including schools, colleges, hospitals and pre-schools
+  mapped only as buildings (`building=school` and so on); `"!*"` (tag absent) rule syntax; region and areas (Mumbai
+  City, Mumbai Suburban, MaKaBo, Thane District, Thane, Navi Mumbai, Mira-Bhayandar, Kalyan-Dombivli, Vasai-Virar,
+  Panvel) in `config/region.json`.
 - Transit lines from OSM route relations with official colours and ordered stops; station → line lookup.
 - Lines without a route relation (the monorail, metro lines under construction and proposed) assembled from their
   track via `transit.trackLines`, with stations matched along the line; `transit.routeOverrides` for corrections.

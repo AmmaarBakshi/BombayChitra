@@ -12,7 +12,7 @@ if ($json === false) {
 }
 $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
-printf("%d banks and ATMs in %s (first page):\n", $data['count'], $area);
+printf("First %d banks and ATMs in %s:\n", $data['count'], $area);
 foreach ($data['items'] as $place) {
     printf("  %-5s %-40s %.5f, %.5f\n", strtoupper($place['category']), $place['name'] ?? '(unnamed)', $place['lat'], $place['lon']);
 }

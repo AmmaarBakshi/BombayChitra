@@ -9,8 +9,8 @@ import java.util.Set;
 
 /**
  * A set of tag conditions in the rule syntax shared by {@code config/categories.json} and {@code config/region.json}:
- * each key maps to a value, a list of values, {@code "*"} (any value except {@code no}) or {@code "!value"} (absent or
- * any other value). All conditions must hold.
+ * each key maps to a value, a list of values, {@code "*"} (any value except {@code no}), {@code "!value"} (absent or
+ * any other value) or {@code "!*"} (absent). All conditions must hold.
  */
 public record TagRule(List<Condition> conditions) {
 
@@ -20,7 +20,7 @@ public record TagRule(List<Condition> conditions) {
       Object raw = tags.getTag(key);
       String value = raw == null ? null : raw.toString();
       if (negated) {
-        return value == null || !values.contains(value);
+        return value == null || !values.contains(value) && !values.contains("*");
       }
       if (value == null) {
         return false;
