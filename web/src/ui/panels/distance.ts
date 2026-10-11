@@ -1,7 +1,7 @@
 import type { RouteResult, SearchResult } from '../../api/types.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h } from '../dom.ts';
-import { formatDistance } from '../format.ts';
+import { formatDistance, formatDuration } from '../format.ts';
 import { formatRoute, hashParams, parseRoute, updateHash } from '../hash.ts';
 import { icon } from '../icons.ts';
 import type { Panel } from './panel.ts';
@@ -17,13 +17,6 @@ export interface RoutePoint {
 const COLOUR = '#e8590c';
 const COORD = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
 const LABEL: Record<RouteEndName, string> = { from: 'From', to: 'To' };
-
-export function formatDuration(seconds: number): string {
-  const minutes = Math.max(1, Math.round(seconds / 60));
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours} h ${minutes % 60 ? `${minutes % 60} min` : ''}`.trim();
-}
 
 /**
  * "Distance by road": the driving distance and time between two places over the road network, with the route drawn on

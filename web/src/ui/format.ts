@@ -8,6 +8,14 @@ export function formatDistance(m: number): string {
   return `${nf1.format(m / 1000)} km`;
 }
 
+/** Travel time rounded to the minute: "1 min", "45 min", "1 h", "2 h 5 min". */
+export function formatDuration(seconds: number): string {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+}
+
 export function formatArea(m2: number): string {
   if (m2 < 10_000) return `${nf.format(Math.round(m2))} m²`;
   if (m2 < 1_000_000) return `${nf1.format(m2 / 10_000)} ha`;

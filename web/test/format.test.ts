@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capitalise, distance, formatArea, formatCoord, formatDistance, formatDMS, formatNumber } from '../src/ui/format.ts';
+import { capitalise, distance, formatArea, formatCoord, formatDistance, formatDMS, formatDuration, formatNumber } from '../src/ui/format.ts';
 
 describe('formatDistance', () => {
   it('uses metres below a kilometre', () => {
@@ -11,6 +11,20 @@ describe('formatDistance', () => {
     expect(formatDistance(1000)).toBe('1 km');
     expect(formatDistance(4040)).toBe('4 km');
     expect(formatDistance(18_237)).toBe('18.2 km');
+  });
+});
+
+describe('formatDuration', () => {
+  it('rounds to whole minutes, never below one', () => {
+    expect(formatDuration(0)).toBe('1 min');
+    expect(formatDuration(89)).toBe('1 min');
+    expect(formatDuration(91)).toBe('2 min');
+    expect(formatDuration(59 * 60)).toBe('59 min');
+  });
+  it('switches to hours', () => {
+    expect(formatDuration(3600)).toBe('1 h');
+    expect(formatDuration(3600 + 5 * 60)).toBe('1 h 5 min');
+    expect(formatDuration(2.5 * 3600)).toBe('2 h 30 min');
   });
 });
 
