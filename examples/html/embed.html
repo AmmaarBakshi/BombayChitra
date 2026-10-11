@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BombayChitra embed</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.13.0/dist/maplibre-gl.css" />
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; }
+      #map { position: absolute; inset: 0; }
+      .info { position: absolute; top: 10px; left: 10px; z-index: 1; background: #fff; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+    </style>
+  </head>
+  <body>
+    <div class="info">Click a place for details</div>
+    <div id="map"></div>
+    <script type="module">
+      import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.13.0/dist/maplibre-gl.mjs';
+
+      const SERVER = 'http://localhost:8080'; // your BombayChitra server
+
+      const map = new maplibregl.Map({
+        container: 'map',
+        style: `${SERVER}/styles/light.json`, // or dark.json
+        center: [72.8777, 19.076],
+        zoom: 12,
+      });
+      map.addControl(new maplibregl.NavigationControl());
+
+      // In the portable style POIs are the "poi-dot" layer; feature ids work with /api/v1/places/{id}.
+      map.on('click', 'poi-dot', async (e) => {
+        const id = e.features[0].id;
+        const place = await (await fetch(`${SERVER}/api/v1/places/${id}`)).json();
+        new maplibregl.Popup()
+          .setLngLat([place.lon, place.lat])
+          .setText(`${place.name ?? place.category_label} — ${place.address ?? place.locality ?? ''}`)
+          .addTo(map);
+      });
+      map.on('mouseenter', 'poi-dot', () => (map.getCanvas().style.cursor = 'pointer'));
+      map.on('mouseleave', 'poi-dot', () => (map.getCanvas().style.cursor = ''));
+    </script>
+  </body>
+</html>

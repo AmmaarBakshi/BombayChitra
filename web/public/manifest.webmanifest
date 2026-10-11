@@ -1,0 +1,10 @@
+{
+  "name": "BombayChitra — Mumbai Metropolitan Region map",
+  "short_name": "BombayChitra",
+  "description": "Open, detailed map of Mumbai, Navi Mumbai, Thane and MaKaBo built from OpenStreetMap.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3efe7",
+  "theme_color": "#e8590c",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>BombayChitra · Map of the Mumbai Metropolitan Region</title>
+    <meta name="description" content="Open, detailed map of Mumbai, Navi Mumbai, Thane and MaKaBo: every road, bridge, building, station, hospital, school, college, bank, café and more — built from OpenStreetMap." />
+    <meta name="theme-color" content="#f3efe7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#11151b" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        var t = 'system';
+        try { t = localStorage.getItem('bc-theme') || 'system'; } catch (e) {}
+        var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="map" role="application" aria-label="Interactive map of the Mumbai Metropolitan Region"></div>
+
+    <aside id="panel" class="panel" aria-label="Explore the map">
+      <div class="panel-grip" aria-hidden="true"></div>
+      <header class="panel-head">
+        <a class="brand" href="/" aria-label="BombayChitra home">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M7 22c3-1 5-6 9-6s5 4 9 3M9 11l7-4 7 4M16 7v9" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>BombayChitra</span>
+        </a>
+        <span class="region" id="region-name">Mumbai Metropolitan Region</span>
+      </header>
+      <div class="search" role="search">
+        <label class="sr-only" for="search-input">Search</label>
+        <span class="search-icon" aria-hidden="true"></span>
+        <input id="search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search places, roads, stations, areas…" aria-controls="search-results" aria-expanded="false" aria-autocomplete="list" />
+        <kbd class="search-kbd" aria-hidden="true">/</kbd>
+        <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Panels"></nav>
+      <div id="panel-body" class="panel-body"></div>
+    </aside>
+
+    <section id="inspector" class="inspector" aria-live="polite" hidden></section>
+
+    <div class="toolbar" role="toolbar" aria-label="Map tools">
+      <button id="tool-theme" class="tool" type="button" title="Theme"></button>
+      <button id="tool-3d" class="tool" type="button" title="3D buildings" aria-pressed="false"></button>
+      <button id="tool-bridges" class="tool" type="button" title="Bridge explorer" aria-pressed="false"></button>
+      <button id="tool-measure" class="tool" type="button" title="Measure distance" aria-pressed="false"></button>
+      <a class="tool" href="/docs/" title="Documentation"></a>
+    </div>
+
+    <footer class="statusbar" aria-label="Map status">
+      <span id="status-coords" class="mono">—</span>
+      <span id="status-zoom" class="mono">z—</span>
+      <span id="status-data"></span>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

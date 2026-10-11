@@ -1,0 +1,681 @@
+openapi: 3.1.0
+info:
+  title: BombayChitra API
+  version: 1.0.0
+  summary: Open data API for the Mumbai Metropolitan Region map.
+  description: |
+    The BombayChitra API serves every place, road, bridge, building and transit line of the Mumbai Metropolitan
+    Region (Mumbai City, Mumbai Suburban, Thane district, Navi Mumbai, MaKaBo and the wider MMR), built from
+    OpenStreetMap.
+
+    - **Base URL:** the origin of a BombayChitra server, e.g. `http://localhost:8080`. All endpoints are `GET`.
+    - **Format:** JSON (UTF-8). Most list and detail endpoints also accept `format=geojson`.
+    - **IDs:** place, road, bridge and building ids are `osm_id × 10 + type` (`1` node, `2` way, `3` relation), e.g.
+      way `31144296` → `311442962`. Detail endpoints also accept OSM shorthand: `w31144296`, `n123`, `r456`.
+    - **Coordinates:** WGS84 longitude/latitude. Bounding boxes are `minLon,minLat,maxLon,maxLat`.
+    - **Errors:** non-2xx responses return `{"error": {"status": 400, "code": "bad_request", "message": "…"}}`.
+    - **Caching:** responses carry an `ETag` and `Cache-Control`; send `If-None-Match` to get `304 Not Modified`.
+    - **CORS:** enabled for all origins by default, so the API can be called directly from browsers.
+    - **Clients:** generate a typed client in any language from this document (`/openapi.json`) with
+      [OpenAPI Generator](https://openapi-generator.tech/) — see [Integrations](/docs/integrations/).
+
+    Data © OpenStreetMap contributors, available under the Open Database License (ODbL).
+  license:
+    name: MIT (code) · ODbL-1.0 (data)
+    url: https://github.com/AmmaarBakshi/BombayChitra/blob/main/LICENSE
+  contact:
+    name: BombayChitra on GitHub
+    url: https://github.com/AmmaarBakshi/BombayChitra
+servers:
+  - url: http://localhost:8080
+    description: Local server (`bombaychitra serve`)
+tags:
+  - name: Dataset
+    description: Metadata, categories, areas and statistics.
+  - name: Search
+    description: Free-text search and reverse geocoding.
+  - name: Places
+    description: Points of interest — hospitals, schools, colleges, banks, stations, bus stops, cafés, hotels, grounds and ~90 more categories.
+  - name: Roads
+    description: Named streets (merged from OSM ways) and individual road segments.
+  - name: Bridges
+    description: Every bridge, flyover, sea link, viaduct and foot over-bridge.
+  - name: Buildings
+    description: Buildings with heights, floor counts, footprints and addresses.
+  - name: Transit
+    description: Metro, monorail and suburban railway lines, routes and stations.
+  - name: Tiles
+    description: Vector tiles and map styles for any MapLibre-compatible client.
+
+components:
+  parameters:
+    bbox:
+      name: bbox
+      in: query
+      description: Bounding box `minLon,minLat,maxLon,maxLat`.
+      schema: { type: string }
+      example: 72.82,19.05,72.85,19.07
+    area:
+      name: area
+      in: query
+      description: Restrict to a configured area id (see `/api/v1/areas`), e.g. `makabo`, `navi-mumbai`, `thane`.
+      schema: { type: string }
+    limit:
+      name: limit
+      in: query
+      description: Maximum number of results.
+      schema: { type: integer, default: 50, minimum: 1, maximum: 500 }
+    offset:
+      name: offset
+      in: query
+      description: Number of results to skip (pagination).
+      schema: { type: integer, default: 0, minimum: 0 }
+    format:
+      name: format
+      in: query
+      description: Response format.
+      schema: { type: string, enum: [json, geojson], default: json }
+    lat:
+      name: lat
+      in: query
+      description: Latitude (WGS84).
+      schema: { type: number }
+      example: 19.0544
+    lon:
+      name: lon
+      in: query
+      description: Longitude (WGS84).
+      schema: { type: number }
+      example: 72.8402
+    featureId:
+      name: id
+      in: path
+      required: true
+      description: Feature id (`osm_id × 10 + type`) or OSM shorthand (`n123`, `w123`, `r123`).
+      schema: { type: string }
+      example: '311442962'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status: { type: integer }
+            code: { type: string }
+            message: { type: string }
+    Place:
+      type: object
+      required: [id, osm_type, osm_id, category, group, lon, lat]
+      properties:
+        id: { type: integer, description: osm_id × 10 + type }
+        osm_type: { type: string, enum: [node, way, relation] }
+        osm_id: { type: integer }
+        name: { type: string }
+        category: { type: string }
+        group: { type: string }
+        lon: { type: number }
+        lat: { type: number }
+        locality: { type: string, description: Nearest suburb or neighbourhood }
+        distance_m: { type: number, description: Present on radius queries }
+
+paths:
+  /api/v1/meta:
+    get:
+      tags: [Dataset]
+      operationId: getMeta
+      summary: Dataset metadata
+      description: Region, bounds, build and source dates, record counts, configured areas and links to tiles, styles and downloads.
+      responses:
+        '200':
+          description: Metadata
+          content:
+            application/json:
+              example:
+                name: BombayChitra
+                region: { id: mmr, name: Mumbai Metropolitan Region, bounds: [72.7, 18.8, 73.85, 19.82], center: [72.8777, 19.076], zoom: 11, maxzoom: 15 }
+                dataset: { built_at: '2026-10-11T06:02:35Z', source: Geofabrik India · Western Zone, source_timestamp: '2026-10-09T20:21:04Z', schema_version: '1' }
+                counts: { places: 45559, streets: 6138, roads: 20532, bridges: 6169, named_bridges: 1100, buildings: 76039, transit_lines: 43, localities: 2047 }
+                license: ODbL-1.0
+
+  /api/v1/categories:
+    get:
+      tags: [Dataset]
+      operationId: listCategories
+      summary: POI categories
+      description: All category groups and categories with their map icon, colour, importance rank and number of places.
+      responses:
+        '200':
+          description: Category groups
+          content:
+            application/json:
+              example:
+                groups:
+                  - id: health
+                    label: Health
+                    colour: '#E5484D'
+                    count: 5170
+                    categories:
+                      - { id: hospital, group: health, label: Hospitals, icon: hospital, rank: 1, minzoom: 12, count: 1849 }
+
+  /api/v1/areas:
+    get:
+      tags: [Dataset]
+      operationId: listAreas
+      summary: Configured areas
+      description: Named areas such as Mumbai City, Mumbai Suburban, MaKaBo (Malad–Kandivali–Borivali), Thane District and Navi Mumbai, with bounding boxes and centres.
+      responses:
+        '200':
+          description: Areas
+          content:
+            application/json:
+              example:
+                items:
+                  - { id: makabo, name: MaKaBo, short_name: MaKaBo, kind: zone, area_km2: 115.4, bbox: [72.81, 19.15, 72.9, 19.26], center: [72.85, 19.21], osm_relations: [7885384, 7885376, 7885385] }
+
+  /api/v1/areas/{id}:
+    get:
+      tags: [Dataset]
+      operationId: getArea
+      summary: Area detail
+      description: One area with its boundary geometry (simplified to ~20 m) and statistics.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          example: makabo
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200': { description: Area with geometry and stats }
+        '404': { description: Unknown area }
+
+  /api/v1/stats:
+    get:
+      tags: [Dataset]
+      operationId: getStats
+      summary: Statistics
+      description: Totals (places, buildings, average and maximum building height, streets, bridges and bridge km) and place counts by category, for the whole dataset or one area.
+      parameters:
+        - name: area
+          in: query
+          description: Area id; omit for the whole dataset.
+          schema: { type: string }
+          example: navi-mumbai
+      responses:
+        '200':
+          description: Statistics
+          content:
+            application/json:
+              example:
+                area: navi-mumbai
+                totals: { places: 3120, buildings: 18450, building_avg_height_m: 21.4, building_max_height_m: 128, streets: 410, bridges: 160, bridges_km: 31.2 }
+                places_by_category: { hospital: 112, school: 96, bank: 58 }
+
+  /api/v1/search:
+    get:
+      tags: [Search]
+      operationId: search
+      summary: Search
+      description: |
+        Free-text search across areas, localities, transit lines, places, streets and named bridges, with prefix
+        matching on the last word ("andheri sta" → Andheri Station). Results are ranked by text relevance,
+        importance and name match; pass `lat`/`lon` to prefer results near a location.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search text.
+          schema: { type: string }
+          example: lilavati hospital
+        - name: kind
+          in: query
+          description: Comma-separated kinds to include.
+          schema: { type: string, enum: [area, locality, line, place, street, bridge] }
+        - $ref: '#/components/parameters/lat'
+        - $ref: '#/components/parameters/lon'
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10, maximum: 50 }
+      responses:
+        '200':
+          description: Ranked results
+          content:
+            application/json:
+              example:
+                query: lilavati hospital
+                count: 1
+                items:
+                  - { kind: place, id: 311442962, name: Lilavati Hospital, detail: Hospitals · Vaidya Nagar, category: hospital, lon: 72.829166, lat: 19.050936, distance_m: 1252 }
+
+  /api/v1/reverse:
+    get:
+      tags: [Search]
+      operationId: reverse
+      summary: Reverse geocode
+      description: Describes a coordinate — the nearest named road (with the snapped point and distance), the nearest locality, the areas that contain it, the closest named places and a one-line label.
+      parameters:
+        - { $ref: '#/components/parameters/lat', required: true }
+        - { $ref: '#/components/parameters/lon', required: true }
+      responses:
+        '200':
+          description: Location description
+          content:
+            application/json:
+              example:
+                point: [72.8405, 19.0545]
+                label: Swami Vivekananda Road, Bandra West, Mumbai Suburban
+                road: { id: 12345672, street_id: 5821, name: Swami Vivekananda Road, kind: primary, distance_m: 18.4, snapped: [72.84061, 19.05462] }
+                locality: { id: 2456789011, name: Bandra West, kind: suburb, lon: 72.8361, lat: 19.0596, distance_m: 640 }
+                areas: [{ id: mmr, name: Mumbai Metropolitan Region }, { id: mumbai-suburban, name: Mumbai Suburban }]
+                nearby: []
+
+  /api/v1/places:
+    get:
+      tags: [Places]
+      operationId: listPlaces
+      summary: List places
+      description: |
+        Filter places by bounding box, radius, category, group, area and text. Radius queries (`lat`, `lon`,
+        `radius`) are sorted by distance, text queries by relevance and everything else by importance then name.
+      parameters:
+        - $ref: '#/components/parameters/bbox'
+        - name: category
+          in: query
+          description: Comma-separated category ids (see `/api/v1/categories`).
+          schema: { type: string }
+          example: hospital,clinic
+        - name: group
+          in: query
+          description: Comma-separated group ids, e.g. `health`, `education`, `food`.
+          schema: { type: string }
+        - $ref: '#/components/parameters/area'
+        - name: q
+          in: query
+          description: Text filter on names.
+          schema: { type: string }
+        - name: named
+          in: query
+          description: Only places with a name.
+          schema: { type: boolean, default: false }
+        - $ref: '#/components/parameters/lat'
+        - $ref: '#/components/parameters/lon'
+        - name: radius
+          in: query
+          description: Radius in metres around `lat`/`lon`.
+          schema: { type: number, default: 1000, maximum: 10000 }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Places
+          content:
+            application/json:
+              example:
+                count: 1
+                limit: 50
+                offset: 0
+                items:
+                  - { id: 311442962, osm_type: way, osm_id: 31144296, name: Lilavati Hospital, category: hospital, group: health, lon: 72.829166, lat: 19.050936, locality: Vaidya Nagar }
+        '400':
+          description: Invalid parameter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/v1/nearby:
+    get:
+      tags: [Places]
+      operationId: nearby
+      summary: Places near a point
+      description: Like `/places` with a required centre; results are sorted by distance and include `distance_m`.
+      parameters:
+        - { $ref: '#/components/parameters/lat', required: true }
+        - { $ref: '#/components/parameters/lon', required: true }
+        - name: radius
+          in: query
+          schema: { type: number, default: 500, maximum: 10000 }
+          example: 800
+        - name: category
+          in: query
+          schema: { type: string }
+          example: atm,bank
+        - name: group
+          in: query
+          schema: { type: string }
+        - name: named
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200': { description: Places sorted by distance }
+
+  /api/v1/places/{id}:
+    get:
+      tags: [Places]
+      operationId: getPlace
+      summary: Place detail
+      description: Full record — address, phone, website, opening hours, cuisine, operator, accessibility, the areas containing it, the lines serving a station, and every OSM tag.
+      parameters:
+        - $ref: '#/components/parameters/featureId'
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Place
+          content:
+            application/json:
+              example:
+                id: 311442962
+                osm_type: way
+                osm_id: 31144296
+                name: Lilavati Hospital
+                category: hospital
+                category_label: Hospitals
+                group: health
+                lon: 72.829166
+                lat: 19.050936
+                locality: Vaidya Nagar
+                address: A-791, Bandra Reclamation, Bandra(W), Mumbai
+                postcode: '400050'
+                website: https://www.lilavatihospital.com/
+                areas: [{ id: mmr, name: Mumbai Metropolitan Region }, { id: mumbai-suburban, name: Mumbai Suburban }]
+                osm_url: https://www.openstreetmap.org/way/31144296
+                tags: { amenity: hospital, name: Lilavati Hospital }
+        '404': { description: Not found }
+
+  /api/v1/streets:
+    get:
+      tags: [Roads]
+      operationId: listStreets
+      summary: List streets
+      description: Named roads assembled from OSM ways (one street = connected ways sharing a name). Longest first, or by relevance with `q`.
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+          example: linking road
+        - $ref: '#/components/parameters/bbox'
+        - $ref: '#/components/parameters/area'
+        - name: kind
+          in: query
+          description: Comma-separated road classes.
+          schema: { type: string, enum: [motorway, trunk, primary, secondary, tertiary, minor, service, pedestrian, track, path] }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200': { description: Streets }
+
+  /api/v1/streets/{id}:
+    get:
+      tags: [Roads]
+      operationId: getStreet
+      summary: Street detail
+      description: A street with its member ways (lanes, speed limits, surface, one-way, bridges, tunnels) and merged MultiLineString geometry.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          example: 1
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200': { description: Street }
+        '404': { description: Not found }
+
+  /api/v1/roads/{id}:
+    get:
+      tags: [Roads]
+      operationId: getRoad
+      summary: Road segment
+      description: One named OSM way with its attributes and LineString geometry.
+      parameters:
+        - $ref: '#/components/parameters/featureId'
+      responses:
+        '200': { description: Road }
+        '404': { description: Not found or unnamed }
+
+  /api/v1/bridges:
+    get:
+      tags: [Bridges]
+      operationId: listBridges
+      summary: List bridge ways
+      description: Individual bridge segments, longest first.
+      parameters:
+        - $ref: '#/components/parameters/bbox'
+        - name: kind
+          in: query
+          schema: { type: string, enum: [road, rail, metro, foot, construction, aqueduct, outline] }
+        - name: min_length
+          in: query
+          description: Minimum length in metres.
+          schema: { type: number }
+          example: 500
+        - $ref: '#/components/parameters/area'
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [length, name], default: length }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200': { description: Bridges }
+
+  /api/v1/bridges/named:
+    get:
+      tags: [Bridges]
+      operationId: listNamedBridges
+      summary: List named bridges
+      description: |
+        Named bridges with their segments merged — Atal Setu, the Bandra–Worli Sea Link, the Eastern Freeway,
+        metro viaducts and flyovers. `length_m` is the longest continuous span; `total_length_m` counts every deck
+        (dual carriageways, parallel tracks).
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string, enum: [road, rail, metro, foot, construction] }
+          example: road
+        - name: min_length
+          in: query
+          schema: { type: number }
+        - $ref: '#/components/parameters/area'
+        - name: q
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/bbox'
+        - name: sort
+          in: query
+          schema: { type: string, enum: [length, name], default: length }
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Named bridges
+          content:
+            application/json:
+              example:
+                count: 2
+                items:
+                  - { id: 41, name: Atal Setu, kind: road, length_m: 18152, total_length_m: 36283, way_count: 24, bbox: [72.86, 18.88, 73.03, 18.99], center: [72.95, 18.94] }
+                  - { id: 312, name: Rajiv Gandhi Sea Link, kind: road, length_m: 4009, total_length_m: 8019, way_count: 6, locality: Land's End, bbox: [72.81, 19.03, 72.82, 19.05], center: [72.816, 19.037] }
+
+  /api/v1/bridges/named/{id}:
+    get:
+      tags: [Bridges]
+      operationId: getNamedBridge
+      summary: Named bridge detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          example: 41
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200': { description: Named bridge with ways and geometry }
+        '404': { description: Not found }
+
+  /api/v1/bridges/{id}:
+    get:
+      tags: [Bridges]
+      operationId: getBridge
+      summary: Bridge way detail
+      parameters:
+        - $ref: '#/components/parameters/featureId'
+      responses:
+        '200': { description: Bridge way with geometry and tags }
+        '404': { description: Not found }
+
+  /api/v1/buildings:
+    get:
+      tags: [Buildings]
+      operationId: listBuildings
+      summary: List buildings
+      description: Buildings that have descriptive data (name, height, floors, address or a specific type). Tallest first by default.
+      parameters:
+        - $ref: '#/components/parameters/bbox'
+        - $ref: '#/components/parameters/area'
+        - name: min_levels
+          in: query
+          schema: { type: integer }
+          example: 40
+        - name: min_height
+          in: query
+          description: Minimum height in metres.
+          schema: { type: number }
+        - name: named
+          in: query
+          schema: { type: boolean }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [height, levels, footprint, name], default: height }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Buildings
+          content:
+            application/json:
+              example:
+                count: 1
+                items:
+                  - { id: 4123456782, name: World One, levels: 76, height_m: 280, footprint_m2: 2850.4, lon: 72.8245, lat: 18.9993, locality: Lower Parel, osm_url: https://www.openstreetmap.org/way/412345678 }
+
+  /api/v1/buildings/{id}:
+    get:
+      tags: [Buildings]
+      operationId: getBuilding
+      summary: Building detail
+      parameters:
+        - $ref: '#/components/parameters/featureId'
+      responses:
+        '200': { description: Building with tags }
+        '404': { description: Not found (building has no stored details) }
+
+  /api/v1/transit/lines:
+    get:
+      tags: [Transit]
+      operationId: listTransitLines
+      summary: Transit lines
+      description: Metro, monorail and suburban railway lines; each groups its route relations (directions and service patterns).
+      parameters:
+        - name: mode
+          in: query
+          description: Comma-separated modes.
+          schema: { type: string, enum: [subway, light_rail, monorail, train, tram] }
+          example: subway
+        - name: network
+          in: query
+          schema: { type: string }
+          example: Mumbai Metro
+      responses:
+        '200':
+          description: Lines
+          content:
+            application/json:
+              example:
+                count: 1
+                items:
+                  - key: 'Mumbai Metro:1'
+                    label: Line 1
+                    mode: subway
+                    network: Mumbai Metro
+                    ref: '1'
+                    colour: '#2b6cd4'
+                    length_m: 11240
+                    bbox: [72.81, 19.08, 72.91, 19.13]
+                    routes: [{ id: 3808111, line_key: 'Mumbai Metro:1', label: Line 1, from: Versova, to: Ghatkopar, stop_count: 12, length_m: 11240 }]
+
+  /api/v1/transit/routes/{id}:
+    get:
+      tags: [Transit]
+      operationId: getTransitRoute
+      summary: Route detail
+      description: One route relation with its ordered stops and MultiLineString geometry. With `format=geojson` returns a FeatureCollection of the line and numbered stops.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: OSM relation id.
+          schema: { type: integer }
+          example: 3808111
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200': { description: Route }
+        '404': { description: Not found }
+
+  /api/v1/transit/stations:
+    get:
+      tags: [Transit]
+      operationId: listStations
+      summary: Stations
+      description: Railway, metro and monorail stations with the lines that serve them.
+      parameters:
+        - name: mode
+          in: query
+          schema: { type: string, enum: [metro, monorail, railway] }
+          example: metro
+        - $ref: '#/components/parameters/area'
+        - $ref: '#/components/parameters/bbox'
+      responses:
+        '200': { description: Stations }
+
+  /tiles/bombaychitra.json:
+    get:
+      tags: [Tiles]
+      operationId: getTileJSON
+      summary: TileJSON
+      description: TileJSON 3.0 for the vector tileset, including the `vector_layers` schema (see [Vector tiles](/docs/tiles/)).
+      responses:
+        '200': { description: TileJSON }
+
+  /tiles/{z}/{x}/{y}.mvt:
+    get:
+      tags: [Tiles]
+      operationId: getTile
+      summary: Vector tile
+      description: A Mapbox Vector Tile (gzip-encoded when the client accepts it). `204 No Content` for empty tiles.
+      parameters:
+        - { name: z, in: path, required: true, schema: { type: integer }, example: 14 }
+        - { name: x, in: path, required: true, schema: { type: integer }, example: 11505 }
+        - { name: y, in: path, required: true, schema: { type: integer }, example: 7300 }
+      responses:
+        '200': { description: Tile (application/vnd.mapbox-vector-tile) }
+        '204': { description: Empty tile }
+
+  /styles/{name}.json:
+    get:
+      tags: [Tiles]
+      operationId: getStyle
+      summary: Map style
+      description: MapLibre style (`light` or `dark`) with absolute URLs for this server — usable from MapLibre GL JS, MapLibre Native (Android, iOS), Flutter, React Native and QGIS.
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string, enum: [light, dark] }, example: dark }
+      responses:
+        '200': { description: Style JSON }

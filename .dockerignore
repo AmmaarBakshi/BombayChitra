@@ -1,0 +1,9 @@
+.git
+data
+bin
+**/node_modules
+pipeline/build
+server/bin
+server/internal/webui/dist/*
+!server/internal/webui/dist/.gitkeep
+*.log

@@ -1,0 +1,31 @@
+{
+  "name": "@bombaychitra/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BombayChitra map app and documentation site",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "fetch-fonts": "node build/fetch-fonts.mjs"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.13.0"
+  },
+  "devDependencies": {
+    "@mapbox/maki": "^8.2.0",
+    "@maplibre/maplibre-gl-style-spec": "^26.4.4",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^24.19.2",
+    "marked": "^18.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "yaml": "^2.9.1"
+  }
+}

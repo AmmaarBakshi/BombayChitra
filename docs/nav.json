@@ -1,0 +1,9 @@
+{
+  "sections": [
+    { "title": "Introduction", "pages": ["index", "getting-started", "architecture"] },
+    { "title": "Data", "pages": ["data", "tiles", "database", "configuration"] },
+    { "title": "Build & run", "pages": ["pipeline", "server", "deployment"] },
+    { "title": "Use it anywhere", "pages": ["api", "api-reference", "integrations", "styles"] },
+    { "title": "Project", "pages": ["contributing", "license"] }
+  ]
+}

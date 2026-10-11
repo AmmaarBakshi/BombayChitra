@@ -1,0 +1,23 @@
+# Examples
+
+Small, runnable programs that use BombayChitra from different languages. Start a server first
+(`bombaychitra serve`, see [Getting started](../docs/getting-started.md)); every example reads the server origin
+from `BOMBAYCHITRA_URL` (default `http://localhost:8080`).
+
+| Language | File | What it does | Run |
+|---|---|---|---|
+| Shell | [`curl/examples.sh`](curl/examples.sh) | A tour of the API with curl | `sh curl/examples.sh` |
+| Python | [`python/nearby.py`](python/nearby.py) | Nearest hospitals to a point (standard library only) | `python python/nearby.py` |
+| Python | [`python/offline_sqlite.py`](python/offline_sqlite.py) | Query `bombaychitra.db` directly, no server | `python python/offline_sqlite.py data/build/bombaychitra.db` |
+| JavaScript | [`javascript/search.mjs`](javascript/search.mjs) | Search and reverse geocoding (Node 18+) | `node javascript/search.mjs "gateway of india"` |
+| HTML | [`html/embed.html`](html/embed.html) | Embed the map in any web page | open in a browser |
+| Go | [`go/main.go`](go/main.go) | Metro and suburban lines with colours and lengths | `go run go/main.go` |
+| Java | [`java/Bridges.java`](java/Bridges.java) | Longest named bridges (Java 21+) | `java java/Bridges.java` |
+| C# | [`csharp/Buildings.cs`](csharp/Buildings.cs) | Tallest buildings (.NET 10 file-based app) | `dotnet run csharp/Buildings.cs` |
+| PHP | [`php/atms.php`](php/atms.php) | ATMs in an area | `php php/atms.php thane` |
+| Ruby | [`ruby/stations.rb`](ruby/stations.rb) | Metro stations and the lines serving them | `ruby ruby/stations.rb` |
+| Rust | [`rust/`](rust/src/main.rs) | Area statistics | `cargo run --manifest-path rust/Cargo.toml -- makabo` |
+| R | [`r/colleges.R`](r/colleges.R) | Colleges in MaKaBo as an `sf` data frame | `Rscript r/colleges.R` |
+| SQL | [`sql/queries.sql`](sql/queries.sql) | Useful queries for the SQLite database | `sqlite3 data/build/bombaychitra.db < sql/queries.sql` |
+
+For other languages, generate a client from `/openapi.json` — see [Integrations](../docs/integrations.md).

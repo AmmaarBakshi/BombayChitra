@@ -1,0 +1,118 @@
+{
+  "$schema": "./schema/region.schema.json",
+  "id": "mmr",
+  "name": "Mumbai Metropolitan Region",
+  "description": "Mumbai City, Mumbai Suburban, Thane District, Navi Mumbai and the wider MMR, built from OpenStreetMap.",
+  "bounds": [72.70, 18.80, 73.85, 19.82],
+  "center": [72.8777, 19.0760],
+  "zoom": 11,
+  "maxzoom": 15,
+  "source": {
+    "name": "Geofabrik India · Western Zone",
+    "url": "https://download.geofabrik.de/asia/india/western-zone-latest.osm.pbf",
+    "file": "western-zone.osm.pbf"
+  },
+  "areas": [
+    {
+      "id": "mmr",
+      "name": "Mumbai Metropolitan Region",
+      "short": "MMR",
+      "kind": "region",
+      "relations": [13312356]
+    },
+    {
+      "id": "mumbai-city",
+      "name": "Mumbai City",
+      "short": "City",
+      "kind": "district",
+      "relations": [7964376]
+    },
+    {
+      "id": "mumbai-suburban",
+      "name": "Mumbai Suburban",
+      "short": "Suburbs",
+      "kind": "district",
+      "relations": [7964375]
+    },
+    {
+      "id": "makabo",
+      "name": "MaKaBo",
+      "short": "MaKaBo",
+      "kind": "zone",
+      "description": "Malad, Kandivali and Borivali — BMC wards P/N, R/S and R/C.",
+      "relations": [7885384, 7885376, 7885385]
+    },
+    {
+      "id": "thane-district",
+      "name": "Thane District",
+      "short": "Thane Dist.",
+      "kind": "district",
+      "relations": [7965684]
+    },
+    {
+      "id": "thane",
+      "name": "Thane City",
+      "short": "Thane",
+      "kind": "city",
+      "relations": [7120000]
+    },
+    {
+      "id": "navi-mumbai",
+      "name": "Navi Mumbai",
+      "short": "Navi Mumbai",
+      "kind": "city",
+      "relations": [13180880]
+    },
+    {
+      "id": "mira-bhayandar",
+      "name": "Mira-Bhayandar",
+      "short": "Mira-Bhayandar",
+      "kind": "city",
+      "relations": [13180677]
+    },
+    {
+      "id": "kalyan-dombivli",
+      "name": "Kalyan-Dombivli",
+      "short": "Kalyan-Dombivli",
+      "kind": "city",
+      "relations": [13184538]
+    },
+    {
+      "id": "vasai-virar",
+      "name": "Vasai-Virar",
+      "short": "Vasai-Virar",
+      "kind": "city",
+      "relations": [13253971]
+    },
+    {
+      "id": "panvel",
+      "name": "Panvel",
+      "short": "Panvel",
+      "kind": "city",
+      "relations": [13182526]
+    }
+  ],
+  "transit": {
+    "modes": ["subway", "light_rail", "monorail", "tram", "train"],
+    "trainNetworks": ["Mumbai Suburban Railway"],
+    "colourAliases": {
+      "blue": "#2B6CD4",
+      "yellow": "#F2B705",
+      "aqua": "#00A3B4",
+      "green": "#2E9E4F",
+      "red": "#E03131",
+      "orange": "#F76B15",
+      "pink": "#E64980",
+      "purple": "#7048E8",
+      "brown": "#8D6748",
+      "gold": "#C9A227"
+    },
+    "modeColours": {
+      "subway": "#5C6AC4",
+      "light_rail": "#5C6AC4",
+      "monorail": "#B04FA0",
+      "tram": "#B04FA0",
+      "train": "#6B7280"
+    }
+  }
+}

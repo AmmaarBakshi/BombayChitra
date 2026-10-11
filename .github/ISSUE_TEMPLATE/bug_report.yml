@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in the app, API, data build or docs is not working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Wrong or missing map data?** Please fix it on [openstreetmap.org](https://www.openstreetmap.org) — every detail card links there. Use this form for software bugs.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the map link (the URL contains the position and selection) and screenshots if visual.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `bombaychitra version`, or the commit hash.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Component
+      options: [Web app, API / server, Data pipeline, Documentation, Docker / deployment]
+    validations:
+      required: true

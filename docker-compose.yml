@@ -1,0 +1,25 @@
+# Build the data once, then serve it:
+#   docker compose run --rm pipeline
+#   docker compose up -d server        → http://localhost:8080
+services:
+  pipeline:
+    build:
+      context: .
+      dockerfile: pipeline/Dockerfile
+    volumes:
+      - ./data:/work
+    profiles: [build]
+
+  server:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    image: bombaychitra:${VERSION:-dev}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/build:/data:ro
+    environment:
+      BC_PUBLIC_URL: ${BC_PUBLIC_URL:-}
+    restart: unless-stopped

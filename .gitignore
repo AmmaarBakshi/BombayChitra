@@ -1,0 +1,25 @@
+# Build outputs & downloaded data (published as release assets, never committed)
+/data/*
+!/data/README.md
+*.pmtiles
+*.mbtiles
+*.osm.pbf
+*.sqlite
+*.db
+
+# Toolchains
+node_modules/
+/web/dist/
+/server/internal/webui/dist/*
+!/server/internal/webui/dist/.gitkeep
+/server/bin/
+/pipeline/build/
+/bin/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.log

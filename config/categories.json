@@ -1,0 +1,320 @@
+{
+  "$schema": "./schema/categories.schema.json",
+  "version": 1,
+  "notes": "Rules are evaluated top to bottom; the first matching category wins. A rule matches when every key matches. Values: exact string, list of strings, \"*\" (any value except \"no\"), or \"!value\" (tag absent or different).",
+  "groups": [
+    {
+      "id": "transport",
+      "label": "Transport",
+      "colour": "#0B84E6",
+      "categories": [
+        { "id": "metro_station", "label": "Metro stations", "icon": "rail-metro", "rank": 1, "minzoom": 11,
+          "match": [
+            { "railway": ["station", "halt"], "station": ["subway", "light_rail"] },
+            { "railway": ["station", "halt"], "subway": "yes" },
+            { "railway": ["station", "halt"], "light_rail": "yes" },
+            { "public_transport": "station", "subway": "yes" }
+          ] },
+        { "id": "monorail_station", "label": "Monorail stations", "icon": "rail-light", "rank": 1, "minzoom": 12,
+          "match": [
+            { "railway": ["station", "halt"], "station": "monorail" },
+            { "railway": ["station", "halt"], "monorail": "yes" },
+            { "public_transport": "station", "monorail": "yes" }
+          ] },
+        { "id": "railway_station", "label": "Railway stations", "icon": "rail", "rank": 1, "minzoom": 10,
+          "match": [
+            { "railway": ["station", "halt"] },
+            { "public_transport": "station", "train": "yes" }
+          ] },
+        { "id": "airport", "label": "Airports", "icon": "airport", "rank": 1, "minzoom": 9,
+          "match": [
+            { "aeroway": "aerodrome" },
+            { "aeroway": "terminal", "name": "*" }
+          ] },
+        { "id": "bus_station", "label": "Bus depots & stations", "icon": "bus", "rank": 2, "minzoom": 13,
+          "match": [
+            { "amenity": "bus_station" },
+            { "public_transport": "station", "bus": "yes" }
+          ] },
+        { "id": "bus_stop", "label": "Bus stops", "icon": "bus", "rank": 4, "minzoom": 15,
+          "match": [
+            { "highway": "bus_stop" },
+            { "public_transport": "platform", "bus": "yes" }
+          ] },
+        { "id": "ferry_terminal", "label": "Ferry terminals & jetties", "icon": "ferry", "rank": 2, "minzoom": 12,
+          "match": [
+            { "amenity": "ferry_terminal" },
+            { "public_transport": "station", "ferry": "yes" }
+          ] },
+        { "id": "fuel", "label": "Fuel & CNG stations", "icon": "fuel", "rank": 3, "minzoom": 14,
+          "match": [{ "amenity": "fuel" }] },
+        { "id": "ev_charging", "label": "EV charging", "icon": "charging-station", "rank": 3, "minzoom": 14,
+          "match": [{ "amenity": "charging_station" }] },
+        { "id": "taxi", "label": "Taxi & auto stands", "icon": "taxi", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": "taxi" }] },
+        { "id": "parking", "label": "Parking", "icon": "parking", "rank": 5, "minzoom": 15,
+          "match": [{ "amenity": ["parking", "motorcycle_parking"] }] },
+        { "id": "bike_share", "label": "Bike & scooter sharing", "icon": "bicycle-share", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["bicycle_rental", "scooter_rental"] }] },
+        { "id": "vehicle_services", "label": "Vehicle services", "icon": "car-repair", "rank": 5, "minzoom": 15,
+          "match": [
+            { "shop": ["car_repair", "car", "motorcycle", "motorcycle_repair", "tyres", "car_parts"] },
+            { "amenity": ["car_wash", "car_rental", "vehicle_inspection"] }
+          ] }
+      ]
+    },
+    {
+      "id": "health",
+      "label": "Health",
+      "colour": "#E5484D",
+      "categories": [
+        { "id": "hospital", "label": "Hospitals", "icon": "hospital", "rank": 1, "minzoom": 12,
+          "match": [{ "amenity": "hospital" }, { "healthcare": "hospital" }] },
+        { "id": "clinic", "label": "Clinics & doctors", "icon": "doctor", "rank": 3, "minzoom": 15,
+          "match": [
+            { "amenity": ["clinic", "doctors"] },
+            { "healthcare": ["clinic", "doctor", "centre", "rehabilitation", "physiotherapist", "alternative", "counselling", "psychotherapist", "optometrist", "audiologist", "nurse", "midwife"] }
+          ] },
+        { "id": "dentist", "label": "Dentists", "icon": "dentist", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": "dentist" }, { "healthcare": "dentist" }] },
+        { "id": "pharmacy", "label": "Pharmacies & chemists", "icon": "pharmacy", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "pharmacy" }, { "healthcare": "pharmacy" }, { "shop": ["chemist", "medical_supply"] }] },
+        { "id": "diagnostics", "label": "Labs & blood banks", "icon": "blood-bank", "rank": 4, "minzoom": 15,
+          "match": [{ "healthcare": ["laboratory", "blood_donation", "blood_bank", "sample_collection", "diagnostics"] }] },
+        { "id": "veterinary", "label": "Veterinary", "icon": "veterinary", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": "veterinary" }] }
+      ]
+    },
+    {
+      "id": "education",
+      "label": "Education",
+      "colour": "#3E63DD",
+      "categories": [
+        { "id": "university", "label": "Universities", "icon": "college", "rank": 1, "minzoom": 12,
+          "match": [{ "amenity": "university" }] },
+        { "id": "research", "label": "Research institutes", "icon": "college", "rank": 2, "minzoom": 13,
+          "match": [{ "amenity": "research_institute" }, { "office": "research" }] },
+        { "id": "college", "label": "Colleges", "icon": "college", "rank": 2, "minzoom": 13,
+          "match": [{ "amenity": "college" }] },
+        { "id": "school", "label": "Schools", "icon": "school", "rank": 2, "minzoom": 14,
+          "match": [{ "amenity": "school" }] },
+        { "id": "kindergarten", "label": "Pre-schools & daycare", "icon": "school", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["kindergarten", "childcare"] }] },
+        { "id": "library", "label": "Libraries", "icon": "library", "rank": 3, "minzoom": 14,
+          "match": [{ "amenity": "library" }] },
+        { "id": "coaching", "label": "Coaching & training", "icon": "school", "rank": 4, "minzoom": 15,
+          "match": [
+            { "amenity": ["training", "prep_school", "language_school", "music_school", "driving_school", "dancing_school"] },
+            { "office": "educational_institution" }
+          ] }
+      ]
+    },
+    {
+      "id": "finance",
+      "label": "Banking",
+      "colour": "#0E9F8E",
+      "categories": [
+        { "id": "bank", "label": "Banks", "icon": "bank", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "bank" }] },
+        { "id": "atm", "label": "ATMs", "icon": "atm", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": "atm" }] },
+        { "id": "money_exchange", "label": "Money exchange & transfer", "icon": "bank", "rank": 5, "minzoom": 15,
+          "match": [{ "amenity": ["bureau_de_change", "money_transfer", "payment_centre"] }] }
+      ]
+    },
+    {
+      "id": "food",
+      "label": "Food & drink",
+      "colour": "#F2700F",
+      "categories": [
+        { "id": "restaurant", "label": "Restaurants", "icon": "restaurant", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "restaurant" }] },
+        { "id": "cafe", "label": "Cafés", "icon": "cafe", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "cafe" }] },
+        { "id": "fast_food", "label": "Fast & street food", "icon": "fast-food", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["fast_food", "food_court"] }] },
+        { "id": "bar", "label": "Bars & pubs", "icon": "bar", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["bar", "pub", "biergarten"] }] },
+        { "id": "ice_cream", "label": "Ice cream & juice", "icon": "ice-cream", "rank": 5, "minzoom": 15,
+          "match": [{ "amenity": "ice_cream" }, { "shop": ["ice_cream", "juice"] }] },
+        { "id": "bakery", "label": "Bakeries & sweets", "icon": "bakery", "rank": 5, "minzoom": 15,
+          "match": [{ "shop": ["bakery", "confectionery", "pastry", "chocolate"] }] }
+      ]
+    },
+    {
+      "id": "lodging",
+      "label": "Stay",
+      "colour": "#8E4EC6",
+      "categories": [
+        { "id": "hotel", "label": "Hotels & resorts", "icon": "lodging", "rank": 2, "minzoom": 14,
+          "match": [{ "tourism": "hotel" }, { "leisure": "resort" }] },
+        { "id": "guest_house", "label": "Guest houses & hostels", "icon": "lodging", "rank": 4, "minzoom": 15,
+          "match": [{ "tourism": ["guest_house", "hostel", "motel", "apartment", "chalet"] }] }
+      ]
+    },
+    {
+      "id": "sports",
+      "label": "Sports",
+      "colour": "#2F9E5B",
+      "categories": [
+        { "id": "stadium", "label": "Stadiums", "icon": "stadium", "rank": 1, "minzoom": 12,
+          "match": [{ "leisure": "stadium" }] },
+        { "id": "sports_club", "label": "Sports clubs & gymkhanas", "icon": "cricket", "rank": 2, "minzoom": 14,
+          "match": [{ "club": ["sport", "sports"] }, { "leisure": "sports_club" }, { "club": "*", "sport": "*" }] },
+        { "id": "ground", "label": "Grounds & maidans", "icon": "pitch", "rank": 2, "minzoom": 13,
+          "match": [
+            { "landuse": "recreation_ground" },
+            { "leisure": ["recreation_ground", "common"] },
+            { "leisure": "pitch", "name": "*" }
+          ] },
+        { "id": "sports_centre", "label": "Sports complexes", "icon": "pitch", "rank": 3, "minzoom": 14,
+          "match": [{ "leisure": ["sports_centre", "sports_hall", "track", "ice_rink", "bowling_alley"] }] },
+        { "id": "swimming", "label": "Swimming pools", "icon": "swimming", "rank": 3, "minzoom": 15,
+          "match": [{ "leisure": "swimming_pool", "access": ["!private", "!no", "!customers"] }] },
+        { "id": "fitness", "label": "Gyms & fitness", "icon": "fitness-centre", "rank": 4, "minzoom": 15,
+          "match": [{ "leisure": ["fitness_centre", "fitness_station"] }] },
+        { "id": "golf", "label": "Golf courses", "icon": "golf", "rank": 2, "minzoom": 12,
+          "match": [{ "leisure": "golf_course" }] }
+      ]
+    },
+    {
+      "id": "leisure",
+      "label": "Parks & culture",
+      "colour": "#B7791F",
+      "categories": [
+        { "id": "nature_reserve", "label": "National parks & reserves", "icon": "natural", "rank": 1, "minzoom": 10,
+          "match": [
+            { "leisure": "nature_reserve" },
+            { "boundary": "national_park" },
+            { "boundary": "protected_area", "name": "*" }
+          ] },
+        { "id": "beach", "label": "Beaches", "icon": "beach", "rank": 1, "minzoom": 11,
+          "match": [{ "natural": "beach" }] },
+        { "id": "park", "label": "Parks & gardens", "icon": "park", "rank": 2, "minzoom": 13,
+          "match": [{ "leisure": ["park", "garden"], "access": ["!private", "!no"] }] },
+        { "id": "attraction", "label": "Attractions", "icon": "attraction", "rank": 1, "minzoom": 12,
+          "match": [{ "tourism": ["attraction", "theme_park"] }, { "leisure": "water_park" }] },
+        { "id": "zoo", "label": "Zoos & aquariums", "icon": "zoo", "rank": 1, "minzoom": 12,
+          "match": [{ "tourism": ["zoo", "aquarium"] }] },
+        { "id": "museum", "label": "Museums & galleries", "icon": "museum", "rank": 2, "minzoom": 13,
+          "match": [{ "tourism": ["museum", "gallery"] }] },
+        { "id": "heritage", "label": "Heritage & forts", "icon": "monument", "rank": 2, "minzoom": 13,
+          "match": [{ "historic": ["monument", "fort", "castle", "ruins", "archaeological_site", "city_gate", "building", "manor"] }] },
+        { "id": "memorial", "label": "Statues & memorials", "icon": "monument", "rank": 4, "minzoom": 15,
+          "match": [{ "historic": ["memorial", "wayside_shrine"] }, { "tourism": "artwork" }] },
+        { "id": "viewpoint", "label": "Viewpoints", "icon": "viewpoint", "rank": 3, "minzoom": 14,
+          "match": [{ "tourism": "viewpoint" }] },
+        { "id": "cinema", "label": "Cinemas", "icon": "cinema", "rank": 2, "minzoom": 14,
+          "match": [{ "amenity": "cinema" }] },
+        { "id": "theatre", "label": "Theatres & arts", "icon": "theatre", "rank": 2, "minzoom": 14,
+          "match": [{ "amenity": ["theatre", "arts_centre", "concert_hall"] }] },
+        { "id": "nightlife", "label": "Nightlife", "icon": "nightclub", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["nightclub", "casino", "karaoke_box"] }] },
+        { "id": "playground", "label": "Playgrounds", "icon": "playground", "rank": 4, "minzoom": 15,
+          "match": [{ "leisure": "playground" }] }
+      ]
+    },
+    {
+      "id": "shopping",
+      "label": "Shopping",
+      "colour": "#D23C91",
+      "categories": [
+        { "id": "mall", "label": "Malls & department stores", "icon": "shop", "rank": 2, "minzoom": 13,
+          "match": [{ "shop": ["mall", "department_store"] }] },
+        { "id": "market", "label": "Markets", "icon": "shop", "rank": 2, "minzoom": 14,
+          "match": [{ "amenity": "marketplace" }] },
+        { "id": "supermarket", "label": "Supermarkets", "icon": "grocery", "rank": 3, "minzoom": 15,
+          "match": [{ "shop": ["supermarket", "wholesale", "hypermarket"] }] },
+        { "id": "grocery", "label": "Groceries & kiranas", "icon": "convenience", "rank": 5, "minzoom": 15,
+          "match": [{ "shop": ["convenience", "general", "greengrocer", "grocery", "kiosk", "dairy", "butcher", "seafood", "frozen_food", "farm", "beverages", "deli", "spices", "variety_store", "water"] }] },
+        { "id": "electronics", "label": "Electronics & mobiles", "icon": "mobile-phone", "rank": 5, "minzoom": 15,
+          "match": [{ "shop": ["electronics", "mobile_phone", "computer", "hifi", "appliance", "telecommunication"] }] },
+        { "id": "fashion", "label": "Fashion & jewellery", "icon": "clothing-store", "rank": 5, "minzoom": 15,
+          "match": [{ "shop": ["clothes", "shoes", "fashion", "boutique", "tailor", "fabric", "jewelry", "bag", "watches", "fashion_accessories", "cosmetics", "perfumery"] }] },
+        { "id": "services", "label": "Salons & services", "icon": "hairdresser", "rank": 5, "minzoom": 15,
+          "match": [
+            { "shop": ["hairdresser", "beauty", "laundry", "dry_cleaning", "massage", "tattoo", "photo", "copyshop", "travel_agency", "optician"] },
+            { "amenity": "coworking_space" }
+          ] },
+        { "id": "shop", "label": "Other shops", "icon": "shop", "rank": 5, "minzoom": 15,
+          "match": [{ "shop": "*" }] }
+      ]
+    },
+    {
+      "id": "civic",
+      "label": "Civic & emergency",
+      "colour": "#5B6B7F",
+      "categories": [
+        { "id": "police", "label": "Police", "icon": "police", "rank": 1, "minzoom": 13,
+          "match": [{ "amenity": "police" }] },
+        { "id": "fire_station", "label": "Fire stations", "icon": "fire-station", "rank": 1, "minzoom": 13,
+          "match": [{ "amenity": "fire_station" }] },
+        { "id": "emergency", "label": "Ambulance & emergency", "icon": "emergency-phone", "rank": 3, "minzoom": 15,
+          "match": [{ "emergency": ["ambulance_station", "emergency_ward_entrance"] }] },
+        { "id": "government", "label": "Government & courts", "icon": "town-hall", "rank": 2, "minzoom": 14,
+          "match": [{ "amenity": ["townhall", "courthouse"] }, { "office": ["government", "administrative"] }] },
+        { "id": "post_office", "label": "Post offices", "icon": "post", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "post_office" }] },
+        { "id": "embassy", "label": "Embassies & consulates", "icon": "embassy", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "embassy" }, { "office": ["diplomatic", "embassy", "consulate"] }] },
+        { "id": "community", "label": "Community & event halls", "icon": "residential-community", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": ["community_centre", "social_facility", "social_centre", "events_venue", "conference_centre", "exhibition_centre"] }] },
+        { "id": "toilets", "label": "Public toilets", "icon": "toilet", "rank": 5, "minzoom": 15,
+          "match": [{ "amenity": "toilets" }] },
+        { "id": "drinking_water", "label": "Drinking water", "icon": "drinking-water", "rank": 5, "minzoom": 15,
+          "match": [{ "amenity": "drinking_water" }] }
+      ]
+    },
+    {
+      "id": "worship",
+      "label": "Places of worship",
+      "colour": "#A86F47",
+      "categories": [
+        { "id": "temple", "label": "Hindu temples", "icon": "place-of-worship", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "hindu" }] },
+        { "id": "mosque", "label": "Mosques & dargahs", "icon": "religious-muslim", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "muslim" }] },
+        { "id": "church", "label": "Churches", "icon": "religious-christian", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "christian" }] },
+        { "id": "gurudwara", "label": "Gurudwaras", "icon": "place-of-worship", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "sikh" }] },
+        { "id": "jain_temple", "label": "Jain derasars", "icon": "place-of-worship", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "jain" }] },
+        { "id": "buddhist", "label": "Buddhist viharas", "icon": "religious-buddhist", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "buddhist" }] },
+        { "id": "agiary", "label": "Agiaries & fire temples", "icon": "place-of-worship", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "zoroastrian" }] },
+        { "id": "synagogue", "label": "Synagogues", "icon": "religious-jewish", "rank": 3, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship", "religion": "jewish" }] },
+        { "id": "worship", "label": "Other places of worship", "icon": "place-of-worship", "rank": 4, "minzoom": 15,
+          "match": [{ "amenity": "place_of_worship" }] }
+      ]
+    },
+    {
+      "id": "business",
+      "label": "Business & industry",
+      "colour": "#6E7287",
+      "categories": [
+        { "id": "business_district", "label": "Business districts & IT parks", "icon": "commercial", "rank": 2, "minzoom": 13,
+          "match": [{ "landuse": "commercial", "name": "*" }] },
+        { "id": "industrial", "label": "Industrial estates & works", "icon": "industry", "rank": 3, "minzoom": 14,
+          "match": [{ "man_made": "works" }, { "landuse": "industrial", "name": "*" }] },
+        { "id": "office", "label": "Offices & companies", "icon": "suitcase", "rank": 5, "minzoom": 15,
+          "match": [{ "office": "*" }] }
+      ]
+    },
+    {
+      "id": "buildings",
+      "label": "Buildings & societies",
+      "colour": "#7A6E64",
+      "categories": [
+        { "id": "landmark_building", "label": "Landmark buildings", "icon": "building", "rank": 3, "minzoom": 15,
+          "match": [{ "building": ["commercial", "office", "retail", "hotel", "public", "civic", "government", "train_station", "transportation", "stadium", "hospital", "school", "university", "college", "church", "temple", "mosque", "industrial", "warehouse"], "name": "*" }] },
+        { "id": "residential_building", "label": "Housing societies & towers", "icon": "building-alt1", "rank": 5, "minzoom": 15,
+          "match": [{ "building": "*", "name": "*" }] },
+        { "id": "residential_complex", "label": "Residential complexes", "icon": "residential-community", "rank": 4, "minzoom": 14,
+          "match": [{ "landuse": "residential", "name": "*" }] }
+      ]
+    }
+  ]
+}

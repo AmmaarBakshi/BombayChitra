@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Fix map data on OpenStreetMap
+    url: https://www.openstreetmap.org
+    about: Names, buildings, places and roads come from OpenStreetMap — edit them there.
