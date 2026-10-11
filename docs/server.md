@@ -33,6 +33,8 @@ Every flag has an environment variable, which is convenient in containers.
 | `--rate-burst` | `BC_RATE_BURST` | rate ÷ 10 (min. 10) | API requests a client may make at once |
 | `--api-keys` | `BC_API_KEYS` | none | Comma-separated API keys, or `@file` with one key per line (`#` comments allowed) |
 | `--require-key` | `BC_REQUIRE_KEY` | `false` | Reject API requests without a valid key |
+| `--metrics` | `BC_METRICS` | `true` | Expose Prometheus metrics at `/metrics` |
+| `--metrics-addr` | `BC_METRICS_ADDR` | main address | Serve `/metrics` on a separate address instead, e.g. `127.0.0.1:9090` |
 
 ### Endpoints
 
@@ -47,6 +49,8 @@ Every flag has an environment variable, which is convenient in containers.
 | `/data/bombaychitra.pmtiles`, `/data/bombaychitra.db` | Raw downloads with range support |
 | `/openapi.json`, `/openapi.yaml` | API specification |
 | `/healthz` | Liveness probe: `{"status":"ok","version":"…","dataset":"…"}` |
+| `/api/v1/health` | Readiness and status: database, tiles and routing checks, dataset age; `503` when the database is unreadable |
+| `/metrics` | Prometheus metrics (see [Monitoring](#monitoring)) |
 
 ### Rate limiting and API keys
 
@@ -91,6 +95,62 @@ styles stay public.
   are cached for a year (`immutable`); HTML is revalidated with an `ETag`.
 
 This makes BombayChitra well suited to running behind a CDN.
+
+### Monitoring
+
+`/healthz` answers as long as the process runs — use it as the liveness probe. `/api/v1/health` checks the
+components and is the better readiness probe:
+
+```json
+{
+  "status": "ok",
+  "version": "v0.1.0",
+  "uptime_s": 86400,
+  "dataset": { "built_at": "2026-10-11T14:33:58Z", "source_timestamp": "2026-10-10T20:21:02Z", "schema_version": "2", "age_days": 1.2 },
+  "checks": {
+    "database": { "status": "ok", "latency_ms": 0.08 },
+    "tiles": { "status": "ok", "detail": { "tiles": 31744, "minzoom": 0, "maxzoom": 15 } },
+    "routing": { "status": "ok", "detail": { "vertices": 170184, "segments": 211887, "edges": 376888 } }
+  }
+}
+```
+
+The routing check reports `not_loaded` until the first route request (the graph is loaded lazily), which is not an
+error.
+
+`/metrics` serves [Prometheus](https://prometheus.io) metrics in the text format, without any third-party
+library:
+
+| Metric | Type | Labels |
+|---|---|---|
+| `bombaychitra_http_requests_total` | counter | `route` (the matched pattern, e.g. `/api/v1/places/{id}`), `method`, `code` |
+| `bombaychitra_http_request_duration_seconds` | histogram | `route` |
+| `bombaychitra_http_response_bytes_total` | counter | `route` |
+| `bombaychitra_http_rate_limited_total` | counter | `route` |
+| `bombaychitra_http_in_flight_requests` | gauge | |
+| `bombaychitra_route_searches_total` | counter | `mode`, `outcome` (`ok`, `no_road`, `no_route`, `unavailable`, `error`) |
+| `bombaychitra_route_search_duration_seconds` | histogram | `mode` |
+| `bombaychitra_route_settled_vertices` | histogram | `mode` |
+| `bombaychitra_routing_graph_vertices` | gauge | |
+| `bombaychitra_rate_limit_clients` | gauge | |
+| `bombaychitra_build_info` | gauge | `version`, `dataset`, `schema` |
+| `bombaychitra_uptime_seconds`, `bombaychitra_dataset_age_seconds` | gauge | |
+| `go_goroutines`, `go_memstats_heap_alloc_bytes` | gauge | |
+
+A scrape configuration:
+
+```yaml
+scrape_configs:
+  - job_name: bombaychitra
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:8080']
+```
+
+On a public server keep the metrics private: either serve them on a separate address that only your monitoring
+can reach (`--metrics-addr 127.0.0.1:9090`) or turn them off (`--metrics=false`). Useful alerts are
+`bombaychitra_dataset_age_seconds > 14 * 86400` (the weekly data refresh stopped) and a rising share of `5xx`
+codes in `bombaychitra_http_requests_total`.
 
 ### Operational notes
 
