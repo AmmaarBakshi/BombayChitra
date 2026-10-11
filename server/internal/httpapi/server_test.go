@@ -167,6 +167,27 @@ func TestHealth(t *testing.T) {
 	}
 }
 
+func TestHealthFailsWithoutDatabase(t *testing.T) {
+	db := filepath.Join("..", "..", "..", "data", "build", "bombaychitra.db")
+	if _, err := os.Stat(db); err != nil {
+		t.Skip("dataset not built")
+	}
+	st, err := store.Open(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Close() // a database that has gone away, e.g. deleted or unmounted under a running server
+	h := New(config.Config{}, st, nil, nil).Handler()
+	rec, body := get(t, h, "/api/v1/health")
+	if rec.Code != http.StatusServiceUnavailable || body["status"] != "error" {
+		t.Fatalf("health without a database: %d %v", rec.Code, body)
+	}
+	checks, _ := body["checks"].(map[string]any)
+	if tiles, _ := checks["tiles"].(map[string]any); tiles["status"] != "missing" {
+		t.Errorf("tiles check: %v", checks["tiles"])
+	}
+}
+
 func TestMetrics(t *testing.T) {
 	h := testServer(t)
 	get(t, h, "/api/v1/meta")
