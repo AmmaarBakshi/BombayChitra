@@ -6,10 +6,11 @@ styles, raw data downloads, the web app and these docs.
 ## Commands
 
 ```text
-bombaychitra serve   [flags]   run the HTTP server
-bombaychitra export  [flags]   export data as GeoJSON, NDJSON or CSV
-bombaychitra info    [flags]   print dataset information
-bombaychitra version           print the version
+bombaychitra serve    [flags]   run the HTTP server
+bombaychitra export   [flags]   export data as GeoJSON, NDJSON or CSV
+bombaychitra info     [flags]   print dataset information
+bombaychitra download [flags]   download the published dataset
+bombaychitra version            print the version
 ```
 
 ## `serve`
@@ -179,3 +180,26 @@ bombaychitra export --kind places --category hospital --area makabo --format geo
 ## `info`
 
 Prints dataset metadata (build time, source timestamp, counts) and tile archive statistics.
+
+## `download`
+
+Fetches `bombaychitra.pmtiles` and `bombaychitra.db` from a GitHub release, so a server can run without building
+the data:
+
+```text
+bombaychitra download                          # data-latest → data/build
+bombaychitra download --release v0.1.0         # the dataset a version was released with
+bombaychitra download --data /srv/bombaychitra --force
+```
+
+| Flag | Env | Default | Description |
+|---|---|---|---|
+| `--data` | `BC_DATA` | `data/build` | Directory to download into |
+| `--release` | `BC_DATA_RELEASE` | `data-latest` | Release tag |
+| `--repo` | `BC_DATA_REPO` | `AmmaarBakshi/BombayChitra` | Repository publishing the data (for forks) |
+| `--url` | | | Download from this base URL instead (a mirror or your own bucket) |
+| `--force` | | `false` | Download even when the local files match the published checksums |
+
+Files are checked against the release's `SHA256SUMS`, downloaded beside the destination (`*.part`) and renamed into
+place together only when both are intact. Files that already match are skipped, so running it on a schedule costs
+one small request when nothing changed. Restart the server afterwards to serve new data.
