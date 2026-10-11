@@ -13,6 +13,7 @@ import (
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/config"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/ratelimit"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/store"
 )
@@ -22,13 +23,14 @@ var Version = "dev"
 
 // Server bundles the data sources and the static web assets.
 type Server struct {
-	cfg    config.Config
-	store  *store.Store
-	tiles  *pmtiles.Reader
-	web    fs.FS
-	static *staticHandler
-	routes *routing.Service
-	styles sync.Map // base URL + name → rendered style bytes
+	cfg     config.Config
+	store   *store.Store
+	tiles   *pmtiles.Reader
+	web     fs.FS
+	static  *staticHandler
+	routes  *routing.Service
+	limiter *ratelimit.Limiter // nil when rate limiting is off
+	styles  sync.Map           // base URL + name → rendered style bytes
 }
 
 // New creates a server. web is the built web app (embedded or on disk) and may be nil.
@@ -39,6 +41,9 @@ func New(cfg config.Config, st *store.Store, tiles *pmtiles.Reader, web fs.FS) *
 	}
 	if web != nil {
 		s.static = newStaticHandler(web)
+	}
+	if cfg.RateLimit > 0 {
+		s.limiter = ratelimit.New(cfg.RateLimit, cfg.RateBurst)
 	}
 	return s
 }
@@ -84,7 +89,7 @@ func (s *Server) Handler() http.Handler {
 	if s.static != nil {
 		mux.Handle("GET /", s.static)
 	}
-	return s.recover(s.logRequests(s.headers(mux)))
+	return s.recover(s.logRequests(s.headers(s.guard(mux))))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +130,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 			for _, p := range corsPrefixes {
 				if strings.HasPrefix(r.URL.Path, p) {
 					h.Set("Access-Control-Allow-Origin", s.cfg.CORSOrigin)
-					h.Set("Access-Control-Expose-Headers", "ETag, Content-Length, Content-Range")
+					h.Set("Access-Control-Expose-Headers", "ETag, Content-Length, Content-Range, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining")
 					if r.Method == http.MethodOptions {
 						h.Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
 						h.Set("Access-Control-Allow-Headers", "Range, If-None-Match, If-Match, Content-Type")

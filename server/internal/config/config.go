@@ -23,6 +23,8 @@ type Config struct {
 	Downloads  bool   // expose the raw .pmtiles and .db files under /data/
 	LogFormat  string // "text" or "json"
 	LogLevel   string // "debug", "info", "warn", "error"
+	RateLimit  int    // API requests per minute per client; 0 disables rate limiting
+	RateBurst  int    // requests a client may make at once; 0 derives it from RateLimit
 }
 
 // Parse reads flags (with environment defaults) for the serve command.
@@ -40,6 +42,8 @@ func Parse(name string, args []string) (Config, error) {
 	fs.BoolVar(&c.Downloads, "downloads", envBool("BC_DOWNLOADS", true), "expose raw data files under /data/ [BC_DOWNLOADS]")
 	fs.StringVar(&c.LogFormat, "log-format", env("BC_LOG_FORMAT", "text"), "log format: text or json [BC_LOG_FORMAT]")
 	fs.StringVar(&c.LogLevel, "log-level", env("BC_LOG_LEVEL", "info"), "log level [BC_LOG_LEVEL]")
+	fs.IntVar(&c.RateLimit, "rate-limit", envInt("BC_RATE_LIMIT", 0), "API requests per minute per client, 0 to disable [BC_RATE_LIMIT]")
+	fs.IntVar(&c.RateBurst, "rate-burst", envInt("BC_RATE_BURST", 0), "API requests a client may make at once (default rate-limit/10) [BC_RATE_BURST]")
 	if err := fs.Parse(args); err != nil {
 		return c, err
 	}
@@ -48,6 +52,9 @@ func Parse(name string, args []string) (Config, error) {
 	}
 	if c.Database == "" {
 		c.Database = filepath.Join(c.DataDir, "bombaychitra.db")
+	}
+	if c.RateLimit < 0 || c.RateBurst < 0 {
+		return c, fmt.Errorf("rate-limit and rate-burst must not be negative")
 	}
 	c.PublicURL = strings.TrimRight(c.PublicURL, "/")
 	if c.PublicURL != "" && !strings.HasPrefix(c.PublicURL, "http://") && !strings.HasPrefix(c.PublicURL, "https://") {
@@ -59,6 +66,15 @@ func Parse(name string, args []string) (Config, error) {
 func env(key, fallback string) string {
 	if v, ok := os.LookupEnv(key); ok {
 		return v
+	}
+	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	if v, ok := os.LookupEnv(key); ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return n
+		}
 	}
 	return fallback
 }
