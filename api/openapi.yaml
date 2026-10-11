@@ -18,6 +18,11 @@ info:
     - **Errors:** non-2xx responses return `{"error": {"status": 400, "code": "bad_request", "message": "…"}}`.
     - **Caching:** responses carry an `ETag` and `Cache-Control`; send `If-None-Match` to get `304 Not Modified`.
     - **CORS:** enabled for all origins by default, so the API can be called directly from browsers.
+    - **Rate limits:** public servers may limit requests per client (`--rate-limit`). Limited responses carry
+      `X-RateLimit-Limit` and `X-RateLimit-Remaining`; over the limit the server answers `429` with `Retry-After`
+      (seconds). Route searches cost five requests.
+    - **API keys:** optional. Send a key in the `X-API-Key` header (or `key` query parameter) to bypass the rate
+      limit; servers started with `--require-key` answer `401` without one.
     - **Clients:** generate a typed client in any language from this document (`/openapi.json`) with
       [OpenAPI Generator](https://openapi-generator.tech/) — see [Integrations](/docs/integrations/).
 
@@ -52,7 +57,52 @@ tags:
   - name: Tiles
     description: Vector tiles and map styles for any MapLibre-compatible client.
 
+security:
+  - {}
+  - apiKey: []
+  - apiKeyQuery: []
+
 components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Optional on most servers; bypasses the rate limit. Required when the server runs with `--require-key`.
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: key
+      description: The same key as a query parameter, for clients that cannot set headers.
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { status: 400, code: bad_request, message: lat and lon are required } }
+    Unauthorized:
+      description: Missing or unknown API key (`missing_key`, `invalid_key`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { status: 401, code: invalid_key, message: unknown API key } }
+    TooManyRequests:
+      description: Rate limit exceeded; retry after the number of seconds in `Retry-After`
+      headers:
+        Retry-After:
+          description: Seconds until the request would be allowed.
+          schema: { type: integer }
+        X-RateLimit-Limit:
+          description: Requests a client may make at once.
+          schema: { type: integer }
+        X-RateLimit-Remaining:
+          description: Requests left right now.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { status: 429, code: rate_limited, message: too many requests; retry in 3 s } }
   parameters:
     bbox:
       name: bbox
@@ -698,6 +748,7 @@ paths:
                 geometry: { type: LineString, coordinates: [[72.846381, 19.119702], [72.846512, 19.119431]] }
         '400': { description: 'Missing or invalid `from`, `to` or `optimize`' }
         '422': { description: 'No drivable road within 1.5 km of a point (`no_road`), or no road connection (`no_route`)' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { description: 'The dataset has no routing graph (`routing_unavailable`)' }
 
   /tiles/bombaychitra.json:
