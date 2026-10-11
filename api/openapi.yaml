@@ -176,6 +176,31 @@ components:
         distance_m: { type: number, description: Present on radius queries }
 
 paths:
+  /api/v1/health:
+    get:
+      tags: [Dataset]
+      operationId: getHealth
+      summary: Server health
+      description: |
+        Checks the database, tile archive and routing graph and reports the dataset age. Answers `503` when the
+        database cannot be read, so it can be used as a readiness probe. Never cached. The routing check is
+        `not_loaded` until the first route request.
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              example:
+                status: ok
+                version: v0.1.0
+                uptime_s: 86400
+                dataset: { built_at: '2026-10-11T14:33:58Z', source_timestamp: '2026-10-10T20:21:02Z', schema_version: '2', age_days: 1.2 }
+                checks:
+                  database: { status: ok, latency_ms: 0.08 }
+                  tiles: { status: ok, detail: { tiles: 31744, minzoom: 0, maxzoom: 15 } }
+                  routing: { status: ok, detail: { vertices: 170184, segments: 211887, edges: 376888 } }
+        '503':
+          description: The database cannot be read
   /api/v1/meta:
     get:
       tags: [Dataset]
