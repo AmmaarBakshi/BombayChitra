@@ -97,6 +97,6 @@ publishes it to the `data-latest` release, so a deployment can be refreshed with
 
 ## Sizing
 
-The server is I/O-light: tile requests are a single read from a 43 MB file that fits in the page cache, and most API
+The server is I/O-light: tile requests are a single read from a ~96 MB file that fits in the page cache, and most API
 queries are index lookups. A single small VM (1 vCPU, 512 MB RAM) comfortably serves a city-scale audience,
 especially behind a CDN.

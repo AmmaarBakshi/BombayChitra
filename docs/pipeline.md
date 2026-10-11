@@ -44,8 +44,12 @@ Memory is set with `JAVA_OPTS` (default `-Xmx4g`).
 pass 1   nodes → node locations          relations → route / admin metadata, stop node ids
 pass 2   nodes, ways, relations ─► layer handlers ─► tile features ─► sort ─► PMTiles archive
                                     └────────────► records (places, roads, bridges, buildings, transit, areas)
-finish   coastline ─► ocean polygons                                   └────────────► SQLite writer
+overture places (GeoParquet) ─► taxonomy + dedupe against OSM ─► pois  ──► records
+overture buildings (GeoParquet) ─► machine-learned footprints ─► buildings
+finish   coastline ─► ocean polygons                                   └────────────► SQLite writer + routing graph
 ```
+
+The Overture extracts are read after OpenStreetMap, so every OpenStreetMap place is known when deduplicating.
 
 ### Layer handlers
 
@@ -85,6 +89,15 @@ merged into blocks at z13, and overlapping land-use polygons are dissolved.
   connected run, so dual carriageways are not double-counted.
 - **Station lines.** Each railway, metro and monorail station gets the lines whose stops are within 350 m.
 - **Area membership** is computed with prepared-geometry point-in-polygon tests against the configured areas.
+- **Overture Maps enrichment.** `OverturePlaces` maps Overture's category hierarchy to the taxonomy, keeps places
+  with confidence ≥ `minConfidence`, and skips any that duplicate an OpenStreetMap place (same category within
+  25 m, or a similar name in the same group within 120 m) or another Overture record. `OvertureBuildings` adds only
+  the machine-learned footprints. Both are skipped when their GeoParquet file is missing.
+- **Routing graph.** The roads handler records every way a car can use, with one-way rules and a typical speed;
+  `RoadGraph` splits them at shared nodes into vertices and segments and stores the network in compact form (see
+  [Database](database.md#routing-graph)).
+- **Lines without route relations** are assembled from their track (`transit.trackLines`), measured along a
+  single-track spine and given the stations along them.
 
 ### Database build
 
@@ -105,5 +118,7 @@ table to `data/Schema.java` (bump `Schema.VERSION` for breaking changes), and wr
 
 ## Performance
 
-On an 8-core laptop the full build takes about 65 seconds: about 8 s for pass 1, 37 s for pass 2, 10 s to write tiles
-and 10 s to write the database. It fits comfortably in the default 4 GB heap.
+On an 8-core laptop the full build takes about 2½ minutes: about 8 s for pass 1, 42 s for pass 2, 8 s for the
+Overture places, 38 s for the 2.1 million Overture buildings, 15 s to write tiles and 25 s to write the database
+(including the routing graph). It runs in a 3 GB heap. The first run also downloads the OpenStreetMap extract
+(~220 MB) and the Overture extracts (~345 MB).

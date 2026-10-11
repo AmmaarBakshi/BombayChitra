@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/config"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
@@ -196,5 +197,50 @@ func TestCORSPreflight(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNoContent || rec.Header().Get("Access-Control-Allow-Origin") != "*" {
 		t.Errorf("preflight: %d %q", rec.Code, rec.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestRouteByRoad(t *testing.T) {
+	h := testServer(t)
+	trips := []struct {
+		name, from, to string
+	}{
+		{"Andheri → BKC", "19.1197,72.8464", "19.0660,72.8680"},
+		{"Thane → Vashi across the creek", "19.1860,72.9750", "19.0750,72.9980"},
+		{"Colaba → Panvel", "18.9100,72.8200", "18.9900,73.1100"},
+		{"Kalamboli → Taloja", "19.0300,73.1000", "19.0650,73.1150"},
+		{"Virar → Vasai", "19.4550,72.8050", "19.3650,72.8150"},
+	}
+	for _, trip := range trips {
+		start := time.Now()
+		rec, body := get(t, h, "/api/v1/route?from="+trip.from+"&to="+trip.to)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: %d %s", trip.name, rec.Code, rec.Body.String())
+			continue
+		}
+		road, straight := body["distance_m"].(float64), body["straight_m"].(float64)
+		coords := body["geometry"].(map[string]any)["coordinates"].([]any)
+		t.Logf("%s: %.1f km by road (%.1f km straight), %.0f min, %d points, %v", trip.name, road/1000, straight/1000,
+			body["duration_s"].(float64)/60, len(coords), time.Since(start).Round(time.Millisecond))
+		if road < straight*0.98 || road > straight*3 || len(coords) < 10 || body["duration_s"].(float64) <= 0 {
+			t.Errorf("%s: implausible route %.0f m by road vs %.0f m straight, %d points", trip.name, road, straight, len(coords))
+		}
+		_, short := get(t, h, "/api/v1/route?optimize=distance&from="+trip.from+"&to="+trip.to)
+		if d, _ := short["distance_m"].(float64); d > road+1 {
+			t.Errorf("%s: shortest route %.0f m is longer than fastest %.0f m", trip.name, d, road)
+		}
+	}
+
+	rec, body := get(t, h, "/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&format=geojson")
+	if features, _ := body["features"].([]any); rec.Code != http.StatusOK || len(features) != 3 {
+		t.Errorf("geojson route: %d, %d features", rec.Code, len(features))
+	}
+	if rec, _ := get(t, h, "/api/v1/route?from=18.85,72.71&to=19.0660,72.8680"); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("route from the sea: %d, want 422", rec.Code)
+	}
+	for _, url := range []string{"/api/v1/route", "/api/v1/route?from=19.1&to=19.2,72.9", "/api/v1/route?from=19.1,72.8&to=19.2,72.9&optimize=scenic"} {
+		if rec, _ := get(t, h, url); rec.Code != http.StatusBadRequest {
+			t.Errorf("GET %s: %d, want 400", url, rec.Code)
+		}
 	}
 }

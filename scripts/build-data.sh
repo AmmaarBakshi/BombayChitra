@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Builds the BombayChitra dataset from OpenStreetMap:
+# Builds the BombayChitra dataset from OpenStreetMap and Overture Maps:
 #   data/build/bombaychitra.pmtiles  vector tiles
-#   data/build/bombaychitra.db       SQLite database (places, roads, bridges, buildings, transit, search)
+#   data/build/bombaychitra.db       SQLite database (places, roads, bridges, buildings, transit, routing, search)
 #
-# Requirements: Java 21+ (JDK), curl. Extra arguments are passed to the pipeline, e.g.
+# Requirements: Java 21+ (JDK), curl; Python 3 for the Overture Maps places and buildings (optional — without it the
+# build uses OpenStreetMap only; SKIP_OVERTURE=1 skips them on purpose). Extra arguments go to the pipeline, e.g.
 #   scripts/build-data.sh --threads=4 --only_layers=roads,pois
 #   JAVA_OPTS=-Xmx8g scripts/build-data.sh --refresh_sources
 set -euo pipefail
@@ -12,6 +13,7 @@ cd "$(dirname "$0")/.."
 PLANETILER_VERSION="${PLANETILER_VERSION:-0.10.2}"
 PLANETILER_SHA256="${PLANETILER_SHA256:-f310bd0413e2e4512b27f4046d418664e8e1d3bf31603c2a70e23de06c167e4d}"
 JAVA_OPTS="${JAVA_OPTS:--Xmx4g}"
+OVERTURE_CLI_VERSION="${OVERTURE_CLI_VERSION:-1.0.2}"
 JAR="data/tools/planetiler-${PLANETILER_VERSION}.jar"
 CLASSES="pipeline/build/classes"
 
@@ -49,6 +51,34 @@ javac -encoding UTF-8 -implicit:none -sourcepath pipeline/src -cp "$JAR" -d "$CL
 
 sep=":"
 case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) sep=";" ;; esac
+
+# Overture Maps extracts (places, machine-learned building footprints) in a private virtual environment.
+fetch_overture() {
+  if [ "${SKIP_OVERTURE:-0}" = "1" ]; then
+    echo "→ skipping Overture Maps (SKIP_OVERTURE=1)"
+    return 0
+  fi
+  py=$(command -v python3 || command -v python || true)
+  if [ -z "$py" ]; then
+    echo "warning: Python 3 not found — building without Overture Maps places and buildings" >&2
+    return 0
+  fi
+  venv=data/tools/overture-$OVERTURE_CLI_VERSION
+  vpy="$venv/bin/python"
+  [ -x "$vpy" ] || vpy="$venv/Scripts/python.exe"
+  if [ ! -x "$vpy" ]; then
+    echo "→ installing the Overture Maps downloader $OVERTURE_CLI_VERSION"
+    "$py" -m venv "$venv"
+    vpy="$venv/bin/python"
+    [ -x "$vpy" ] || vpy="$venv/Scripts/python.exe"
+    "$vpy" -m pip install --quiet --disable-pip-version-check "overturemaps==$OVERTURE_CLI_VERSION"
+  fi
+  "$vpy" scripts/fetch-overture.py "$@"
+}
+refresh=""
+for arg in "$@"; do [ "$arg" = "--refresh_sources" ] && refresh="--refresh"; done
+# shellcheck disable=SC2086
+fetch_overture $refresh
 
 echo "→ building data (first run downloads the OpenStreetMap extract)"
 # shellcheck disable=SC2086

@@ -48,8 +48,11 @@ public final class Taxonomy {
   /** key → candidate rules (first condition is a wildcard) ordered by priority. */
   private final Map<String, Rule[]> wildcardIndex;
   private final Set<String> triggerKeys;
+  /** Overture Maps category (any level of its hierarchy) → category. */
+  private final Map<String, Category> overture;
 
-  private Taxonomy(List<Group> groups, List<Rule> rules) {
+  private Taxonomy(List<Group> groups, List<Rule> rules, Map<String, Category> overture) {
+    this.overture = Map.copyOf(overture);
     this.groups = List.copyOf(groups);
     this.byId = new LinkedHashMap<>();
     for (Group group : groups) {
@@ -93,6 +96,7 @@ public final class Taxonomy {
     JsonNode root = new ObjectMapper().readTree(path.toFile());
     List<Group> groups = new ArrayList<>();
     List<Rule> rules = new ArrayList<>();
+    Map<String, Category> overture = new HashMap<>();
     int categorySort = 0;
     int groupSort = 0;
     for (JsonNode groupNode : root.path("groups")) {
@@ -109,6 +113,13 @@ public final class Taxonomy {
           categorySort++
         );
         categories.add(category);
+        for (JsonNode value : catNode.path("overture")) {
+          var previous = overture.putIfAbsent(value.asText(), category);
+          if (previous != null) {
+            throw new IllegalArgumentException("categories.json: Overture category " + value.asText()
+              + " is mapped by both " + previous.id() + " and " + category.id());
+          }
+        }
         for (JsonNode ruleNode : catNode.path("match")) {
           rules.add(new Rule(category, category.sort(),
             TagRule.parse("categories.json: " + category.id(), ruleNode).conditions()));
@@ -120,7 +131,7 @@ public final class Taxonomy {
     if (rules.isEmpty()) {
       throw new IllegalArgumentException("categories.json: no rules defined");
     }
-    return new Taxonomy(groups, rules);
+    return new Taxonomy(groups, rules, overture);
   }
 
   private static String required(JsonNode node, String field) {
@@ -162,6 +173,20 @@ public final class Taxonomy {
       }
     }
     return best;
+  }
+
+  /**
+   * Category for an Overture Maps place, trying its categories from the most specific (e.g. {@code dental_clinic}) to
+   * the most general level of its hierarchy (e.g. {@code health_care}); null when none is mapped.
+   */
+  public Category matchOverture(List<String> candidates) {
+    for (String candidate : candidates) {
+      Category category = candidate == null ? null : overture.get(candidate);
+      if (category != null) {
+        return category;
+      }
+    }
+    return null;
   }
 
   /** Tag keys that can trigger a match; used to build the Planetiler dispatch filter. */

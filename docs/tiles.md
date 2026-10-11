@@ -43,7 +43,8 @@ Polygons of land cover and land use.
 
 ### `buildings`
 
-Polygons from z13. At z13 nearby buildings are merged into blocks.
+Polygons from z13. At z13 nearby buildings are merged into blocks. Besides the OpenStreetMap buildings, the layer
+holds the machine-learned footprints added from Overture Maps (no `kind`; `height`/`levels` where known).
 
 | Attribute | Description |
 |---|---|
@@ -102,7 +103,8 @@ Railway, metro, monorail and tram lines plus platform outlines.
 
 ### `pois`
 
-Points of interest, classified by `config/categories.json`. Polygons are reduced to a label point.
+Points of interest, classified by `config/categories.json`. Polygons are reduced to a label point. Places added
+from Overture Maps have feature ids ending in `4`; OpenStreetMap features win label collisions.
 
 | Attribute | Description |
 |---|---|

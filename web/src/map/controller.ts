@@ -237,9 +237,11 @@ export class MapController {
   }
 
   /** Keeps fitted content clear of the side panel and the inspector. */
+  /** Map padding that keeps fitted features clear of the dashboard (unless hidden), inspector and attribution. */
   private padding() {
-    if (window.innerWidth > 820) return { top: 80, bottom: 60, left: 420, right: 440 };
-    return { top: 70, bottom: Math.round(window.innerHeight * 0.5), left: 30, right: 30 };
+    const hidden = document.body.classList.contains('panel-off');
+    if (window.innerWidth > 820) return { top: 80, bottom: 60, left: hidden ? 60 : 420, right: 440 };
+    return { top: 70, bottom: hidden ? 90 : Math.round(window.innerHeight * 0.5) + 56, left: 30, right: 64 };
   }
 
   visibleBounds(): [number, number, number, number] {

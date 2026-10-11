@@ -8,6 +8,8 @@ import bombaychitra.pipeline.layers.Bridges;
 import bombaychitra.pipeline.layers.Buildings;
 import bombaychitra.pipeline.layers.LayerContext;
 import bombaychitra.pipeline.layers.Landuse;
+import bombaychitra.pipeline.layers.OvertureBuildings;
+import bombaychitra.pipeline.layers.OverturePlaces;
 import bombaychitra.pipeline.layers.Places;
 import bombaychitra.pipeline.layers.Pois;
 import bombaychitra.pipeline.layers.Roads;
@@ -43,7 +45,9 @@ public final class BombayChitraProfile extends ForwardingProfile {
       new Boundaries(ctx),
       new Areas(ctx),
       new Aeroways(ctx),
-      new Addresses(ctx)
+      new Addresses(ctx),
+      new OverturePlaces(ctx),
+      new OvertureBuildings(ctx)
     );
     this.region = ctx.region();
   }
@@ -61,7 +65,9 @@ public final class BombayChitraProfile extends ForwardingProfile {
   @Override
   public String attribution() {
     return "<a href=\"https://github.com/AmmaarBakshi/BombayChitra\" target=\"_blank\">BombayChitra</a> "
-      + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>";
+      + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"
+      + (region.overture() == null ? "" : " <a href=\"https://docs.overturemaps.org/attribution/\" target=\"_blank\">"
+        + "&copy; Overture Maps Foundation</a>");
   }
 
   @Override

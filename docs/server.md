@@ -58,6 +58,8 @@ This makes BombayChitra well suited to running behind a CDN.
 ### Operational notes
 
 - The database is opened read-only and treated as immutable. To publish new data, replace both files and restart.
+- The routing graph is loaded on the first `/api/v1/route` request (~0.3 s) and then uses about 30 MB of memory,
+  plus ~3 MB per route being computed; at most four routes are computed at once.
 - Shutdown is graceful on `SIGINT`/`SIGTERM` (in-flight requests get 10 seconds).
 - Logs are structured (`log/slog`). Tile and asset requests log at `debug` level.
 - Timeouts: 10 s to read headers, 30 s to read the request, 120 s to write (downloads are exempt).

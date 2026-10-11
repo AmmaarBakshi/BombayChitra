@@ -16,6 +16,11 @@ public final class Schema {
       value TEXT NOT NULL
     ) WITHOUT ROWID;
 
+    CREATE TABLE routing (
+      name TEXT PRIMARY KEY,
+      data BLOB NOT NULL
+    );
+
     CREATE TABLE category_groups (
       id     TEXT PRIMARY KEY,
       label  TEXT NOT NULL,

@@ -48,6 +48,12 @@ public final class Records {
   /** A stop or platform node belonging to a route relation. */
   public record RouteStop(long routeId, long nodeId, String name, double lon, double lat) {}
 
+  /**
+   * A way cars can drive on, for the routing graph: coordinates as interleaved lon/lat × 10<sup>7</sup> (exact, so
+   * shared OSM nodes match), {@code oneway} 1 forward, -1 backward, 0 both, and a typical speed in km/h.
+   */
+  public record DriveWay(int[] coords, byte roadClass, byte oneway, float speedKmh, String name) {}
+
   /** One polygon making up a configured area (lon/lat). */
   public record AreaPart(String areaId, long relationId, Geometry polygon) {}
 }

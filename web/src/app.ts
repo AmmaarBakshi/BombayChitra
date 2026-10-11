@@ -8,6 +8,7 @@ import { getSelectionHash, Inspector } from './ui/inspector.ts';
 import { MeasureTool } from './ui/measure.ts';
 import { BridgesPanel } from './ui/panels/bridges.ts';
 import { BuildingsPanel } from './ui/panels/buildings.ts';
+import { DistancePanel } from './ui/panels/distance.ts';
 import { ExplorePanel } from './ui/panels/explore.ts';
 import { LayersPanel } from './ui/panels/layers.ts';
 import type { Panel } from './ui/panels/panel.ts';
@@ -16,6 +17,7 @@ import { Search } from './ui/search.ts';
 import { ThemeManager } from './ui/theme.ts';
 
 const TAB_KEY = 'bc-tab';
+const PANEL_KEY = 'bc-panel';
 
 export function createApp(): void {
   const theme = new ThemeManager();
@@ -28,9 +30,11 @@ export function createApp(): void {
 
   let area: string | null = new URLSearchParams(location.hash.slice(1)).get('area');
   let measure: MeasureTool | null = null;
+  let distance: DistancePanel | null = null;
   const panels: Panel[] = [];
 
   const map = new MapController($('#map'), origin, theme.resolved, (pick, e) => {
+    if (distance?.picking) return void distance.pick([e.lngLat.lng, e.lngLat.lat]);
     if (measure?.active) return measure.add([e.lngLat.lng, e.lngLat.lat]);
     if (pick) {
       void inspector.fromPick(pick);
@@ -65,6 +69,11 @@ export function createApp(): void {
       if (fit && a) map.fitBounds(a.bbox, 14);
       panels.forEach((p) => p.onAreaChange?.(id));
     },
+    routeTo(point) {
+      openDistance();
+      distance!.setPoint('to', point);
+      if (distance!.missing === 'from') distance!.startPick('from');
+    },
   };
   inspector.attach(ctx);
   map.setArea(area);
@@ -75,7 +84,8 @@ export function createApp(): void {
   // ---------------------------------------------------------------- panels & tabs
 
   const layers = new LayersPanel(ctx);
-  panels.push(new ExplorePanel(ctx, layers), layers, new TransitPanel(ctx), new BridgesPanel(ctx, layers), new BuildingsPanel(ctx, layers));
+  distance = new DistancePanel(ctx);
+  panels.push(new ExplorePanel(ctx, layers), layers, new TransitPanel(ctx), new BridgesPanel(ctx, layers), new BuildingsPanel(ctx, layers), distance);
   const tabs = $('.tabs');
   const body = $('#panel-body');
   const rendered = new Set<string>();
@@ -83,6 +93,7 @@ export function createApp(): void {
   const show = (id: string) => {
     const panel = panels.find((p) => p.id === id) ?? panels[0];
     tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === panel.id)));
+    $('#tool-route').setAttribute('aria-pressed', String(panel.id === 'distance'));
     for (const [pid, el] of bodies) el.hidden = pid !== panel.id;
     if (!rendered.has(panel.id)) {
       rendered.add(panel.id);
@@ -96,6 +107,40 @@ export function createApp(): void {
     body.append(el);
     tabs.append(h('button', { type: 'button', role: 'tab', 'data-tab': p.id, 'aria-controls': `tab-${p.id}`, 'aria-selected': 'false', onclick: () => show(p.id) }, icon(p.icon, 18), p.label));
   }
+
+  // ---------------------------------------------------------------- dashboard hider
+
+  const panelBtn = $('#tool-panel');
+  const reveal = $('#panel-reveal');
+  panelBtn.append(icon('sidebar', 19));
+  reveal.append(icon('chevron', 16), h('span', {}, 'Dashboard'));
+  const setPanelHidden = (hidden: boolean, announce = true) => {
+    document.body.classList.toggle('panel-off', hidden);
+    panelEl.classList.toggle('panel-hidden', hidden);
+    panelEl.toggleAttribute('inert', hidden);
+    reveal.hidden = !hidden;
+    panelBtn.setAttribute('aria-pressed', String(hidden));
+    panelBtn.title = hidden ? 'Show dashboard (H)' : 'Hide dashboard (H)';
+    panelBtn.setAttribute('aria-label', panelBtn.title);
+    storageSet(PANEL_KEY, hidden ? 'hidden' : 'shown');
+    if (announce) ctx.toast(hidden ? 'Dashboard hidden — press H to show it' : 'Dashboard shown');
+  };
+  const togglePanel = () => setPanelHidden(!panelEl.classList.contains('panel-hidden'));
+  const openDistance = () => {
+    if (panelEl.classList.contains('panel-hidden')) setPanelHidden(false, false);
+    panelEl.classList.remove('collapsed');
+    show('distance');
+  };
+  setPanelHidden(storageGet(PANEL_KEY) === 'hidden', false);
+  panelBtn.addEventListener('click', togglePanel);
+  reveal.addEventListener('click', () => setPanelHidden(false));
+  document.addEventListener('keydown', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (e.key.toLowerCase() !== 'h' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    e.preventDefault();
+    togglePanel();
+  });
 
   // ---------------------------------------------------------------- toolbar
 
@@ -120,6 +165,12 @@ export function createApp(): void {
   };
   toggleBtn('#tool-3d', 'cube', 'buildings3d');
   toggleBtn('#tool-bridges', 'bridge', 'bridges');
+  const routeBtn = $('#tool-route');
+  routeBtn.append(icon('route', 19));
+  routeBtn.addEventListener('click', () => {
+    openDistance();
+    if (distance!.missing) (document.querySelector('.route-field input') as HTMLInputElement | null)?.focus();
+  });
   const measureBtn = $('#tool-measure');
   measureBtn.append(icon('ruler', 19));
   measure = new MeasureTool(map, measureBtn);
@@ -165,6 +216,7 @@ export function createApp(): void {
     $('#status-data').textContent = `OSM data ${formatDate(meta.dataset.source_timestamp ?? meta.dataset.built_at)}`;
     show(storageGet(TAB_KEY) ?? 'explore');
     if (area) ctx.selectArea(area, false);
+    if (distance!.restore()) openDistance();
   }).catch(() => {
     show('layers');
     ctx.toast('Cannot reach the BombayChitra API');

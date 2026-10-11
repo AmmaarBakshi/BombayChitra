@@ -14,9 +14,10 @@ to be used from **any programming language, platform or product**.
 |---|---|
 | **Roads** | Every road, street, flyover, service road and footpath, with names, route numbers, lanes, speed limits, surface, one-way arrows, bridges and tunnels. Named roads are searchable and power reverse geocoding ("pin point"). |
 | **Bridges** | A dedicated bridge layer: sea links (Atal Setu, Bandra–Worli), freeways, flyovers, rail bridges, metro viaducts and foot over-bridges, each with its measured span. |
-| **Buildings** | 270,000+ footprints with heights and floor counts for 3D, plus searchable records for named towers and housing societies. |
+| **Buildings** | 2.1 million footprints (OpenStreetMap plus machine-learned outlines from Overture Maps) with heights and floor counts for 3D, plus searchable records for named towers and housing societies. |
+| **Distance by road** | Driving distance, time and route between any two places, following one-way streets — in the app and at `/api/v1/route`. |
 | **Transit** | Suburban railway (Western, Central, Harbour, Trans-Harbour, Uran…), all metro lines (including lines under construction) and monorail in their official colours, with ordered stations. |
-| **Places** | ~45,000 points of interest in 89 categories: hospitals, clinics, schools, colleges, universities, banks, ATMs, railway/metro/monorail stations, bus depots and stops, grounds, sports clubs and gymkhanas, cafés, restaurants, hotels, temples, mosques, churches, police, fire stations and more. |
+| **Places** | ~154,000 points of interest in 89 categories (OpenStreetMap plus 109,000 from Overture Maps): hospitals, clinics, schools, colleges, universities, banks, ATMs, railway/metro/monorail stations, bus depots and stops, grounds, sports clubs and gymkhanas, cafés, restaurants, hotels, temples, mosques, churches, police, fire stations and more. |
 | **Areas** | Mumbai City, Mumbai Suburban, MaKaBo, Thane District, Thane, Navi Mumbai, Mira-Bhayandar, Kalyan-Dombivli, Vasai-Virar and Panvel — with boundaries, statistics and filters. |
 
 ## Use it
@@ -33,7 +34,7 @@ to be used from **any programming language, platform or product**.
 ## Design principles
 
 1. **Open data, open code.** Code is MIT-licensed; data is © OpenStreetMap contributors under the ODbL.
-2. **Fast by construction.** One pass over OpenStreetMap builds everything in about a minute. Tiles are served from
+2. **Fast by construction.** One pass over OpenStreetMap and Overture Maps builds everything in a couple of minutes. Tiles are served from
    a single file with one disk read each; the database is indexed for spatial and full-text queries.
 3. **No lock-in.** Every output uses an open standard: Mapbox Vector Tiles, PMTiles, MapLibre styles, GeoJSON,
    SQLite and OpenAPI.

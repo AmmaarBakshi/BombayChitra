@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>BombayChitra · Map of the Mumbai Metropolitan Region</title>
-    <meta name="description" content="Open, detailed map of Mumbai, Navi Mumbai, Thane and MaKaBo: every road, bridge, building, station, hospital, school, college, bank, café and more — built from OpenStreetMap." />
+    <meta name="description" content="Open, detailed map of Mumbai, Navi Mumbai, Thane, Panvel, Vasai-Virar and MaKaBo: every road, bridge, building, station, hospital, school, college, bank, café and more, with distance by road — built from OpenStreetMap and Overture Maps." />
     <meta name="theme-color" content="#f3efe7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#11151b" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -44,11 +44,15 @@
 
     <section id="inspector" class="inspector" aria-live="polite" hidden></section>
 
+    <button id="panel-reveal" class="panel-reveal" type="button" title="Show dashboard (H)" hidden></button>
+
     <div class="toolbar" role="toolbar" aria-label="Map tools">
+      <button id="tool-panel" class="tool" type="button" title="Hide dashboard (H)" aria-pressed="false" aria-controls="panel"></button>
       <button id="tool-theme" class="tool" type="button" title="Theme"></button>
       <button id="tool-3d" class="tool" type="button" title="3D buildings" aria-pressed="false"></button>
       <button id="tool-bridges" class="tool" type="button" title="Bridge explorer" aria-pressed="false"></button>
-      <button id="tool-measure" class="tool" type="button" title="Measure distance" aria-pressed="false"></button>
+      <button id="tool-route" class="tool" type="button" title="Distance by road" aria-pressed="false"></button>
+      <button id="tool-measure" class="tool" type="button" title="Measure straight-line distance" aria-pressed="false"></button>
       <a class="tool" href="/docs/" title="Documentation"></a>
     </div>
 

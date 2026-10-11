@@ -26,11 +26,31 @@ public record RegionConfig(
   int maxzoom,
   Source source,
   List<Area> areas,
-  Transit transit
+  Transit transit,
+  Overture overture
 ) {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record Source(String name, String url, String file) {}
+
+  /**
+   * Optional enrichment from <a href="https://overturemaps.org">Overture Maps</a>: places (businesses and amenities)
+   * and the machine-learned building footprints that OpenStreetMap does not have yet. Files are GeoParquet extracts
+   * under {@code data/sources/}, downloaded by the build scripts; a missing file is skipped.
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record Overture(String release, OverturePlaces places, OvertureBuildings buildings) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record OverturePlaces(String file, Double minConfidence) {
+
+    public double confidence() {
+      return minConfidence == null ? 0.6 : minConfidence;
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record OvertureBuildings(String file) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record Area(

@@ -158,6 +158,10 @@ func (s *Store) Place(ctx context.Context, id int64) (*PlaceDetail, error) {
 	d.AreaM2 = ptrFloat(area)
 	d.Tags = json.RawMessage(tags)
 	d.OSMURL = osmURL(d.ID)
+	d.Source = "openstreetmap"
+	if d.ID%10 == overtureType {
+		d.Source = "overture"
+	}
 	if c, ok := s.categories[d.Category]; ok {
 		d.CategoryLabel = c.Label
 	}

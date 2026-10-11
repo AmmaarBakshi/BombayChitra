@@ -8,6 +8,8 @@ also query it directly.
 
 - **Ids** of places, roads, bridges, buildings and localities are `osm_id × 10 + type` (`1` node, `2` way,
   `3` relation), the same as the vector tile feature ids. `osm_type` and `osm_id` are stored separately too.
+  Places from Overture Maps have `osm_type = 'overture'` and ids ending in `4` (a hash of the Overture id, which is
+  in `tags ->> '$."overture:id"'` with the confidence, category and original sources).
 - **Coordinates** are WGS84 `lon`/`lat` (6 decimals ≈ 0.1 m).
 - **Geometries** are GeoJSON text (`geometry` columns), ready to return or parse.
 - **Tags** are the complete OpenStreetMap tags as a JSON object (`tags` columns).
@@ -22,7 +24,8 @@ also query it directly.
 | `areas` | 11 | Configured areas: name, kind, size, bbox, centre, simplified GeoJSON boundary |
 | `area_members` | | Which areas contain each place, street, bridge and locality (`kind`, `member_id`, `area_id`) |
 | `area_stats` | | Per-area statistics; `area_id = '*'` is the whole dataset |
-| `places` | 45k | Points of interest with address, phone, website, hours, operator, brand, cuisine, accessibility, station lines (`extra`) and all tags |
+| `places` | 154k | Points of interest with address, phone, website, hours, operator, brand, cuisine, accessibility, station lines (`extra`) and all tags; 109k from Overture Maps (`osm_type = 'overture'`) |
+| `routing` | 12 | The car road network as compressed arrays — see [Routing graph](#routing-graph) |
 | `localities` | 2k | Suburbs, neighbourhoods, villages with population |
 | `streets` | 6k | Named roads merged from connected ways: class, length, bbox, centre, nearest locality |
 | `roads` | 20k | Named road segments: lanes, speed limit, surface, one-way, bridge/tunnel flags, GeoJSON geometry |
@@ -115,6 +118,30 @@ for name, phone in db.execute("SELECT name, phone FROM places WHERE category = '
 ```
 
 More languages are in [`examples/`](../examples/README.md) and on the [Integrations](integrations.md) page.
+
+## Routing graph
+
+The `routing` table holds the car road network behind `/api/v1/route` as named blobs: little-endian arrays,
+each gzip-compressed (about 10 MB in total). Vertices are the points where drivable ways meet or end; a segment is
+the road between two vertices with its full shape.
+
+| Blob | Type | Content |
+|---|---|---|
+| `nodes` | int32 × 2 per vertex | lon, lat × 10⁷ |
+| `offsets` | int32 × (vertices + 1) | Edges leaving vertex *v* are `offsets[v] … offsets[v+1] − 1` |
+| `edge_to` | int32 per edge | Destination vertex |
+| `edge_seg` | int32 per edge | Segment *s*, or `~s` (bitwise not) when the edge runs against the segment's shape |
+| `edge_time` | float32 per edge | Travel time in seconds |
+| `seg_len` | float32 per segment | Length in metres |
+| `seg_shape` | int32 × (segments + 1) | Offsets into `shape`, in points |
+| `shape` | int32 × 2 per point | Segment shapes: first point absolute (lon, lat × 10⁷), the rest as deltas |
+| `seg_class` | uint8 per segment | 1 motorway, 2 trunk, 3 primary, 4 secondary, 5 tertiary, 6 minor, 7 service |
+| `seg_dir` | uint8 per segment | Bit 1: drivable along the shape; bit 2: against it |
+| `seg_name` | int32 per segment | Index into `names`, or −1 |
+| `names` | UTF-8 text | Road names, one per line |
+
+`meta` records `routing_version`, `routing_profile` (`car`) and the vertex, edge and segment counts. Travel times
+use typical urban speeds per road class (see `DRIVE_SPEED` in `pipeline/…/layers/Roads.java`).
 
 ## Notes
 

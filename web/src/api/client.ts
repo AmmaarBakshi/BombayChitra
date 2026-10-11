@@ -12,6 +12,7 @@ import type {
   PlaceDetail,
   Reverse,
   Road,
+  RouteResult,
   SearchKind,
   SearchResult,
   Stats,
@@ -166,5 +167,11 @@ export class BombayChitraClient {
 
   stations(opts: { mode?: 'metro' | 'monorail' | 'railway'; area?: string; bbox?: BBox } = {}, signal?: AbortSignal) {
     return this.get<ListResponse<PlaceDetail>>('/transit/stations', opts, signal);
+  }
+
+  /** Driving route between two lon/lat points ("distance by road"). */
+  route(from: [number, number], to: [number, number], optimize: 'time' | 'distance' = 'time', signal?: AbortSignal) {
+    const pair = (p: [number, number]) => `${p[1].toFixed(6)},${p[0].toFixed(6)}`;
+    return this.get<RouteResult>('/route', { from: pair(from), to: pair(to), optimize }, signal);
   }
 }

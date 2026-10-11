@@ -40,6 +40,7 @@ public final class Tags {
       case 1 -> "node";
       case 2 -> "way";
       case 3 -> "relation";
+      case Overture.TYPE_CODE -> "overture";
       default -> "other";
     };
   }

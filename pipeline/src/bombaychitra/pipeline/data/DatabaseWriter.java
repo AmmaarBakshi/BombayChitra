@@ -74,6 +74,7 @@ public final class DatabaseWriter {
   private final Taxonomy taxonomy;
   private final DataSink sink;
   private final Map<String, String> extraMeta;
+  private final Map<String, String> routingMeta = new LinkedHashMap<>();
 
   private PreparedStatement searchInsert;
   private PreparedStatement memberInsert;
@@ -119,6 +120,7 @@ public final class DatabaseWriter {
       writeStreets(db, areas, localities);
       writeBridges(db, areas, localities);
       writeBuildings(db, areas, localities);
+      RoadGraph.write(db, sink.driveWays, routingMeta);
       flushSearch();
       flushMembers();
       script(db, Schema.INDEXES);
@@ -881,10 +883,14 @@ public final class DatabaseWriter {
     }
     Map<String, Acc> stats = new ConcurrentHashMap<>();
     stats.put("*", new Acc());
-    sink.buildingStats().parallelStream().forEach(s -> {
-      stats.get("*").add(s[2], s[3]);
-      for (String area : areas.at(s[0], s[1])) {
-        stats.computeIfAbsent(area, k -> new Acc()).add(s[2], s[3]);
+    sink.buildingStats().parallelStream().forEach(chunk -> {
+      for (int i = 0; i + 3 < chunk.length; i += 4) {
+        double height = chunk[i + 2];
+        double area = chunk[i + 3];
+        stats.get("*").add(height, area);
+        for (String id : areas.at(chunk[i], chunk[i + 1])) {
+          stats.computeIfAbsent(id, k -> new Acc()).add(height, area);
+        }
       }
     });
     try (var insert = db.prepareStatement("INSERT INTO area_stats(area_id, key, value) VALUES (?,?,?)")) {
@@ -920,9 +926,11 @@ public final class DatabaseWriter {
     meta.put("maxzoom", String.valueOf(region.maxzoom()));
     meta.put("source_name", region.source().name());
     meta.put("source_url", region.source().url());
-    meta.put("attribution", "© OpenStreetMap contributors (ODbL)");
+    boolean overture = extraMeta.containsKey("overture_release");
+    meta.put("attribution", "© OpenStreetMap contributors (ODbL)" + (overture ? "; © Overture Maps Foundation" : ""));
     meta.put("license", "ODbL-1.0");
     meta.putAll(extraMeta);
+    meta.putAll(routingMeta);
     try (Statement st = db.createStatement()) {
       for (String table : List.of("places", "localities", "streets", "roads", "bridges", "named_bridges", "buildings",
         "transit_lines")) {

@@ -210,6 +210,9 @@ func round(v float64, decimals int) float64 {
 	return float64(int64(v*p+0.5)) / p
 }
 
+// overtureType is the id type digit of records added from Overture Maps (OpenStreetMap uses 1–3).
+const overtureType = 4
+
 // osmURL returns the openstreetmap.org page of an element id encoded as osm_id*10+type.
 func osmURL(id int64) string {
 	kind := map[int64]string{1: "node", 2: "way", 3: "relation"}[id%10]

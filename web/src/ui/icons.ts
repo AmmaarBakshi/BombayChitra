@@ -34,6 +34,9 @@ const UI: Record<string, string> = {
   github: '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>',
   wheelchair: '<circle cx="12" cy="4" r="1.6"/><path d="M12 7v6h5l2 5M12 10h4M9 9.5a6 6 0 1 0 7.5 8"/>',
   directions: '<path d="M12 2 2 12l10 10 10-10z"/><path d="M9 14v-2a2 2 0 0 1 2-2h4M13 8l2 2-2 2"/>',
+  sidebar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1.5M5.5 11h1.5"/>',
+  swap: '<path d="M7 4v16M7 4 4 7M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/>',
+  crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
 };
 
 export function icon(name: keyof typeof UI | string, size = 18): SVGElement {

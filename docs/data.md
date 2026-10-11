@@ -1,10 +1,25 @@
 # Data & coverage
 
-## Source
+## Sources
 
-All data comes from [OpenStreetMap](https://www.openstreetmap.org), the collaborative map of the world, via the
-[Geofabrik](https://download.geofabrik.de/asia/india.html) *India — Western Zone* extract, which is updated daily. The
-build records the extract's timestamp, shown in the app's status bar and at `/api/v1/meta`.
+| Source | What it provides | Licence |
+|---|---|---|
+| [OpenStreetMap](https://www.openstreetmap.org), via the [Geofabrik](https://download.geofabrik.de/asia/india.html) *India — Western Zone* extract (updated daily) | Everything: roads, bridges, buildings, transit, boundaries, water, land use and ~45,000 places | ODbL 1.0 |
+| [Overture Maps](https://overturemaps.org) places | ~109,000 shops, clinics, schools, offices, restaurants and services that OpenStreetMap does not have yet | CDLA-Permissive-2.0 |
+| [Overture Maps](https://overturemaps.org) buildings | ~1.8 million machine-learned footprints (Google Open Buildings, Microsoft ML Buildings) where OpenStreetMap has none | ODbL 1.0 |
+
+OpenStreetMap is the base and always wins. Overture fills the gaps that are largest in fast-growing areas such as
+Kharghar, Kalamboli, Taloja, Panvel, Ulwe and Vasai-Virar:
+
+- **Places** are kept when Overture's confidence is at least 0.6 and their category maps to the taxonomy, and dropped
+  when OpenStreetMap already has the same category within 25 m or a similarly named place of the same group within 120
+  m; repeated Overture records of the same place are merged (8,005 dropped in all). Each is marked `source: overture`
+  in the API and on its card, with a link to add it to OpenStreetMap.
+- **Buildings** come only from Overture's machine-learned sources; Overture has already removed those that overlap
+  OpenStreetMap buildings.
+
+The build records the OpenStreetMap extract timestamp and the Overture release (`/api/v1/meta`). Building without
+Python, or with `SKIP_OVERTURE=1`, produces an OpenStreetMap-only dataset.
 
 ## Coverage
 
@@ -28,6 +43,8 @@ Areas are built from OpenStreetMap administrative boundaries, so they match offi
 | `kalyan-dombivli` | Kalyan-Dombivli | Municipal corporation | 117 km² |
 | `vasai-virar` | Vasai-Virar | Municipal corporation | 367 km² |
 | `panvel` | Panvel | Municipal corporation | 108 km² |
+| `panvel-taluka` | Panvel Taluka — Kharghar, Kamothe, Kalamboli, Taloja, New Panvel | Sub-district relation | 590 km² |
+| `uran` | Uran Taluka — Ulwe, Dronagiri, JNPA, Navi Mumbai airport | Sub-district relation | 204 km² |
 
 Every place, street and bridge in the database is tagged with the areas that contain it, so you can filter any API
 query with `area=makabo` and so on.
@@ -36,8 +53,9 @@ query with `area=makabo` and so on.
 
 | Content | Count |
 |---|---|
-| Points of interest | 45,559 in 89 categories |
-| Building footprints | 273,632 (28,094 with height or floor data) |
+| Points of interest | 154,607 in 89 categories (45,559 from OpenStreetMap, 109,048 from Overture Maps) |
+| Building footprints | 2,096,690 (273,632 from OpenStreetMap, 28,094 with height or floor data) |
+| Road network for routing | 170,184 junctions, 211,887 road segments a car can use |
 | Buildings with detail records | 76,039 |
 | Named streets | 6,138 (from 20,532 named road segments) |
 | Bridges | 6,048 bridge segments, 1,590 km of deck; 1,100 named bridges |
@@ -52,8 +70,8 @@ openstreetmap.org.
 
 | File | Format | Size | Read it with |
 |---|---|---|---|
-| `bombaychitra.pmtiles` | [PMTiles v3](https://github.com/protomaps/PMTiles) vector tiles, z0–z15 | ~43 MB | MapLibre, the `pmtiles` library, QGIS, GDAL |
-| `bombaychitra.db` | SQLite 3 with R*Tree and FTS5 | ~64 MB | Any SQLite driver — see [Database](database.md) |
+| `bombaychitra.pmtiles` | [PMTiles v3](https://github.com/protomaps/PMTiles) vector tiles, z0–z15 | ~96 MB | MapLibre, the `pmtiles` library, QGIS, GDAL |
+| `bombaychitra.db` | SQLite 3 with R*Tree, FTS5 and the routing graph | ~209 MB | Any SQLite driver — see [Database](database.md) |
 
 Get them from:
 
@@ -77,7 +95,8 @@ database is opened read-only and treated as immutable, so replace both files tog
 ## Licence and attribution
 
 The data is © OpenStreetMap contributors and available under the
-[Open Database License (ODbL) 1.0](https://opendatacommons.org/licenses/odbl/). If you use it you must:
+[Open Database License (ODbL) 1.0](https://opendatacommons.org/licenses/odbl/); places and buildings added from
+Overture Maps are © Overture Maps Foundation (see [Licence](license.md)). If you use it you must:
 
 - **attribute** it, e.g. "© OpenStreetMap contributors" with a link to https://www.openstreetmap.org/copyright;
 - **share alike**: if you distribute a modified database, distribute it under the ODbL.

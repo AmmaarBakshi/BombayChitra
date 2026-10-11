@@ -135,14 +135,20 @@ export class Inspector {
     if (d.area_m2) rows.push(this.row('explore', 'Area', formatArea(d.area_m2)));
     if (d.areas.length) rows.push(this.row('explore', 'Within', d.areas.map((a) => a.name).join(' · ')));
     rows.push(this.coordRow(d.lon, d.lat));
+    const overture = d.source === 'overture';
+    if (overture) {
+      const via = d.tags['overture:sources']?.split(';').join(', ');
+      rows.push(this.row('info', 'Source', h('span', {}, 'Overture Maps', via ? ` (via ${via})` : '', ' · not yet on OpenStreetMap — ',
+        h('a', { href: `https://www.openstreetmap.org/edit#map=19/${d.lat.toFixed(6)}/${d.lon.toFixed(6)}`, target: '_blank', rel: 'noopener' }, 'add it'))));
+    }
 
     this.render(
       { badge: categoryBadge(d.category, 40), title: d.name ?? d.category_label, kicker: [d.category_label, d.locality].filter(Boolean).join(' · ') },
       [
         d.name_local ? h('div', { class: 'sub', lang: 'mr', style: 'margin:-2px 0 6px' }, d.name_local) : null,
         ...rows,
-        this.actions(d.lon, d.lat, d.osm_url, d.name),
-        this.tagTable(d.tags),
+        this.actions(d.lon, d.lat, d.osm_url || undefined, d.name),
+        this.tagTable(d.tags, overture ? 'Source attributes' : undefined),
       ],
       group?.colour,
     );
@@ -484,7 +490,7 @@ export class Inspector {
   private actions(lon: number, lat: number, osmUrl?: string, name?: string): HTMLElement {
     const dest = `${lat.toFixed(6)},${lon.toFixed(6)}`;
     return h('div', { class: 'btn-row', style: 'margin:12px 0 4px' },
-      h('a', { class: 'btn btn-primary', href: `https://www.openstreetmap.org/directions?to=${dest}`, target: '_blank', rel: 'noopener' }, icon('directions', 15), 'Directions'),
+      h('button', { class: 'btn btn-primary', type: 'button', title: 'Distance and route by road to here', onclick: () => this.ctx.routeTo({ lon, lat, label: name ?? dest }) }, icon('directions', 15), 'Route here'),
       h('button', { class: 'btn', type: 'button', onclick: () => this.copy(location.href, 'Link copied') }, icon('link', 15), 'Share'),
       h('button', { class: 'btn', type: 'button', onclick: () => this.nearbyFrom(lon, lat, name) }, icon('search', 15), 'Nearby'),
       osmUrl ? h('a', { class: 'btn', href: osmUrl, target: '_blank', rel: 'noopener', title: 'View or edit on OpenStreetMap' }, icon('external', 15), 'OSM') : null,
@@ -504,11 +510,11 @@ export class Inspector {
     }
   }
 
-  private tagTable(tags: Record<string, string>): HTMLElement | null {
+  private tagTable(tags: Record<string, string>, title = 'All OpenStreetMap tags'): HTMLElement | null {
     const entries = Object.entries(tags).sort(([a], [b]) => a.localeCompare(b));
     if (!entries.length) return null;
     return h('details', { class: 'tags' },
-      h('summary', {}, `All OpenStreetMap tags (${formatNumber(entries.length)})`),
+      h('summary', {}, `${title} (${formatNumber(entries.length)})`),
       h('table', {}, ...entries.map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', {}, String(v))))),
     );
   }

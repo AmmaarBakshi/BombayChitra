@@ -4,6 +4,8 @@
 |---|---|
 | BombayChitra source code | [MIT](https://github.com/AmmaarBakshi/BombayChitra/blob/main/LICENSE) |
 | Map data (tiles, database, API responses) | © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) |
+| Places added from Overture Maps | © [Overture Maps Foundation](https://docs.overturemaps.org/attribution/), [CDLA-Permissive-2.0](https://cdla.dev/permissive-2-0/) (sources include Meta and Microsoft) |
+| Building footprints added from Overture Maps | © Overture Maps Foundation, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) (Google Open Buildings, Microsoft ML Buildings) |
 | Noto Sans glyphs (`web/public/fonts`) | [SIL Open Font License 1.1](https://openfontlicense.org/) |
 | Maki icons | [CC0 1.0](https://github.com/mapbox/maki/blob/main/LICENSE.txt) |
 | MapLibre GL JS | [BSD-3-Clause](https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt) |
@@ -11,12 +13,13 @@
 
 ## Attributing the data
 
-Wherever you show BombayChitra maps or data, credit OpenStreetMap:
+Wherever you show BombayChitra maps or data, credit OpenStreetMap and Overture Maps:
 
-> © OpenStreetMap contributors
+> © OpenStreetMap contributors · © Overture Maps Foundation
 
-with a link to <https://www.openstreetmap.org/copyright>. The bundled styles include this attribution automatically,
-and MapLibre displays it in the corner of the map.
+with links to <https://www.openstreetmap.org/copyright> and <https://docs.overturemaps.org/attribution/>. The tiles
+carry this attribution, so MapLibre displays it in the corner of the map automatically. A dataset built with
+`SKIP_OVERTURE=1` only needs the OpenStreetMap credit.
 
 ## Share-alike
 

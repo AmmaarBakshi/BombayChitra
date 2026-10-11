@@ -12,4 +12,6 @@ export interface AppContext {
   toast(message: string): void;
   selectArea(id: string | null, fit?: boolean): void;
   currentArea(): string | null;
+  /** Opens "distance by road" with this point as the destination. */
+  routeTo(point: { lon: number; lat: number; label: string }): void;
 }

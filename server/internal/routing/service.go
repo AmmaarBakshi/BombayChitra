@@ -1,0 +1,42 @@
+package routing
+
+import (
+	"context"
+	"database/sql"
+	"sync"
+)
+
+// Service loads the graph on first use (it is ~100 MB in memory) and bounds concurrent searches.
+type Service struct {
+	db    *sql.DB
+	once  sync.Once
+	graph *Graph
+	err   error
+	slots chan struct{}
+}
+
+// NewService creates a lazily loading routing service over the dataset database.
+func NewService(db *sql.DB, concurrency int) *Service {
+	return &Service{db: db, slots: make(chan struct{}, max(1, concurrency))}
+}
+
+// Graph returns the loaded graph, loading it on the first call.
+func (s *Service) Graph(ctx context.Context) (*Graph, error) {
+	s.once.Do(func() { s.graph, s.err = Load(context.WithoutCancel(ctx), s.db) })
+	return s.graph, s.err
+}
+
+// Route computes a route, waiting for a free search slot.
+func (s *Service) Route(ctx context.Context, fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Result, error) {
+	g, err := s.Graph(ctx)
+	if err != nil {
+		return nil, err
+	}
+	select {
+	case s.slots <- struct{}{}:
+		defer func() { <-s.slots }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	return g.Route(fromLon, fromLat, toLon, toLat, opt)
+}

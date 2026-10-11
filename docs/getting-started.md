@@ -12,7 +12,8 @@ There are three ways to run BombayChitra: **from source** (recommended for devel
 | Java (JDK) | 21 or newer | Building the data (Planetiler) |
 | Go | 1.26 or newer | The server |
 | Node.js | 22 or newer | Building the web app and docs |
-| Disk / RAM | ~1.5 GB free disk, 8 GB RAM (the build uses a 4 GB heap) | The OpenStreetMap extract and build |
+| Python | 3.10 or newer (optional) | Downloading the Overture Maps places and buildings; without it the build uses OpenStreetMap only |
+| Disk / RAM | ~3 GB free disk, 8 GB RAM (the build uses a 4 GB heap) | The source extracts and build |
 
 ### 1. Clone
 
@@ -24,7 +25,8 @@ cd BombayChitra
 ### 2. Build the data
 
 This downloads the OpenStreetMap extract for western India (~220 MB, once), then builds
-`data/build/bombaychitra.pmtiles` and `data/build/bombaychitra.db`. It takes about a minute on an 8-core machine.
+`data/build/bombaychitra.pmtiles` and `data/build/bombaychitra.db`. It takes two to three minutes on an 8-core machine,
+plus the one-time download of the OpenStreetMap and Overture Maps extracts.
 
 ```bash
 ./scripts/build-data.sh          # macOS, Linux, Git Bash, WSL

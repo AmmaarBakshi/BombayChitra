@@ -11,7 +11,7 @@ language. The complete, machine-readable contract is [`/openapi.json`](/openapi.
 |---|---|
 | Base URL | Your server's origin, e.g. `http://localhost:8080` |
 | Coordinates | WGS84; points as `lat` + `lon` parameters, boxes as `bbox=minLon,minLat,maxLon,maxLat` |
-| Ids | `osm_id × 10 + type` (1 node, 2 way, 3 relation). Detail endpoints also accept `n123`, `w123`, `r123`. |
+| Ids | `osm_id × 10 + type` (1 node, 2 way, 3 relation; places from Overture Maps end in 4). Detail endpoints also accept `n123`, `w123`, `r123`. |
 | Lists | `{"count": n, "items": [...]}` with `limit` (default 50, max 500) and `offset` |
 | GeoJSON | add `format=geojson` to places, nearby, areas, streets, named bridges and routes |
 | Errors | `{"error": {"status": 400, "code": "bad_request", "message": "…"}}` |
@@ -55,6 +55,10 @@ curl "$B/api/v1/transit/routes/3808111?format=geojson"
 
 # Statistics for an area
 curl "$B/api/v1/stats?area=navi-mumbai"
+
+# Distance by road: Andheri station to BKC (fastest), and the shortest route as GeoJSON
+curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680"
+curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&optimize=distance&format=geojson"
 ```
 
 ## Common tasks
@@ -70,6 +74,31 @@ coordinates and, for extended features (streets, bridges, lines, areas), a `bbox
 `/api/v1/reverse` snaps a coordinate to the nearest named road (`road.snapped`, `road.distance_m`) and returns a
 one-line `label` such as "Swami Vivekananda Road, Bandra West, Mumbai Suburban". Footpaths and service roads only win
 when they are much closer than a real road.
+
+### Distance by road
+
+`/api/v1/route?from=lat,lon&to=lat,lon` returns the driving route between two points:
+
+```json
+{
+  "optimize": "time",
+  "distance_m": 10812, "duration_s": 975, "straight_m": 6405,
+  "from": { "lat": 19.1197, "lon": 72.8464, "snapped": { "lat": 19.119702, "lon": 72.846381, "road": "Andheri - Kurla Road", "offset_m": 2 } },
+  "to":   { "lat": 19.066, "lon": 72.868, "snapped": { "lat": 19.065965, "lon": 72.867996, "road": "G Block Road", "offset_m": 4 } },
+  "roads": [{ "name": "Andheri - Kurla Road", "distance_m": 1830 }, { "name": "Western Express Highway", "distance_m": 4120 }],
+  "bbox": [72.8464, 19.066, 72.868, 19.1197],
+  "geometry": { "type": "LineString", "coordinates": [[72.846381, 19.119702], "…"] }
+}
+```
+
+- Each end is snapped to the nearest road a car can use (within 1.5 km); `snapped.offset_m` is how far that is.
+- `optimize=time` (default) gives the fastest route, `optimize=distance` the shortest.
+- Durations use typical urban speeds per road class (65 km/h on expressways down to 18 km/h on residential
+  streets), not live traffic, so treat them as off-peak estimates. One-way streets, access restrictions and
+  roundabouts are respected; turn restrictions are not.
+- Errors: `422` with code `no_road` (nothing drivable nearby) or `no_route` (not connected).
+- Routes are computed with A* on a 170,000-junction graph in a few milliseconds; the graph is loaded on the first
+  request.
 
 ### Places along a route or in view
 

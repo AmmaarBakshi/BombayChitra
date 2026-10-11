@@ -2,7 +2,7 @@
   "$schema": "./schema/region.schema.json",
   "id": "mmr",
   "name": "Mumbai Metropolitan Region",
-  "description": "Mumbai City, Mumbai Suburban, Thane District, Navi Mumbai and the wider MMR, built from OpenStreetMap.",
+  "description": "Mumbai City, Mumbai Suburban, Thane District, Navi Mumbai, Panvel, Vasai-Virar and the wider MMR, built from OpenStreetMap and Overture Maps.",
   "bounds": [72.70, 18.80, 73.85, 19.82],
   "center": [72.8777, 19.0760],
   "zoom": 11,
@@ -11,6 +11,11 @@
     "name": "Geofabrik India · Western Zone",
     "url": "https://download.geofabrik.de/asia/india/western-zone-latest.osm.pbf",
     "file": "western-zone.osm.pbf"
+  },
+  "overture": {
+    "release": "latest",
+    "places": { "file": "overture/place.parquet", "minConfidence": 0.6 },
+    "buildings": { "file": "overture/building.parquet" }
   },
   "areas": [
     {
@@ -90,6 +95,22 @@
       "short": "Panvel",
       "kind": "city",
       "relations": [13182526]
+    },
+    {
+      "id": "panvel-taluka",
+      "name": "Panvel Taluka",
+      "short": "Panvel Taluka",
+      "kind": "taluka",
+      "description": "Panvel sub-district: Kharghar, Kamothe, Kalamboli, Taloja, New Panvel and the villages around them.",
+      "relations": [10353552]
+    },
+    {
+      "id": "uran",
+      "name": "Uran Taluka",
+      "short": "Uran",
+      "kind": "taluka",
+      "description": "Uran sub-district: Ulwe, Dronagiri, JNPA port and Navi Mumbai International Airport.",
+      "relations": [10353549]
     }
   ],
   "transit": {

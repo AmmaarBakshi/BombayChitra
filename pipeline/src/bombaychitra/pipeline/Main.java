@@ -3,14 +3,19 @@ package bombaychitra.pipeline;
 import bombaychitra.pipeline.data.DataSink;
 import bombaychitra.pipeline.data.DatabaseWriter;
 import bombaychitra.pipeline.layers.LayerContext;
+import bombaychitra.pipeline.layers.OvertureBuildings;
+import bombaychitra.pipeline.layers.OverturePlaces;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthegomap.planetiler.Planetiler;
 import com.onthegomap.planetiler.config.Arguments;
 import com.onthegomap.planetiler.reader.osm.OsmInputFile;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,12 +67,21 @@ public final class Main {
 
     var sink = new DataSink();
     var started = Instant.now();
-    Planetiler.create(arguments)
-      .setProfile(planetiler -> new BombayChitraProfile(planetiler.config(),
-        new LayerContext(region, taxonomy, sink, planetiler.config().maxzoom())))
-      .addOsmSource("osm", osm, region.source().url())
-      .overwriteOutput(tiles)
-      .run();
+    var planetiler = Planetiler.create(arguments)
+      .setProfile(p -> new BombayChitraProfile(p.config(),
+        new LayerContext(region, taxonomy, sink, p.config().maxzoom())))
+      .addOsmSource("osm", osm, region.source().url());
+    // Overture sources are read after OpenStreetMap, so OpenStreetMap features are known when deduplicating.
+    Map<String, String> overtureMeta = new LinkedHashMap<>();
+    var overture = region.overture();
+    if (overture != null) {
+      Path sources = dataDir.resolve("sources");
+      addParquet(planetiler, OverturePlaces.SOURCE, overture.places() == null ? null : overture.places().file(),
+        sources, overtureMeta);
+      addParquet(planetiler, OvertureBuildings.SOURCE,
+        overture.buildings() == null ? null : overture.buildings().file(), sources, overtureMeta);
+    }
+    planetiler.overwriteOutput(tiles).run();
 
     if (skipDatabase) {
       return;
@@ -86,7 +100,35 @@ public final class Main {
     } catch (RuntimeException e) {
       LOGGER.warn("Could not read OSM header timestamp: {}", e.getMessage());
     }
+    meta.putAll(overtureMeta);
     new DatabaseWriter(region, taxonomy, sink, meta).write(database);
     sink.clear();
+  }
+
+  /** Adds an Overture GeoParquet extract when present; its release is read from the downloader's state file. */
+  private static void addParquet(Planetiler planetiler, String name, String file, Path sources,
+    Map<String, String> meta) {
+    if (file == null) {
+      return;
+    }
+    Path path = sources.resolve(file);
+    if (!Files.exists(path)) {
+      LOGGER.warn("Overture source {} not found at {} — run the build script to download it, or remove it from "
+        + "region.json", name, path);
+      return;
+    }
+    planetiler.addParquetSource(name, List.of(path));
+    meta.put(name + "_file", path.getFileName().toString());
+    Path state = path.resolveSibling(path.getFileName() + ".state");
+    try {
+      if (Files.exists(state)) {
+        String release = new ObjectMapper().readTree(state.toFile()).path("last_release").asText(null);
+        if (release != null) {
+          meta.put("overture_release", release);
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.warn("Could not read {}: {}", state, e.getMessage());
+    }
   }
 }

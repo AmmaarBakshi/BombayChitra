@@ -20,6 +20,13 @@ project uses [Semantic Versioning](https://semver.org/).
 - Line status (`construction`, `proposed`) derived from track lifecycle tags; proposed metro alignments in the
   `transit` tile layer; route lengths count parallel tracks once.
 - Bridges layer and named-bridge aggregation with spans; validated building heights for 3D.
+- Overture Maps enrichment: ~109,000 places (confidence ≥ 0.6, mapped through `overture` lists in the taxonomy and
+  deduplicated against OpenStreetMap) and ~1.8 million machine-learned building footprints, filling in Navi Mumbai,
+  Panvel, Taloja and Vasai-Virar; downloaded by the build scripts (`scripts/fetch-overture.py`), optional.
+- Distance by road: car routing graph built by the pipeline (`routing` table), `/api/v1/route` (A*, fastest or
+  shortest, one-way aware) and a "Distance by road" panel with map picking, search, shareable links and
+  "Route here" on every place card.
+- Panvel Taluka and Uran Taluka areas; a dashboard hider (toolbar button and `H`) for a full-screen map.
 - Go server: REST API (search, reverse geocoding, places, streets, roads, bridges, buildings, transit, areas,
   stats), PMTiles tile server, TileJSON, portable light/dark styles, raw downloads, GeoJSON/NDJSON/CSV export.
 - Web app (TypeScript + MapLibre GL JS 6): light/dark themes, unified search, inspector, layer toggles, transit,

@@ -13,6 +13,9 @@ database, and compiled into the web app, so a change flows through the whole sta
 | `maxzoom` | Highest tile zoom (10–16; default 15). Clients overzoom beyond it. |
 | `source.url` | OpenStreetMap extract to download (any `.osm.pbf`, e.g. from Geofabrik). |
 | `source.file` | File name under `data/sources/`. |
+| `overture.release` | Overture Maps release to download (`latest`, or e.g. `2026-09-23.1`). |
+| `overture.places.file`, `overture.places.minConfidence` | GeoParquet file under `data/sources/` for Overture places, and the confidence (0–1) a place needs to be added; default 0.6. |
+| `overture.buildings.file` | GeoParquet file for Overture buildings (only machine-learned footprints are added). Remove the `overture` section for an OpenStreetMap-only build. |
 | `areas[]` | Named areas: `id`, `name`, `short` (chip label), `kind`, `description`, and `relations` — OSM relation ids whose polygons are unioned. |
 | `transit.modes` | Route relation types to treat as lines (`subway`, `light_rail`, `monorail`, `tram`, `train`). |
 | `transit.trainNetworks` | `route=train` relations are included only for these networks (suburban rail, not long-distance trains). |
@@ -104,6 +107,7 @@ The taxonomy of points of interest: **groups** contain **categories**, and each 
 | `rank` | 1 = most important (stations, hospitals) … 5 = least (small shops). Controls label priority and search ranking. |
 | `minzoom` | Zoom at which the category appears in tiles (large areas appear 1–2 zooms earlier). |
 | `match` | A list of rules; a feature matches if **any** rule matches. |
+| `overture` | Overture Maps categories that belong here, at any level of Overture's hierarchy, e.g. `["dental_clinic"]` for `dentist`. A place takes the category of its most specific mapped Overture category; unmapped places are not added. |
 
 ### Rule syntax
 

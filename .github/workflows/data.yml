@@ -28,8 +28,12 @@ jobs:
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - name: Build tiles and database
-        run: JAVA_OPTS=-Xmx6g ./scripts/build-data.sh
+        # A failed Overture download fails the release rather than publishing a dataset without it.
+        run: OVERTURE_REQUIRED=1 JAVA_OPTS=-Xmx6g ./scripts/build-data.sh
       - name: Verify the server against the new data
         run: go test ./...
         working-directory: server

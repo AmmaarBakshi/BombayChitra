@@ -47,6 +47,23 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
 
   private static final Set<String> MAJOR = Set.of("motorway", "trunk", "primary", "secondary");
 
+  /**
+   * Roads cars can use, with typical urban speeds in km/h for the routing graph. They are deliberately below most
+   * speed limits: the estimate has no live traffic, and Mumbai traffic rarely allows the limit.
+   */
+  private static final Map<String, Float> DRIVE_SPEED = Map.ofEntries(
+    Map.entry("motorway", 65f), Map.entry("motorway_link", 40f), Map.entry("trunk", 45f), Map.entry("trunk_link", 30f),
+    Map.entry("primary", 35f), Map.entry("primary_link", 28f), Map.entry("secondary", 30f),
+    Map.entry("secondary_link", 24f), Map.entry("tertiary", 26f), Map.entry("tertiary_link", 22f),
+    Map.entry("unclassified", 22f), Map.entry("residential", 18f), Map.entry("road", 18f),
+    Map.entry("living_street", 10f), Map.entry("service", 12f)
+  );
+  /** Road class codes stored in the routing graph (see docs/database.md). */
+  private static final Map<String, Byte> DRIVE_CLASS = Map.of("motorway", (byte) 1, "trunk", (byte) 2, "primary",
+    (byte) 3, "secondary", (byte) 4, "tertiary", (byte) 5, "minor", (byte) 6, "service", (byte) 7);
+  private static final Set<String> ALLOWED = Set.of("yes", "designated", "permissive", "destination", "customers",
+    "delivery");
+
   public Roads(LayerContext ctx) {
     super(ctx);
   }
@@ -104,6 +121,15 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
       .setMinPixelSize(0)
       .setSortKey(f.getWayZorder());
 
+    Float speed = DRIVE_SPEED.get(highway);
+    if (speed != null && drivable(f) && ctx.inBounds(f)) {
+      try {
+        driveWay(f, kind, speed, name != null ? name : ref);
+      } catch (GeometryException e) {
+        e.log("drive way");
+      }
+    }
+
     if ((name != null || ref != null) && !"construction".equals(kind) && ctx.inBounds(f)) {
       try {
         ctx.sink().roads.add(new Records.Road(Tags.oid(f), name, ref, kind, highway, f.latLonGeometry(),
@@ -112,6 +138,36 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
         e.log("road");
       }
     }
+  }
+
+  /** Car access: excludes private, emergency-only and motor-vehicle-free ways unless cars are explicitly allowed. */
+  private static boolean drivable(SourceFeature f) {
+    for (String key : new String[]{"motorcar", "motor_vehicle", "vehicle", "access"}) {
+      String value = Tags.clean(f.getString(key));
+      if (value != null) {
+        return ALLOWED.contains(value);
+      }
+    }
+    return !f.hasTag("service", "emergency_access");
+  }
+
+  private void driveWay(SourceFeature f, String kind, float speed, String name) throws GeometryException {
+    var coords = f.latLonGeometry().getCoordinates();
+    if (coords.length < 2) {
+      return;
+    }
+    int[] packed = new int[coords.length * 2];
+    for (int i = 0; i < coords.length; i++) {
+      packed[i * 2] = (int) Math.round(coords[i].x * 1e7);
+      packed[i * 2 + 1] = (int) Math.round(coords[i].y * 1e7);
+    }
+    Integer oneway = oneway(f);
+    float limit = Parse.parseIntOrNull(f.getString("maxspeed")) instanceof Integer max && max > 0 ? max : speed;
+    if (f.hasTag("service", "parking_aisle", "drive-through", "driveway")) {
+      speed = Math.min(speed, 8f);
+    }
+    ctx.sink().driveWays.add(new Records.DriveWay(packed, DRIVE_CLASS.getOrDefault(kind, (byte) 6),
+      (byte) (oneway == null ? 0 : oneway), Math.min(speed, limit), name == null ? null : name.intern()));
   }
 
   static String brunnel(SourceFeature f) {

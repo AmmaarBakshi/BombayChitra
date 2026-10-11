@@ -1,6 +1,7 @@
 package bombaychitra.pipeline.data;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -21,17 +22,35 @@ public final class DataSink {
   public final Collection<Records.RouteWay> routeWays = new ConcurrentLinkedQueue<>();
   public final Collection<Records.RouteStop> routeStops = new ConcurrentLinkedQueue<>();
   public final Collection<Records.AreaPart> areaParts = new ConcurrentLinkedQueue<>();
+  public final Collection<Records.DriveWay> driveWays = new ConcurrentLinkedQueue<>();
   public final Map<Long, Records.Route> routes = new ConcurrentHashMap<>();
 
-  /** Building statistics are kept for every building, including the ones not stored individually. */
-  private final ConcurrentLinkedQueue<double[]> buildingStats = new ConcurrentLinkedQueue<>();
+  /**
+   * Statistics for every building, including the millions not stored individually: lon, lat, height (NaN when
+   * unknown) and footprint area, packed four floats per building to keep memory flat.
+   */
+  private final List<float[]> statChunks = new ArrayList<>();
+  private float[] statChunk = new float[STAT_CHUNK];
+  private int statFill;
+  private static final int STAT_CHUNK = 4 << 14;
 
-  public void addBuildingStat(double lon, double lat, double heightM, double areaM2) {
-    buildingStats.add(new double[]{lon, lat, heightM, areaM2});
+  public synchronized void addBuildingStat(double lon, double lat, double heightM, double areaM2) {
+    if (statFill == STAT_CHUNK) {
+      statChunks.add(statChunk);
+      statChunk = new float[STAT_CHUNK];
+      statFill = 0;
+    }
+    statChunk[statFill++] = (float) lon;
+    statChunk[statFill++] = (float) lat;
+    statChunk[statFill++] = (float) heightM;
+    statChunk[statFill++] = (float) areaM2;
   }
 
-  public List<double[]> buildingStats() {
-    return new ArrayList<>(buildingStats);
+  /** Building statistics as arrays of (lon, lat, height, area) quadruples. */
+  public synchronized List<float[]> buildingStats() {
+    List<float[]> all = new ArrayList<>(statChunks);
+    all.add(Arrays.copyOf(statChunk, statFill));
+    return all;
   }
 
   public void clear() {
@@ -43,7 +62,11 @@ public final class DataSink {
     routeWays.clear();
     routeStops.clear();
     areaParts.clear();
+    driveWays.clear();
     routes.clear();
-    buildingStats.clear();
+    synchronized (this) {
+      statChunks.clear();
+      statFill = 0;
+    }
   }
 }

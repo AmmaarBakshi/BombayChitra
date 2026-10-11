@@ -6,12 +6,14 @@ info:
   description: |
     The BombayChitra API serves every place, road, bridge, building and transit line of the Mumbai Metropolitan
     Region (Mumbai City, Mumbai Suburban, Thane district, Navi Mumbai, MaKaBo and the wider MMR), built from
-    OpenStreetMap.
+    OpenStreetMap and enriched with Overture Maps places and building footprints. It also measures the distance by
+    road between any two points.
 
     - **Base URL:** the origin of a BombayChitra server, e.g. `http://localhost:8080`. All endpoints are `GET`.
     - **Format:** JSON (UTF-8). Most list and detail endpoints also accept `format=geojson`.
     - **IDs:** place, road, bridge and building ids are `osm_id × 10 + type` (`1` node, `2` way, `3` relation), e.g.
       way `31144296` → `311442962`. Detail endpoints also accept OSM shorthand: `w31144296`, `n123`, `r456`.
+      Places added from Overture Maps end in `4` (`osm_type: overture`, `source: overture`, no `osm_url`).
     - **Coordinates:** WGS84 longitude/latitude. Bounding boxes are `minLon,minLat,maxLon,maxLat`.
     - **Errors:** non-2xx responses return `{"error": {"status": 400, "code": "bad_request", "message": "…"}}`.
     - **Caching:** responses carry an `ETag` and `Cache-Control`; send `If-None-Match` to get `304 Not Modified`.
@@ -19,7 +21,8 @@ info:
     - **Clients:** generate a typed client in any language from this document (`/openapi.json`) with
       [OpenAPI Generator](https://openapi-generator.tech/) — see [Integrations](/docs/integrations/).
 
-    Data © OpenStreetMap contributors, available under the Open Database License (ODbL).
+    Data © OpenStreetMap contributors, available under the Open Database License (ODbL); places and building
+    footprints added from Overture Maps © Overture Maps Foundation (CDLA-Permissive-2.0 and ODbL).
   license:
     name: MIT (code) · ODbL-1.0 (data)
     url: https://github.com/AmmaarBakshi/BombayChitra/blob/main/LICENSE
@@ -44,6 +47,8 @@ tags:
     description: Buildings with heights, floor counts, footprints and addresses.
   - name: Transit
     description: Metro, monorail and suburban railway lines, routes and stations.
+  - name: Routing
+    description: Distance and route by road between two points (car).
   - name: Tiles
     description: Vector tiles and map styles for any MapLibre-compatible client.
 
@@ -382,6 +387,7 @@ paths:
                 postcode: '400050'
                 website: https://www.lilavatihospital.com/
                 areas: [{ id: mmr, name: Mumbai Metropolitan Region }, { id: mumbai-suburban, name: Mumbai Suburban }]
+                source: openstreetmap
                 osm_url: https://www.openstreetmap.org/way/31144296
                 tags: { amenity: hospital, name: Lilavati Hospital }
         '404': { description: Not found }
@@ -645,6 +651,54 @@ paths:
         - $ref: '#/components/parameters/bbox'
       responses:
         '200': { description: Stations }
+
+  /api/v1/route:
+    get:
+      tags: [Routing]
+      operationId: route
+      summary: Distance by road
+      description: |
+        The driving route between two points: distance by road, estimated time, the straight-line distance, the roads
+        used in order and the route geometry. Each end is snapped to the nearest drivable road (within 1.5 km) and
+        one-way rules are followed. Times use typical urban speeds per road class without live traffic, so peak-hour
+        journeys take longer; turn restrictions are not modelled. With `format=geojson` returns a FeatureCollection
+        of the route line and its two ends.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Start as `lat,lon`.
+          schema: { type: string }
+          example: 19.1197,72.8464
+        - name: to
+          in: query
+          required: true
+          description: Destination as `lat,lon`.
+          schema: { type: string }
+          example: 19.0660,72.8680
+        - name: optimize
+          in: query
+          description: '`time` for the fastest route (default) or `distance` for the shortest.'
+          schema: { type: string, enum: [time, distance], default: time }
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Route
+          content:
+            application/json:
+              example:
+                optimize: time
+                distance_m: 10812
+                duration_s: 975
+                straight_m: 6405
+                from: { lat: 19.1197, lon: 72.8464, snapped: { lat: 19.119702, lon: 72.846381, road: Andheri - Kurla Road, offset_m: 2 } }
+                to: { lat: 19.066, lon: 72.868, snapped: { lat: 19.065965, lon: 72.867996, road: G Block Road, offset_m: 4 } }
+                roads: [{ name: Andheri - Kurla Road, distance_m: 1830 }, { name: Western Express Highway, distance_m: 4120 }, { distance_m: 210 }]
+                bbox: [72.8464, 19.066, 72.868, 19.1197]
+                geometry: { type: LineString, coordinates: [[72.846381, 19.119702], [72.846512, 19.119431]] }
+        '400': { description: 'Missing or invalid `from`, `to` or `optimize`' }
+        '422': { description: 'No drivable road within 1.5 km of a point (`no_road`), or no road connection (`no_route`)' }
+        '503': { description: 'The dataset has no routing graph (`routing_unavailable`)' }
 
   /tiles/bombaychitra.json:
     get:

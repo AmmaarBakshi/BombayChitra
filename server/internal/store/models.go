@@ -78,8 +78,10 @@ type PlaceDetail struct {
 	AreaM2        *float64        `json:"area_m2,omitempty"`
 	Areas         []AreaRef       `json:"areas"`
 	Lines         json.RawMessage `json:"lines,omitempty"`
-	OSMURL        string          `json:"osm_url"`
-	Tags          json.RawMessage `json:"tags"`
+	// Source is "openstreetmap", or "overture" for places added from Overture Maps (osm_url is then empty).
+	Source string          `json:"source"`
+	OSMURL string          `json:"osm_url"`
+	Tags   json.RawMessage `json:"tags"`
 }
 
 // SearchResult is one hit from the unified search index.

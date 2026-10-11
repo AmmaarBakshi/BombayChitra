@@ -91,6 +91,8 @@ export interface PlaceDetail extends Place {
   area_m2?: number;
   areas: AreaRef[];
   lines?: LineRef[];
+  /** `overture` for places added from Overture Maps; their `osm_url` is empty. */
+  source: 'openstreetmap' | 'overture';
   osm_url: string;
   tags: Record<string, string>;
 }
@@ -251,6 +253,26 @@ export interface TransitRoute {
   stops?: TransitStop[];
   geometry?: GeoJSON.Geometry;
   osm_url: string;
+}
+
+export interface RouteEnd {
+  lat: number;
+  lon: number;
+  /** The nearest point on a drivable road, where the route starts or ends. */
+  snapped: { lat: number; lon: number; road?: string; offset_m: number };
+}
+
+export interface RouteResult {
+  optimize: 'time' | 'distance';
+  distance_m: number;
+  duration_s: number;
+  straight_m: number;
+  from: RouteEnd;
+  to: RouteEnd;
+  /** Roads in driving order; unnamed stretches have no name. */
+  roads: { name?: string; distance_m: number }[];
+  bbox: BBox;
+  geometry: GeoJSON.LineString;
 }
 
 export interface TransitLine {
