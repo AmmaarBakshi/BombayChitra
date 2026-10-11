@@ -55,15 +55,15 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.writeJSON(w, r, http.StatusOK, map[string]any{
-		"name":          "BombayChitra",
-		"server":        Version,
-		"region":        map[string]any{"id": m["region_id"], "name": m["region_name"], "description": m["description"], "bounds": bounds, "center": center, "zoom": zoom, "maxzoom": maxzoom},
-		"dataset":       map[string]any{"built_at": m["built_at"], "source": m["source_name"], "source_url": m["source_url"], "source_timestamp": m["source_timestamp"], "schema_version": m["schema_version"], "generator": m["generator"]},
-		"counts":        counts,
-		"attribution":   m["attribution"],
-		"license":       m["license"],
-		"links":         links,
-		"areas":         s.store.Areas(),
+		"name":           "BombayChitra",
+		"server":         Version,
+		"region":         map[string]any{"id": m["region_id"], "name": m["region_name"], "description": m["description"], "bounds": bounds, "center": center, "zoom": zoom, "maxzoom": maxzoom},
+		"dataset":        map[string]any{"built_at": m["built_at"], "source": m["source_name"], "source_url": m["source_url"], "source_timestamp": m["source_timestamp"], "schema_version": m["schema_version"], "generator": m["generator"]},
+		"counts":         counts,
+		"attribution":    m["attribution"],
+		"license":        m["license"],
+		"links":          links,
+		"areas":          s.store.Areas(),
 		"category_count": len(s.allCategories()),
 	})
 }

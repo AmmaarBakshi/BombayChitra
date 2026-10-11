@@ -47,6 +47,9 @@ jobs:
         with:
           name: webui-dist
           path: server/internal/webui/dist
+      - name: Format
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+        working-directory: server
       - name: Vet
         run: go vet ./...
         working-directory: server
