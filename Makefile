@@ -24,7 +24,7 @@ dev: ## Run the Vite dev server (proxying API/tiles to a server on :8080)
 
 test: ## Run all tests and type checks
 	cd server && go vet ./... && go test ./...
-	cd web && npm run typecheck
+	cd web && npm run typecheck && npm test
 	./scripts/test-pipeline.sh
 
 test-pipeline: ## Run the data pipeline's JUnit tests (needs a JDK)
