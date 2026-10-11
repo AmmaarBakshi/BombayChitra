@@ -2,6 +2,7 @@ package bombaychitra.pipeline.data;
 
 import bombaychitra.pipeline.RegionConfig;
 import bombaychitra.pipeline.Taxonomy;
+import bombaychitra.pipeline.geo.LineSpine;
 import bombaychitra.pipeline.util.Geo;
 import bombaychitra.pipeline.util.GeoJson;
 import bombaychitra.pipeline.util.Tags;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -218,12 +220,22 @@ public final class DatabaseWriter {
 
   // ---------------------------------------------------------------- transit
 
-  private record LineStop(String key, String ref, String label, String colour, String mode, double lon, double lat) {}
+  private record LineStop(String key, String ref, String label, String colour, String mode, String state,
+    double lon, double lat) {}
+
+  /** Stations further than this from a line's track are not inferred as its stops. */
+  private static final double INFERRED_STOP_RADIUS_M = 120;
 
   private List<LineStop> writeTransitLines(Connection db) throws SQLException {
-    Map<Long, Map<Long, Geometry>> waysByRoute = new HashMap<>();
+    Map<Long, Map<Long, Records.RouteWay>> waysByRoute = new HashMap<>();
     for (var way : sink.routeWays) {
-      waysByRoute.computeIfAbsent(way.routeId(), k -> new LinkedHashMap<>()).putIfAbsent(way.wayId(), way.line());
+      waysByRoute.computeIfAbsent(way.routeId(), k -> new LinkedHashMap<>()).putIfAbsent(way.wayId(), way);
+    }
+    STRtree stations = new STRtree();
+    for (var place : sink.places) {
+      if (STATION_MODES.containsKey(place.category())) {
+        stations.insert(new Envelope(place.lon(), place.lon(), place.lat(), place.lat()), place);
+      }
     }
     Map<Long, Map<Long, Records.RouteStop>> stopsByRoute = new HashMap<>();
     for (var stop : sink.routeStops) {
@@ -235,20 +247,36 @@ public final class DatabaseWriter {
 
     List<LineStop> allStops = new ArrayList<>();
     Set<String> searchedKeys = new LinkedHashSet<>();
+    Set<Long> usedIds = new HashSet<>();
+    routes.stream().filter(r -> !r.fromTracks()).forEach(r -> usedIds.add(r.id()));
     int written = 0;
+    int assembled = 0;
     try (var insert = db.prepareStatement(
-      "INSERT INTO transit_lines VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+      "INSERT INTO transit_lines VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
       for (var route : routes) {
         var ways = waysByRoute.get(route.id());
         if (ways == null || ways.isEmpty()) {
           continue;
         }
         var merger = new LineMerger();
-        ways.values().forEach(merger::add);
+        ways.values().forEach(w -> merger.add(w.line()));
         @SuppressWarnings("unchecked")
         Collection<LineString> merged = merger.getMergedLineStrings();
         Geometry geometry = FACTORY.createMultiLineString(merged.toArray(LineString[]::new));
         Envelope env = geometry.getEnvelopeInternal();
+        var spine = LineSpine.of(merged);
+        String state = route.state() != null ? route.state() : lifecycle(ways.values());
+
+        // A line assembled from tracks is identified by its longest way.
+        long id = route.id();
+        String osmType = "relation";
+        if (route.fromTracks()) {
+          osmType = "way";
+          id = ways.values().stream()
+            .sorted(Comparator.comparingDouble((Records.RouteWay w) -> -Geo.lengthMeters(w.line())))
+            .mapToLong(Records.RouteWay::wayId).filter(usedIds::add).findFirst().orElseThrow();
+          assembled++;
+        }
 
         List<Map<String, Object>> stops = new ArrayList<>();
         var nodes = stopsByRoute.getOrDefault(route.id(), Map.of());
@@ -266,14 +294,24 @@ public final class DatabaseWriter {
           row.put("lat", Tags.round6(stop.lat()));
           stops.add(row);
         }
-        String key = lineKey(route);
+        if (stops.isEmpty()) {
+          stops = inferStops(stations, spine, route.mode(), env);
+        }
+        String from = route.from();
+        String to = route.to();
+        if (route.fromTracks() && stops.size() >= 2) {
+          from = (String) stops.getFirst().get("name");
+          to = (String) stops.getLast().get("name");
+        }
+        String key = lineKey(route, state);
         String label = lineLabel(route);
         for (var s : stops) {
-          allStops.add(new LineStop(key, route.ref(), label, route.colour(), route.mode(), (double) s.get("lon"),
-            (double) s.get("lat")));
+          allStops.add(new LineStop(key, route.ref(), label, route.colour(), route.mode(), state,
+            (double) s.get("lon"), (double) s.get("lat")));
         }
         int i = 1;
-        insert.setLong(i++, route.id());
+        insert.setLong(i++, id);
+        insert.setString(i++, osmType);
         insert.setString(i++, key);
         insert.setString(i++, route.mode());
         insert.setString(i++, route.network());
@@ -282,10 +320,10 @@ public final class DatabaseWriter {
         insert.setString(i++, route.name());
         insert.setString(i++, route.colour());
         insert.setString(i++, route.operator());
-        insert.setString(i++, route.from());
-        insert.setString(i++, route.to());
-        insert.setString(i++, route.state());
-        insert.setDouble(i++, Math.round(Geo.lengthMeters(geometry)));
+        insert.setString(i++, from);
+        insert.setString(i++, to);
+        insert.setString(i++, state);
+        insert.setDouble(i++, Math.round(spine.lengthMeters()));
         insert.setInt(i++, stops.size());
         insert.setDouble(i++, env.getMinX());
         insert.setDouble(i++, env.getMinY());
@@ -299,23 +337,86 @@ public final class DatabaseWriter {
         if (searchedKeys.add(key)) {
           var centre = geometry.getInteriorPoint();
           String detail = (route.network() != null ? route.network() : MODE_LABELS.getOrDefault(route.mode(), "Line"))
-            + " · " + MODE_LABELS.getOrDefault(route.mode(), route.mode());
-          search(label, joinNonNull(route.ref(), route.name()), detail, "line", route.id(), route.mode(),
-            centre.getX(), centre.getY(), -3);
+            + " · " + MODE_LABELS.getOrDefault(route.mode(), route.mode())
+            + ("construction".equals(state) ? " · Under construction" : "proposed".equals(state) ? " · Proposed" : "");
+          search(label, joinNonNull(route.ref(), route.name()), detail, "line", id, route.mode(),
+            centre.getX(), centre.getY(), "construction".equals(state) || "proposed".equals(state) ? -2 : -3);
         }
       }
     }
-    LOGGER.info("Transit lines: {} route relations, {} stops", written, allStops.size());
+    LOGGER.info("Transit lines: {} routes ({} assembled from tracks), {} stops", written, assembled,
+      allStops.size());
     return allStops;
   }
 
-  static String lineKey(Records.Route route) {
+  /**
+   * Lines not yet in service get their own key ({@code Mumbai Metro:9:construction}) so an extension under
+   * construction is listed apart from the open section of the same line.
+   */
+  static String lineKey(Records.Route route, String state) {
     String scope = route.network() != null ? route.network() : route.mode();
     String id = route.ref() != null ? route.ref() : lineLabel(route);
-    return scope + ":" + id;
+    return "construction".equals(state) || "proposed".equals(state) ? scope + ":" + id + ":" + state
+      : scope + ":" + id;
+  }
+
+  /** {@code construction} or {@code proposed} when no track of the line is in service, otherwise null. */
+  static String lifecycle(Collection<Records.RouteWay> ways) {
+    boolean construction = false;
+    for (var way : ways) {
+      if (way.lifecycle() == null) {
+        return null;
+      }
+      construction |= "construction".equals(way.lifecycle());
+    }
+    return construction ? "construction" : "proposed";
+  }
+
+  /** Stations along a line without mapped stops, ordered from one end to the other. */
+  private static List<Map<String, Object>> inferStops(STRtree stations, LineSpine spine, String mode, Envelope env) {
+    Set<String> categories = new HashSet<>();
+    STATION_MODES.forEach((category, modes) -> {
+      if (Set.of(modes.split(",")).contains(mode)) {
+        categories.add(category);
+      }
+    });
+    Envelope probe = new Envelope(env);
+    probe.expandBy(0.002);
+    record Candidate(Records.Place place, double position) {}
+    List<Candidate> found = new ArrayList<>();
+    for (Object o : stations.query(probe)) {
+      var place = (Records.Place) o;
+      if (categories.contains(place.category())
+        && spine.distanceMeters(place.lon(), place.lat()) <= INFERRED_STOP_RADIUS_M) {
+        found.add(new Candidate(place, spine.position(place.lon(), place.lat())));
+      }
+    }
+    found.sort(Comparator.comparingDouble(Candidate::position).thenComparingLong(c -> c.place().id()));
+    List<Map<String, Object>> stops = new ArrayList<>();
+    Set<String> names = new HashSet<>();
+    for (var c : found) {
+      var place = c.place();
+      boolean duplicate = place.name() == null
+        ? found.stream().anyMatch(o -> o.place().name() != null
+          && Geo.haversine(o.place().lon(), o.place().lat(), place.lon(), place.lat()) < 200)
+        : !names.add(place.name());
+      if (duplicate) {
+        continue;
+      }
+      var row = new LinkedHashMap<String, Object>();
+      row.put("id", place.id());
+      row.put("name", place.name());
+      row.put("lon", Tags.round6(place.lon()));
+      row.put("lat", Tags.round6(place.lat()));
+      stops.add(row);
+    }
+    return stops;
   }
 
   static String lineLabel(Records.Route route) {
+    if (route.label() != null) {
+      return route.label();
+    }
     String name = route.name();
     if (name == null) {
       return route.ref() != null ? MODE_LABELS.getOrDefault(route.mode(), "Line") + " " + route.ref() : "Line";
@@ -434,6 +535,9 @@ public final class DatabaseWriter {
         row.put("label", stop.label());
         row.put("colour", stop.colour());
         row.put("mode", stop.mode());
+        if (stop.state() != null) {
+          row.put("state", stop.state());
+        }
         return row;
       });
     }

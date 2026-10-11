@@ -14,7 +14,8 @@ const ROAD_LABELS: Record<string, string> = {
   motorway: 'Expressway', trunk: 'Highway', primary: 'Main road', secondary: 'Arterial road', tertiary: 'Road',
   minor: 'Street', service: 'Service road', pedestrian: 'Pedestrian street', track: 'Track', path: 'Footpath', construction: 'Under construction',
 };
-const MODE_LABELS: Record<string, string> = { subway: 'Metro', light_rail: 'Light rail', monorail: 'Monorail', train: 'Suburban railway', tram: 'Tram', rail: 'Railway', construction: 'Under construction' };
+const MODE_LABELS: Record<string, string> = { subway: 'Metro', light_rail: 'Light rail', monorail: 'Monorail', train: 'Suburban railway', tram: 'Tram', rail: 'Railway', construction: 'Under construction', proposed: 'Proposed' };
+const STATE_LABELS: Record<string, string> = { construction: 'Under construction', proposed: 'Proposed' };
 const BRIDGE_LABELS: Record<string, string> = { road: 'Road bridge / flyover', rail: 'Railway bridge', metro: 'Metro viaduct', foot: 'Foot over-bridge', construction: 'Bridge under construction', aqueduct: 'Aqueduct', outline: 'Bridge structure' };
 
 export class Inspector {
@@ -62,6 +63,7 @@ export class Inspector {
       case 'metro-tunnel':
       case 'metro-bridge':
       case 'metro-construction':
+      case 'metro-proposed':
       case 'rail':
       case 'rail-lines':
         return this.railway(p, pick.lngLat);
@@ -328,11 +330,16 @@ export class Inspector {
     this.ctx.map.setPin(null);
     this.select(null);
     const network = p.network ? String(p.network) : undefined;
+    const state = kind === 'construction' || kind === 'proposed' ? kind : undefined;
+    const target = p.construction ?? p.proposed;
     this.render({ badge: kindBadge('line', colour, 40), title: String(p.name ?? (refs.length ? `${network ?? MODE_LABELS[kind]} · ${refs.join(', ')}` : MODE_LABELS[kind] ?? 'Railway')), kicker: [MODE_LABELS[kind], network].filter(Boolean).join(' · ') }, [
       refs.length
-        ? this.row('train', 'Lines', h('span', {}, ...refs.map((ref) => h('button', { class: 'line-chip', style: `--line:${colour}`, type: 'button', onclick: () => this.lineByKey(network ? `${network}:${ref}` : ref) }, ref))))
+        ? this.row('train', 'Lines', h('span', {}, ...refs.map((ref) => {
+          const key = `${network ? `${network}:` : ''}${ref}${state ? `:${state}` : ''}`;
+          return h('button', { class: `line-chip${state ? ' planned' : ''}`, style: `--line:${colour}`, type: 'button', onclick: () => this.lineByKey(key) }, ref);
+        })))
         : null,
-      p.construction ? this.row('info', 'Status', `Under construction (${capitalise(String(p.construction))})`) : null,
+      state ? this.row('info', 'Status', `${STATE_LABELS[state]}${target ? ` (${MODE_LABELS[String(target)] ?? capitalise(String(target))})` : ''}`) : null,
       p.brunnel ? this.row('bridge', 'Structure', capitalise(String(p.brunnel))) : null,
       p.service ? this.row('info', 'Track', capitalise(String(p.service))) : null,
       this.coordRow(at[0], at[1]),
@@ -342,7 +349,8 @@ export class Inspector {
   async lineByKey(key: string): Promise<void> {
     try {
       const lines = await this.ctx.api.transitLines();
-      const line = lines.items.find((l) => l.key === key) ?? lines.items.find((l) => l.key.endsWith(`:${key}`));
+      const base = key.replace(/:(construction|proposed)$/, '');
+      const line = lines.items.find((l) => l.key === key) ?? lines.items.find((l) => l.key === base) ?? lines.items.find((l) => l.key.endsWith(`:${key}`));
       if (line) return this.route(line.routes[0].id);
       this.ctx.toast('Line details are not available');
     } catch (err) {
@@ -386,8 +394,9 @@ export class Inspector {
         h('dt', {}, 'Length'), h('dd', {}, formatDistance(r.length_m)),
         h('dt', {}, 'Stops'), h('dd', {}, String(r.stop_count)),
         r.operator ? [h('dt', {}, 'Operator'), h('dd', {}, r.operator)] : null,
-        r.state ? [h('dt', {}, 'Status'), h('dd', {}, capitalise(r.state))] : null,
+        r.state ? [h('dt', {}, 'Status'), h('dd', {}, STATE_LABELS[r.state] ?? capitalise(r.state))] : null,
       ),
+      r.osm_type === 'way' ? h('p', { class: 'sub', style: 'white-space:normal;margin:4px 0 8px' }, 'Assembled from the mapped track: OpenStreetMap has no route relation for this line yet, so stations are matched along the track.') : null,
       others.length
         ? h('div', { class: 'btn-row', style: 'margin:6px 0 4px' }, ...others.slice(0, 6).map((o) => h('button', { class: 'btn', type: 'button', onclick: () => this.route(o.id) }, o.from && o.to ? `${o.from} → ${o.to}` : o.name ?? 'Variant')))
         : null,
@@ -397,7 +406,7 @@ export class Inspector {
   }
 
   private lineChips(lines: LineRef[]): Node {
-    return h('span', {}, ...lines.map((l) => h('button', { class: 'line-chip', type: 'button', style: `--line:${l.colour ?? '#868e96'}`, title: l.label, onclick: () => this.lineByKey(l.key) }, l.ref ?? l.label)));
+    return h('span', {}, ...lines.map((l) => h('button', { class: `line-chip${l.state ? ' planned' : ''}`, type: 'button', style: `--line:${l.colour ?? '#868e96'}`, title: l.state ? `${l.label} (${STATE_LABELS[l.state]?.toLowerCase() ?? l.state})` : l.label, onclick: () => this.lineByKey(l.key) }, l.ref ?? l.label)));
   }
 
   // ---------------------------------------------------------------- localities & pins

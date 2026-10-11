@@ -452,6 +452,10 @@ a:hover {
   background: repeating-linear-gradient(90deg, var(--swatch) 0 6px, transparent 6px 10px);
 }
 
+.swatch.dotted {
+  background: radial-gradient(circle, var(--swatch) 0 2.5px, transparent 3px) 0 50% / 8px 8px repeat-x;
+}
+
 /* layer groups */
 
 .group {
@@ -794,6 +798,18 @@ a:hover {
   height: 14px;
   border-radius: 50%;
   background: var(--line);
+}
+
+/* lines under construction or proposed */
+.line-chip.planned {
+  background: transparent;
+  border-style: dashed;
+}
+
+.line-chip.planned::before {
+  background: transparent;
+  border: 2px dashed var(--line);
+  box-sizing: border-box;
 }
 
 .tags {

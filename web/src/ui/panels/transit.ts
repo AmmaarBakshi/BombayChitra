@@ -6,6 +6,7 @@ import type { Panel } from './panel.ts';
 
 const MODE_ORDER: Record<string, number> = { subway: 0, light_rail: 0, monorail: 1, train: 2, tram: 3 };
 const MODE_TITLE: Record<string, string> = { subway: 'Metro', light_rail: 'Light rail', monorail: 'Monorail', train: 'Suburban railway', tram: 'Tram' };
+const STATE_LABEL: Record<string, string> = { construction: 'under construction', proposed: 'proposed' };
 
 export class TransitPanel implements Panel {
   readonly id = 'transit';
@@ -33,23 +34,24 @@ export class TransitPanel implements Panel {
       byNetwork.set(key, [...(byNetwork.get(key) ?? []), line]);
     }
     clear(body);
-    body.append(h('p', { class: 'sub', style: 'margin-bottom:12px;white-space:normal' }, 'Every mapped metro, monorail and suburban line. Select a line to see its route and stations; click any track or station on the map for details.'));
+    body.append(h('p', { class: 'sub', style: 'margin-bottom:12px;white-space:normal' }, 'Every mapped metro, monorail and suburban line, including lines under construction and proposed. Select a line to see its route and stations; click any track or station on the map for details.'));
     for (const [network, lines] of byNetwork) {
       body.append(h('section', { class: 'section' },
         h('h3', {}, network),
         h('ul', { class: 'list' }, ...lines.map((line) => {
           const stops = Math.max(...line.routes.map((r) => r.stop_count));
-          const underConstruction = line.routes.every((r) => /u\/c|construction|proposed/i.test(`${r.name ?? ''} ${r.state ?? ''}`));
+          const state = line.routes[0].state ?? '';
+          const status = STATE_LABEL[state];
           return h('li', {}, h('button', { class: 'list-item', type: 'button', onclick: () => this.ctx.inspector.route(line.routes[0].id) },
-            h('span', { class: `swatch${underConstruction ? ' dashed' : ''}`, style: `--swatch:${line.colour ?? '#868e96'}` }),
+            h('span', { class: `swatch${status ? ` ${state === 'proposed' ? 'dotted' : 'dashed'}` : ''}`, style: `--swatch:${line.colour ?? '#868e96'}` }),
             h('span', { class: 'grow' },
               h('div', { class: 'title' }, line.label, line.ref && !line.label.includes(line.ref) ? ` (${line.ref})` : ''),
-              h('div', { class: 'sub' }, [formatDistance(line.length_m), stops ? `${stops} stations` : null, underConstruction ? 'under construction' : null].filter(Boolean).join(' · ')),
+              h('div', { class: 'sub' }, [formatDistance(line.length_m), stops ? `${stops} station${stops === 1 ? '' : 's'}` : null, status].filter(Boolean).join(' · ')),
             ),
           ));
         })),
       ));
     }
-    body.append(h('p', { class: 'foot-note' }, 'Line data comes from OpenStreetMap route relations; colours follow the operators’ line colours where tagged.'));
+    body.append(h('p', { class: 'foot-note' }, 'Line data comes from OpenStreetMap route relations; lines without one (the monorail, most lines under construction) are assembled from their mapped track. Colours follow the operators’ line colours.'));
   }
 }

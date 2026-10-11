@@ -13,6 +13,10 @@ project uses [Semantic Versioning](https://semver.org/).
 - 89-category place taxonomy in `config/categories.json`; region and areas (Mumbai City, Mumbai Suburban, MaKaBo,
   Thane District, Thane, Navi Mumbai, Mira-Bhayandar, Kalyan-Dombivli, Vasai-Virar, Panvel) in `config/region.json`.
 - Transit lines from OSM route relations with official colours and ordered stops; station → line lookup.
+- Lines without a route relation (the monorail, metro lines under construction and proposed) assembled from their
+  track via `transit.trackLines`, with stations matched along the line; `transit.routeOverrides` for corrections.
+- Line status (`construction`, `proposed`) derived from track lifecycle tags; proposed metro alignments in the
+  `transit` tile layer; route lengths count parallel tracks once.
 - Bridges layer and named-bridge aggregation with spans; validated building heights for 3D.
 - Go server: REST API (search, reverse geocoding, places, streets, roads, bridges, buildings, transit, areas,
   stats), PMTiles tile server, TileJSON, portable light/dark styles, raw downloads, GeoJSON/NDJSON/CSV export.

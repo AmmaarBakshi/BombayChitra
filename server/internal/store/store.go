@@ -18,7 +18,7 @@ import (
 )
 
 // SupportedSchema is the database schema version this server understands.
-const SupportedSchema = 1
+const SupportedSchema = 2
 
 // ErrNotFound is returned when a requested record does not exist.
 var ErrNotFound = errors.New("not found")

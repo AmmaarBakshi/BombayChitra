@@ -69,6 +69,8 @@ export interface LineRef {
   label: string;
   colour?: string;
   mode: string;
+  /** `construction` or `proposed` for lines not yet in service. */
+  state?: string;
 }
 
 export interface PlaceDetail extends Place {
@@ -229,7 +231,9 @@ export interface TransitStop {
 }
 
 export interface TransitRoute {
+  /** OSM id of the route relation, or of the longest track way for lines assembled from tracks. */
   id: number;
+  osm_type: 'relation' | 'way';
   line_key: string;
   label: string;
   name?: string;

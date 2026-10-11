@@ -1,6 +1,8 @@
 package bombaychitra.pipeline.layers;
 
+import bombaychitra.pipeline.RegionConfig;
 import bombaychitra.pipeline.data.Records;
+import bombaychitra.pipeline.util.TagRule;
 import bombaychitra.pipeline.util.Tags;
 import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.FeatureMerge;
@@ -23,7 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * {@code transit} — suburban rail, metro, monorail and tram lines coloured by their OSM route relations, plus platform
- * outlines. Route relations (geometry and ordered stops) are also captured for the {@code transit_lines} table.
+ * outlines. Route relations (geometry and ordered stops) are also captured for the {@code transit_lines} table, along
+ * with the configured track lines ({@code transit.trackLines}) for lines that have no route relation in OSM.
  */
 public final class Transit extends Layer
   implements ForwardingProfile.OsmRelationPreprocessor, ForwardingProfile.LayerPostProcessor {
@@ -32,17 +35,27 @@ public final class Transit extends Layer
 
   private static final Map<String, String> KINDS = Map.of(
     "rail", "rail", "narrow_gauge", "rail", "preserved", "rail", "subway", "subway", "light_rail", "light_rail",
-    "monorail", "monorail", "tram", "tram", "funicular", "funicular", "construction", "construction"
+    "monorail", "monorail", "tram", "tram", "funicular", "funicular", "construction", "construction",
+    "proposed", "proposed"
   );
   private static final Map<String, Integer> MINZOOM = Map.of(
-    "rail", 6, "subway", 8, "light_rail", 8, "monorail", 8, "tram", 11, "funicular", 12, "construction", 9
+    "rail", 6, "subway", 8, "light_rail", 8, "monorail", 8, "tram", 11, "funicular", 12, "construction", 9,
+    "proposed", 10
   );
+  /** Modes whose proposed alignments are shown; proposed mainline railways are too speculative to map. */
+  private static final Set<String> PROPOSED_MODES = Set.of("subway", "light_rail", "monorail", "tram");
   private static final Map<String, Integer> MODE_PRIORITY = Map.of(
     "subway", 0, "light_rail", 0, "monorail", 0, "train", 1, "tram", 2
   );
 
+  private record TrackLine(TagRule rule, Records.Route route) {}
+
+  private record RouteOverride(TagRule rule, RegionConfig.LineSpec spec) {}
+
   private final Set<String> modes;
   private final Set<String> trainNetworks;
+  private final List<TrackLine> trackLines = new ArrayList<>();
+  private final List<RouteOverride> routeOverrides = new ArrayList<>();
   /**
    * Planetiler only tracks relation membership for ways, so stop/platform nodes are indexed here during the relation
    * pre-pass (pass 1) and looked up by node id when the nodes are processed in pass 2.
@@ -55,6 +68,22 @@ public final class Transit extends Layer
     var transit = ctx.region().transit();
     this.trainNetworks = transit == null || transit.trainNetworks() == null ? Set.of()
       : Set.copyOf(transit.trainNetworks());
+    var overrides = ctx.region().routeOverrides();
+    for (int i = 0; i < overrides.size(); i++) {
+      routeOverrides.add(new RouteOverride(overrides.get(i).rule("transit.routeOverrides[" + i + "]"),
+        overrides.get(i)));
+    }
+    var tracks = ctx.region().trackLines();
+    for (int i = 0; i < tracks.size(); i++) {
+      var spec = tracks.get(i);
+      String colour = ctx.region().normaliseColour(spec.colour());
+      String label = Tags.clean(spec.label());
+      var route = new Records.Route(-(i + 1L), spec.mode(), Tags.clean(spec.ref()), label, label,
+        colour != null ? colour : ctx.region().modeColour(spec.mode()), Tags.clean(spec.network()),
+        Tags.clean(spec.operator()), null, null, null, List.of());
+      ctx.sink().routes.put(route.id(), route);
+      trackLines.add(new TrackLine(spec.rule("transit.trackLines[" + i + "]"), route));
+    }
   }
 
   @Override
@@ -66,7 +95,7 @@ public final class Transit extends Layer
   public Expression filter() {
     return Expression.or(
       Expression.matchAny("railway", "rail", "narrow_gauge", "preserved", "subway", "light_rail", "monorail", "tram",
-        "funicular", "construction", "platform", "stop", "halt", "station", "tram_stop"),
+        "funicular", "construction", "proposed", "platform", "stop", "halt", "station", "tram_stop"),
       Expression.matchAny("public_transport", "stop_position", "platform", "station")
     );
   }
@@ -84,7 +113,21 @@ public final class Transit extends Layer
     if ("train".equals(mode) && (network == null || !trainNetworks.contains(network))) {
       return null;
     }
+    String ref = Tags.clean(relation.getString("ref"));
+    String label = null;
     String colour = ctx.region().normaliseColour(relation.getString("colour"));
+    String operator = Tags.clean(relation.getString("operator"));
+    for (var override : routeOverrides) {
+      if (override.rule().test(relation)) {
+        var spec = override.spec();
+        ref = spec.ref() != null ? spec.ref() : ref;
+        label = Tags.clean(spec.label());
+        network = spec.network() != null ? spec.network() : network;
+        colour = spec.colour() != null ? ctx.region().normaliseColour(spec.colour()) : colour;
+        operator = spec.operator() != null ? spec.operator() : operator;
+        break;
+      }
+    }
     if (colour == null) {
       colour = ctx.region().modeColour(mode);
     }
@@ -92,8 +135,7 @@ public final class Transit extends Layer
     if (stops.isEmpty()) {
       stops = memberNodes(relation, "platform");
     }
-    var route = new Records.Route(relation.id(), mode, Tags.clean(relation.getString("ref")),
-      Tags.name(relation), colour, network, Tags.clean(relation.getString("operator")),
+    var route = new Records.Route(relation.id(), mode, ref, Tags.name(relation), label, colour, network, operator,
       Tags.clean(relation.getString("from")), Tags.clean(relation.getString("to")),
       Tags.clean(relation.getString("state")), stops);
     ctx.sink().routes.put(relation.id(), route);
@@ -154,9 +196,20 @@ public final class Transit extends Layer
     if (kind == null) {
       return;
     }
-    String construction = "construction".equals(kind) ? f.getString("construction") : null;
-    if ("construction".equals(kind) && construction != null && !KINDS.containsKey(construction)) {
-      return;
+    // Lifecycle: railway=construction|proposed + construction|proposed=<mode>, or an in-service railway value tagged
+    // construction=yes (a common shortcut for metro viaducts being built).
+    String lifecycle = null;
+    String target = null;
+    if ("construction".equals(kind) || "proposed".equals(kind)) {
+      lifecycle = kind;
+      target = Tags.clean(f.getString(kind));
+      if (target != null && !KINDS.containsKey(target)) {
+        return;
+      }
+    } else if (!"rail".equals(kind) && f.hasTag("construction") && !f.hasTag("construction", "no")) {
+      lifecycle = "construction";
+      target = kind;
+      kind = "construction";
     }
     String service = Tags.clean(f.getString("service"));
 
@@ -166,6 +219,17 @@ public final class Transit extends Layer
       if (role == null || !(role.startsWith("platform") || role.startsWith("stop"))) {
         routes.add(m.relation());
       }
+    }
+    if (service == null) {
+      for (var track : trackLines) {
+        if (track.rule().test(f)) {
+          routes.add(track.route());
+          break;
+        }
+      }
+    }
+    if ("proposed".equals(kind) && routes.isEmpty() && (target == null || !PROPOSED_MODES.contains(target))) {
+      return;
     }
     routes.sort(Comparator.<Records.Route>comparingInt(r -> MODE_PRIORITY.getOrDefault(r.mode(), 9))
       .thenComparing(r -> r.ref() == null ? "~" : r.ref()));
@@ -177,7 +241,7 @@ public final class Transit extends Layer
     });
     Records.Route primary = routes.isEmpty() ? null : routes.getFirst();
     String colour = primary != null ? primary.colour()
-      : "rail".equals(kind) ? null : ctx.region().modeColour("construction".equals(kind) ? construction : kind);
+      : "rail".equals(kind) ? null : ctx.region().modeColour(target != null ? target : kind);
 
     int minzoom = MINZOOM.getOrDefault(kind, 12);
     if (service != null) {
@@ -186,7 +250,8 @@ public final class Transit extends Layer
     features.line(NAME)
       .setAttr("kind", kind)
       .setAttr("colour", colour)
-      .setAttrWithMinzoom("construction", construction, 9)
+      .setAttrWithMinzoom("construction", "construction".equals(kind) ? target : null, 9)
+      .setAttrWithMinzoom("proposed", "proposed".equals(kind) ? target : null, 10)
       .setAttrWithMinzoom("service", service, 12)
       .setAttrWithMinzoom("usage", Tags.clean(f.getString("usage")), 10)
       .setAttrWithMinzoom("ref", refs.isEmpty() ? null : String.join(",", refs), 9)
@@ -201,7 +266,7 @@ public final class Transit extends Layer
     if (!routes.isEmpty() && ctx.inBounds(f)) {
       var line = f.latLonGeometry();
       for (var route : routes) {
-        ctx.sink().routeWays.add(new Records.RouteWay(route.id(), f.id(), line));
+        ctx.sink().routeWays.add(new Records.RouteWay(route.id(), f.id(), line, lifecycle));
       }
     }
   }

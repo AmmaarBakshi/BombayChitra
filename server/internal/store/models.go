@@ -204,6 +204,7 @@ type TransitLine struct {
 // TransitRoute is one OSM route relation (a direction or service pattern of a line).
 type TransitRoute struct {
 	ID        int64           `json:"id"`
+	OSMType   string          `json:"osm_type"`
 	LineKey   string          `json:"line_key"`
 	Label     string          `json:"label"`
 	Name      string          `json:"name,omitempty"`

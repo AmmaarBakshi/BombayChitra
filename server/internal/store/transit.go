@@ -10,20 +10,20 @@ import (
 	"strings"
 )
 
-const routeColumns = `t.id, t.line_key, t.label, t.name, t.mode, t.network, t.ref, t.colour, t.operator, t.from_name,
+const routeColumns = `t.id, t.osm_type, t.line_key, t.label, t.name, t.mode, t.network, t.ref, t.colour, t.operator, t.from_name,
 	t.to_name, t.state, t.length_m, t.stop_count, t.min_lon, t.min_lat, t.max_lon, t.max_lat`
 
 func scanRoute(sc interface{ Scan(...any) error }, extra ...any) (TransitRoute, error) {
 	var r TransitRoute
 	var name, network, ref, colour, operator, from, to, state sql.NullString
 	var b [4]float64
-	dst := append([]any{&r.ID, &r.LineKey, &r.Label, &name, &r.Mode, &network, &ref, &colour, &operator, &from, &to,
+	dst := append([]any{&r.ID, &r.OSMType, &r.LineKey, &r.Label, &name, &r.Mode, &network, &ref, &colour, &operator, &from, &to,
 		&state, &r.LengthM, &r.StopCount, &b[0], &b[1], &b[2], &b[3]}, extra...)
 	err := sc.Scan(dst...)
 	r.Name, r.Network, r.Ref, r.Colour = str(name), str(network), str(ref), str(colour)
 	r.Operator, r.From, r.To, r.State = str(operator), str(from), str(to), str(state)
 	r.BBox = b[:]
-	r.OSMURL = "https://www.openstreetmap.org/relation/" + itoa(r.ID)
+	r.OSMURL = "https://www.openstreetmap.org/" + r.OSMType + "/" + itoa(r.ID)
 	return r, err
 }
 
@@ -44,7 +44,7 @@ func (s *Store) TransitLines(ctx context.Context, modes []string, network string
 		sqlText += " WHERE " + strings.Join(where, " AND ")
 	}
 	sqlText += ` ORDER BY CASE t.mode WHEN 'subway' THEN 0 WHEN 'light_rail' THEN 0 WHEN 'monorail' THEN 1
-		WHEN 'train' THEN 2 ELSE 3 END, t.network, length(t.ref), t.ref, t.id`
+		WHEN 'train' THEN 2 ELSE 3 END, t.network, CAST(t.ref AS INTEGER), t.ref, t.line_key, t.id`
 	rows, err := s.db.QueryContext(ctx, sqlText, args...)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,8 @@ func (s *Store) TransitLines(ctx context.Context, modes []string, network string
 	return lines, rows.Err()
 }
 
-// TransitRoute returns one route relation with its ordered stops and geometry.
+// TransitRoute returns one route (an OSM route relation, or a line assembled from track ways) with its ordered stops
+// and geometry.
 func (s *Store) TransitRoute(ctx context.Context, id int64) (*TransitRoute, error) {
 	var stops, geometry string
 	r, err := scanRoute(s.db.QueryRowContext(ctx,

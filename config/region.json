@@ -113,6 +113,23 @@
       "monorail": "#B04FA0",
       "tram": "#B04FA0",
       "train": "#6B7280"
-    }
+    },
+    "routeOverrides": [
+      { "match": { "route": "subway", "network": "Mumbai Metro", "ref": "2" }, "ref": "2A", "label": "Line 2A" },
+      { "match": { "route": "subway", "ref": "4", "name": ["Green Line (u/c)", "Green Line"] }, "network": "Mumbai Metro", "label": "Line 4" },
+      { "match": { "route": "subway", "name": "Mumbai Metro Line 11" }, "network": "Mumbai Metro", "ref": "11", "label": "Line 11" }
+    ],
+    "trackLines": [
+      { "match": { "railway": "monorail" }, "mode": "monorail", "network": "Mumbai Monorail", "label": "Monorail" },
+      { "match": { "railway": "construction", "name": "Dahisar (W) to Mandale Metro (Line-2)" }, "mode": "subway", "network": "Mumbai Metro", "ref": "2B", "label": "Line 2B", "colour": "yellow" },
+      { "match": { "name": "Line 4A" }, "mode": "subway", "network": "Mumbai Metro", "ref": "4A", "label": "Line 4A", "colour": "green" },
+      { "match": { "name": ["Line-5: Thane - Bhiwandi - Kalyan", "Mumbai Metro Line 5"] }, "mode": "subway", "network": "Mumbai Metro", "ref": "5", "label": "Line 5", "colour": "orange" },
+      { "match": { "name": "Line 6" }, "mode": "subway", "network": "Mumbai Metro", "ref": "6", "label": "Line 6", "colour": "pink" },
+      { "match": { "name": "Line 7A" }, "mode": "subway", "network": "Mumbai Metro", "ref": "7A", "label": "Line 7A", "colour": "red" },
+      { "match": { "railway": "construction", "name": "Line 9" }, "mode": "subway", "network": "Mumbai Metro", "ref": "9", "label": "Line 9", "colour": "red" },
+      { "match": { "railway": "proposed", "name": "Line 10" }, "mode": "subway", "network": "Mumbai Metro", "ref": "10", "label": "Line 10" },
+      { "match": { "name": "Navi Mumbai Metro Line 1 - Stage 2" }, "mode": "subway", "network": "Navi Mumbai Metro", "ref": "N1", "label": "Line 1 Stage 2", "colour": "#77248B" },
+      { "match": { "railway": "proposed", "name": "Thane Ring Metro" }, "mode": "subway", "network": "Thane Metro", "label": "Thane Ring Metro" }
+    ]
   }
 }

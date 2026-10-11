@@ -6,7 +6,7 @@ package bombaychitra.pipeline.data;
  */
 public final class Schema {
 
-  public static final int VERSION = 1;
+  public static final int VERSION = 2;
 
   private Schema() {}
 
@@ -180,6 +180,7 @@ public final class Schema {
 
     CREATE TABLE transit_lines (
       id         INTEGER PRIMARY KEY,
+      osm_type   TEXT NOT NULL,
       line_key   TEXT NOT NULL,
       mode       TEXT NOT NULL,
       network    TEXT,

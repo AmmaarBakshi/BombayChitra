@@ -135,8 +135,8 @@ paths:
               example:
                 name: BombayChitra
                 region: { id: mmr, name: Mumbai Metropolitan Region, bounds: [72.7, 18.8, 73.85, 19.82], center: [72.8777, 19.076], zoom: 11, maxzoom: 15 }
-                dataset: { built_at: '2026-10-11T06:02:35Z', source: Geofabrik India · Western Zone, source_timestamp: '2026-10-09T20:21:04Z', schema_version: '1' }
-                counts: { places: 45559, streets: 6138, roads: 20532, bridges: 6169, named_bridges: 1100, buildings: 76039, transit_lines: 43, localities: 2047 }
+                dataset: { built_at: '2026-10-11T06:02:35Z', source: Geofabrik India · Western Zone, source_timestamp: '2026-10-09T20:21:04Z', schema_version: '2' }
+                counts: { places: 45559, streets: 6138, roads: 20532, bridges: 6169, named_bridges: 1100, buildings: 76039, transit_lines: 54, localities: 2047 }
                 license: ODbL-1.0
 
   /api/v1/categories:
@@ -583,7 +583,7 @@ paths:
       tags: [Transit]
       operationId: listTransitLines
       summary: Transit lines
-      description: Metro, monorail and suburban railway lines; each groups its route relations (directions and service patterns).
+      description: Metro, monorail and suburban railway lines, including lines under construction and proposed (`state` on each route; their keys end in `:construction` or `:proposed`). Each line groups its routes (directions and service patterns).
       parameters:
         - name: mode
           in: query
@@ -610,19 +610,19 @@ paths:
                     colour: '#2b6cd4'
                     length_m: 11240
                     bbox: [72.81, 19.08, 72.91, 19.13]
-                    routes: [{ id: 3808111, line_key: 'Mumbai Metro:1', label: Line 1, from: Versova, to: Ghatkopar, stop_count: 12, length_m: 11240 }]
+                    routes: [{ id: 3808111, osm_type: relation, line_key: 'Mumbai Metro:1', label: Line 1, from: Versova, to: Ghatkopar, stop_count: 12, length_m: 11240 }]
 
   /api/v1/transit/routes/{id}:
     get:
       tags: [Transit]
       operationId: getTransitRoute
       summary: Route detail
-      description: One route relation with its ordered stops and MultiLineString geometry. With `format=geojson` returns a FeatureCollection of the line and numbered stops.
+      description: One route with its ordered stops and MultiLineString geometry. `osm_type` is `relation` for OSM route relations, or `way` for lines assembled from their track (no route relation in OSM; `id` is the longest way). `state` is `construction` or `proposed` for lines not yet in service. With `format=geojson` returns a FeatureCollection of the line and numbered stops.
       parameters:
         - name: id
           in: path
           required: true
-          description: OSM relation id.
+          description: Route id from `/api/v1/transit/lines` (OSM relation id, or way id for lines assembled from track).
           schema: { type: integer }
           example: 3808111
         - $ref: '#/components/parameters/format'

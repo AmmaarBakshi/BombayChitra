@@ -11,7 +11,7 @@ also query it directly.
 - **Coordinates** are WGS84 `lon`/`lat` (6 decimals ≈ 0.1 m).
 - **Geometries** are GeoJSON text (`geometry` columns), ready to return or parse.
 - **Tags** are the complete OpenStreetMap tags as a JSON object (`tags` columns).
-- The schema version is in `meta.schema_version` (currently `1`).
+- The schema version is in `meta.schema_version` (currently `2`).
 
 ## Tables
 
@@ -29,8 +29,15 @@ also query it directly.
 | `bridges` | 6k | Bridge ways and outlines: kind, structure, length, GeoJSON geometry, tags |
 | `named_bridges` | 1k | Named bridges: span (`length_m`), all decks (`total_length_m`), segment count |
 | `buildings` | 76k | Buildings with name/height/levels/address/type: floors, height, footprint area, address |
-| `transit_lines` | 43 | Route relations: line key and label, mode, network, colour, from/to, ordered `stops` (JSON) and geometry |
+| `transit_lines` | 54 | Routes: line key and label, mode, network, colour, status, from/to, length, ordered `stops` (JSON) and geometry |
 | `search` | FTS5 | Unified full-text index over areas, localities, lines, places, streets and named bridges |
+
+In `transit_lines`, `id` and `osm_type` identify the OSM source: a route relation, or, for a line assembled from
+track (see [Configuration](configuration.md#transit-lines-without-route-relations)), its longest way. A line has one
+row per route relation, usually one per direction, and every row of a line shares its `line_key`. `state` is
+`construction` or `proposed` for lines not yet in service, and their key ends with the state, e.g.
+`Mumbai Metro:9:construction` for the extension under construction next to the open `Mumbai Metro:9`. `length_m` is
+the route length with parallel tracks counted once.
 
 Spatial indexes: `places_rtree`, `roads_rtree`, `bridges_rtree`, `buildings_rtree` (SQLite R*Tree with
 `min_lon`, `max_lon`, `min_lat`, `max_lat`).

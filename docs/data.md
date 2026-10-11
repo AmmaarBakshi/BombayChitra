@@ -41,7 +41,7 @@ query with `area=makabo` and so on.
 | Buildings with detail records | 76,039 |
 | Named streets | 6,138 (from 20,532 named road segments) |
 | Bridges | 6,048 bridge segments, 1,590 km of deck; 1,100 named bridges |
-| Transit routes | 43 route relations across 13 lines |
+| Transit lines | 26 lines from 54 routes: 44 route relations and 10 lines assembled from track (the monorail and metro lines under construction or proposed) |
 | Localities | 2,047 suburbs, neighbourhoods and villages |
 
 OpenStreetMap is edited by volunteers, so coverage varies: central Mumbai is mapped in great detail, outer areas less

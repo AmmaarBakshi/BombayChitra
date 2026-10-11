@@ -1,8 +1,10 @@
 package bombaychitra.pipeline;
 
+import bombaychitra.pipeline.util.TagRule;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,8 +47,31 @@ public record RegionConfig(
     List<String> modes,
     List<String> trainNetworks,
     Map<String, String> colourAliases,
-    Map<String, String> modeColours
+    Map<String, String> modeColours,
+    List<LineSpec> routeOverrides,
+    List<LineSpec> trackLines
   ) {}
+
+  /**
+   * A transit line description. In {@code routeOverrides} it corrects the metadata of the OSM route relations whose
+   * tags match {@code match}; in {@code trackLines} it assembles a line from the track ways whose tags match, for
+   * lines that have no route relation in OSM (typically monorails and lines under construction or proposed).
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record LineSpec(
+    JsonNode match,
+    String mode,
+    String network,
+    String ref,
+    String label,
+    String colour,
+    String operator
+  ) {
+
+    public TagRule rule(String context) {
+      return TagRule.parse(context, match);
+    }
+  }
 
   public static RegionConfig load(Path path) throws IOException {
     var mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -65,6 +90,28 @@ public record RegionConfig(
     if (maxzoom < 10 || maxzoom > 16) {
       throw new IllegalArgumentException("region.json: maxzoom must be between 10 and 16");
     }
+    for (int i = 0; i < routeOverrides().size(); i++) {
+      routeOverrides().get(i).rule("region.json: transit.routeOverrides[" + i + "]");
+    }
+    for (int i = 0; i < trackLines().size(); i++) {
+      var line = trackLines().get(i);
+      String context = "region.json: transit.trackLines[" + i + "]";
+      line.rule(context);
+      if (line.mode() == null || !transitModes().contains(line.mode())) {
+        throw new IllegalArgumentException(context + ": mode must be one of transit.modes");
+      }
+      if (line.ref() == null && line.label() == null) {
+        throw new IllegalArgumentException(context + ": needs a ref or a label");
+      }
+    }
+  }
+
+  public List<LineSpec> routeOverrides() {
+    return transit == null || transit.routeOverrides() == null ? List.of() : transit.routeOverrides();
+  }
+
+  public List<LineSpec> trackLines() {
+    return transit == null || transit.trackLines() == null ? List.of() : transit.trackLines();
   }
 
   public Envelope envelope() {

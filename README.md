@@ -27,9 +27,10 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · MaKaBo (Malad
   Eastern Freeway 9.2 km, Bandra–Worli Sea Link 4.0 km…).
 - **Advanced building data** — 270,000+ footprints, 3D extrusion from validated heights and floor counts, the
   tallest towers, footprint area and per-area statistics.
-- **All of transport** — Western, Central, Harbour, Trans-Harbour and Uran suburban lines; every metro line
-  (1, 2A, 2B, 3, 4, 7, 9 and Navi Mumbai Line 1, including sections under construction) and the monorail in their
-  official colours, with ordered stations; railway, metro and monorail stations, bus depots and 3,000+ bus stops.
+- **All of transport** — Western, Central, Harbour, Trans-Harbour and Uran suburban lines; every metro line in
+  service (1, 2A, 2B, 3, 7, 9, Navi Mumbai Line 1), under construction (2B, 4, 4A, 5, 6, 7A, 9 extensions, Navi
+  Mumbai Line 1 Stage 2) and proposed (10, 11, Thane Ring Metro), and the monorail, in their official colours with
+  ordered stations; railway, metro and monorail stations, bus depots and 3,000+ bus stops.
 - **Everything else** — ~45,000 places in 89 categories: hospitals, clinics, pharmacies, schools, colleges,
   universities, banks, ATMs, grounds and maidans, sports clubs and gymkhanas, cafés, restaurants, hotels, temples,
   mosques, churches, gurudwaras, agiaries, police, fire stations, post offices, malls, markets, offices and more.

@@ -338,6 +338,21 @@ export function buildLayers(P: Palette, opts: LayerOptions): Layer[] {
       },
     },
     {
+      id: 'metro-proposed',
+      type: 'line',
+      source: SOURCE,
+      'source-layer': 'transit',
+      filter: ['==', ['get', 'kind'], 'proposed'],
+      minzoom: 10,
+      layout: { 'line-cap': 'round' },
+      paint: {
+        'line-color': ['coalesce', ['get', 'colour'], P.textFaint],
+        'line-width': zoomExp(1.5, [10, 2], [14, 3.5], [18, 6]),
+        'line-dasharray': [0.1, 1.8],
+        'line-opacity': 0.8,
+      },
+    },
+    {
       id: 'metro-tunnel',
       type: 'line',
       source: SOURCE,

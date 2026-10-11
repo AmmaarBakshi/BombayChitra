@@ -24,11 +24,11 @@ export interface Overlays {
 /** Layers that respond to clicks, in priority order (first match wins). */
 const INTERACTIVE = [
   'poi', 'place-major', 'place-minor', 'water-label', 'bridges-line', 'metro-bridge', 'metro', 'metro-tunnel', 'metro-construction',
-  'rail-lines', 'rail', 'road-bridge', 'road', 'road-tunnel', 'path-bridge', 'road-path', 'road-construction',
+  'metro-proposed', 'rail-lines', 'rail', 'road-bridge', 'road', 'road-tunnel', 'path-bridge', 'road-path', 'road-construction',
   'buildings-3d', 'buildings-2d', 'aeroway-runway', 'landuse-leisure', 'landuse-urban', 'landuse-natural',
   'landuse-protected', 'water',
 ];
-const HOVERABLE = INTERACTIVE.slice(0, 19);
+const HOVERABLE = INTERACTIVE.slice(0, INTERACTIVE.indexOf('buildings-2d') + 1);
 
 /** Which overlay controls which style layers ("!" = shown when the overlay is off). */
 const OVERLAY_LAYERS: Record<keyof Overlays, string[]> = {

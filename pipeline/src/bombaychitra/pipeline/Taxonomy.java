@@ -1,5 +1,7 @@
 package bombaychitra.pipeline;
 
+import bombaychitra.pipeline.util.TagRule;
+import bombaychitra.pipeline.util.TagRule.Condition;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onthegomap.planetiler.reader.WithTags;
@@ -9,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,21 +28,6 @@ public final class Taxonomy {
   public record Group(String id, String label, String colour, int sort, List<Category> categories) {}
 
   public record Category(String id, String group, String label, String icon, int rank, int minzoom, int sort) {}
-
-  private record Condition(String key, Set<String> values, boolean any, boolean negated) {
-
-    boolean test(WithTags tags) {
-      Object raw = tags.getTag(key);
-      String value = raw == null ? null : raw.toString();
-      if (negated) {
-        return value == null || !values.contains(value);
-      }
-      if (value == null) {
-        return false;
-      }
-      return any ? !"no".equals(value) : values.contains(value);
-    }
-  }
 
   private record Rule(Category category, int priority, List<Condition> conditions) {
 
@@ -124,7 +110,8 @@ public final class Taxonomy {
         );
         categories.add(category);
         for (JsonNode ruleNode : catNode.path("match")) {
-          rules.add(new Rule(category, category.sort(), parseConditions(category.id(), ruleNode)));
+          rules.add(new Rule(category, category.sort(),
+            TagRule.parse("categories.json: " + category.id(), ruleNode).conditions()));
         }
       }
       groups.add(new Group(groupId, required(groupNode, "label"), groupNode.path("colour").asText("#888888"),
@@ -134,35 +121,6 @@ public final class Taxonomy {
       throw new IllegalArgumentException("categories.json: no rules defined");
     }
     return new Taxonomy(groups, rules);
-  }
-
-  private static List<Condition> parseConditions(String categoryId, JsonNode ruleNode) {
-    List<Condition> conditions = new ArrayList<>();
-    for (var entry : ruleNode.properties()) {
-      List<String> raw = new ArrayList<>();
-      if (entry.getValue().isArray()) {
-        entry.getValue().forEach(v -> raw.add(v.asText()));
-      } else {
-        raw.add(entry.getValue().asText());
-      }
-      boolean any = raw.contains("*");
-      boolean negated = !raw.isEmpty() && raw.stream().allMatch(v -> v.startsWith("!"));
-      if (!negated && raw.stream().anyMatch(v -> v.startsWith("!"))) {
-        throw new IllegalArgumentException(
-          "categories.json: " + categoryId + "." + entry.getKey() + " mixes negated and plain values");
-      }
-      Set<String> values = new HashSet<>();
-      for (String v : raw) {
-        if (!"*".equals(v)) {
-          values.add(negated ? v.substring(1) : v);
-        }
-      }
-      conditions.add(new Condition(entry.getKey(), Set.copyOf(values), any, negated));
-    }
-    if (conditions.isEmpty()) {
-      throw new IllegalArgumentException("categories.json: empty rule in " + categoryId);
-    }
-    return List.copyOf(conditions);
   }
 
   private static String required(JsonNode node, String field) {

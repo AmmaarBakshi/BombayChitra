@@ -91,11 +91,12 @@ Railway, metro, monorail and tram lines plus platform outlines.
 
 | Attribute | Description |
 |---|---|
-| `kind` | `rail`, `subway`, `light_rail`, `monorail`, `tram`, `funicular`, `construction`, `platform` |
-| `colour` | Line colour (`#rrggbb`) from the OSM route relation, e.g. Western line yellow, Central red |
+| `kind` | `rail`, `subway`, `light_rail`, `monorail`, `tram`, `funicular`, `construction`, `proposed` (z10+), `platform` |
+| `colour` | Line colour (`#rrggbb`) from the OSM route relation or `transit.trackLines`, e.g. Western line yellow, Central red |
 | `ref` | Line refs served by this track, comma-separated (e.g. `W`, `C,H`, `1`) |
 | `network` | e.g. `Mumbai Metro`, `Mumbai Suburban Railway`, z11+ |
-| `construction` | Target mode for lines under construction (e.g. `subway`) |
+| `construction` | Target mode for lines under construction (e.g. `subway`); also set for in-service railway values tagged `construction=yes` |
+| `proposed` | Target mode for proposed metro, light rail, monorail and tram lines |
 | `service`, `usage` | Track usage (`siding`, `yard`…; `main`, `branch`) |
 | `name`, `brunnel`, `layer` | |
 

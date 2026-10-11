@@ -51,7 +51,8 @@ area highlight → bridge explorer → labels (waterways, roads, house numbers) 
   the whole region (z8) down to a single lane (z18).
 - Bridges are drawn above the roads and railways they cross, with a darker casing; tunnels are dashed and faded.
 - Suburban railway lines are drawn in their line colours, slightly offset from the track. Metro lines use their
-  official colours, underground sections are dashed, and lines under construction are dashed and translucent.
+  official colours, underground sections are dashed, lines under construction are dashed and translucent, and
+  proposed lines are dotted.
 - Labels use Noto Sans (bundled glyphs, SIL OFL) and are prioritised by importance (`symbol-sort-key`).
 - City names fade out once you are inside the city; suburbs are uppercase and letter-spaced.
 

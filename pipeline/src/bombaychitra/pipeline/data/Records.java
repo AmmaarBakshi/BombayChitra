@@ -29,12 +29,21 @@ public final class Records {
   public record Locality(long id, String name, String kind, double lon, double lat, Long population,
     String tagsJson) {}
 
-  /** Route relation metadata captured during the relation pre-pass. */
-  public record Route(long id, String mode, String ref, String name, String colour, String network, String operator,
-    String from, String to, String state, List<Long> stopNodeIds) implements OsmRelationInfo {}
+  /** A transit line: an OSM route relation captured in the relation pre-pass, or a configured track line. */
+  public record Route(long id, String mode, String ref, String name, String label, String colour, String network,
+    String operator, String from, String to, String state, List<Long> stopNodeIds) implements OsmRelationInfo {
 
-  /** One way belonging to a route relation (lon/lat line). */
-  public record RouteWay(long routeId, long wayId, Geometry line) {}
+    /** Lines assembled from tracks ({@code transit.trackLines}) use negative placeholder ids. */
+    public boolean fromTracks() {
+      return id < 0;
+    }
+  }
+
+  /**
+   * One track way of a line (lon/lat). {@code lifecycle} is {@code construction} or {@code proposed} for tracks that
+   * are not yet in service, otherwise null.
+   */
+  public record RouteWay(long routeId, long wayId, Geometry line, String lifecycle) {}
 
   /** A stop or platform node belonging to a route relation. */
   public record RouteStop(long routeId, long nodeId, String name, double lon, double lat) {}

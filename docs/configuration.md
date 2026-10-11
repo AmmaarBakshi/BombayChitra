@@ -18,6 +18,41 @@ database, and compiled into the web app, so a change flows through the whole sta
 | `transit.trainNetworks` | `route=train` relations are included only for these networks (suburban rail, not long-distance trains). |
 | `transit.colourAliases` | Hex values for named colours (`"blue"`, `"aqua"`…) used in OSM `colour` tags. |
 | `transit.modeColours` | Fallback colour per mode when a line has no colour tag. |
+| `transit.routeOverrides[]` | Corrections for route relations whose tags match `match`: `ref`, `label`, `network`, `colour`, `operator`. The first matching entry applies. |
+| `transit.trackLines[]` | Lines assembled from track ways whose tags match `match`, for lines without a route relation: `mode`, `network`, `ref`, `label`, `colour`, `operator`. |
+
+`match` objects use the same rule syntax as `config/categories.json`: a value, a list of values, `"*"` or `"!value"`.
+
+### Transit lines without route relations
+
+OpenStreetMap describes most lines with route relations, which give the line's name, colour and ordered stops. Lines
+that have none yet — Mumbai's monorail and most metro lines under construction — would otherwise appear only as
+anonymous track. `trackLines` turns them into proper lines:
+
+```json
+"trackLines": [
+  { "match": { "railway": "monorail" }, "mode": "monorail", "network": "Mumbai Monorail", "label": "Monorail" },
+  { "match": { "name": "Line 7A" }, "mode": "subway", "network": "Mumbai Metro", "ref": "7A", "label": "Line 7A", "colour": "red" }
+]
+```
+
+Every non-service track way (`railway=subway|light_rail|monorail|…`, or under construction or proposed) whose tags
+match is collected, whether or not it already belongs to a route relation. The pipeline then:
+
+- measures the line along a single-track spine, so both tracks of a double line are counted once;
+- matches metro, monorail or railway stations within 120 m of the track as its stops, ordered along the line;
+- sets the status from the track's lifecycle: `construction` when no track is open, `proposed` when all of it is
+  proposed;
+- identifies the line by its longest way (`osm_type = way` in the database and API).
+
+`routeOverrides` fixes route relations without editing OpenStreetMap, for example to use the official name of a line:
+
+```json
+{ "match": { "route": "subway", "network": "Mumbai Metro", "ref": "2" }, "ref": "2A", "label": "Line 2A" }
+```
+
+Both lists are curated for the region. When OpenStreetMap gains a route relation for a line, remove its
+`trackLines` entry.
 
 ### Defining an area
 
@@ -90,7 +125,8 @@ general ones — `metro_station` before `railway_station`, and catch-alls such a
    `source.url` and `source.file`.
 2. Set `bounds`, `center` and `zoom`.
 3. Replace `areas` with relations for the new city.
-4. Adjust `transit.trainNetworks` and colour aliases.
+4. Adjust `transit.trainNetworks` and colour aliases, and replace `transit.routeOverrides` and
+   `transit.trackLines`.
 5. Run `scripts/build-data.sh`.
 
 Nothing else is region-specific. The coastline-based ocean, transit colours, search and statistics all derive from
