@@ -12,6 +12,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "fetch-fonts": "node build/fetch-fonts.mjs"
   },
@@ -26,6 +28,7 @@
     "marked": "^18.1.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
+    "vitest": "^5.0.5",
     "yaml": "^2.9.1"
   }
 }
