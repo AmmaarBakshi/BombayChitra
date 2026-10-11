@@ -64,6 +64,12 @@ func Open(path string) (*Store, error) {
 	return s, nil
 }
 
+// Ping runs a trivial query to check the database is readable.
+func (s *Store) Ping(ctx context.Context) error {
+	var one int
+	return s.db.QueryRowContext(ctx, `SELECT 1 FROM meta LIMIT 1`).Scan(&one)
+}
+
 // Close closes the database.
 func (s *Store) Close() error { return s.db.Close() }
 

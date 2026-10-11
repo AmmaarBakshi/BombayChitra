@@ -150,6 +150,23 @@ func TestAPI(t *testing.T) {
 	}
 }
 
+func TestHealth(t *testing.T) {
+	h := testServer(t)
+	rec, body := get(t, h, "/api/v1/health")
+	if rec.Code != http.StatusOK || body["status"] != "ok" {
+		t.Fatalf("health: %d %v", rec.Code, body)
+	}
+	checks, _ := body["checks"].(map[string]any)
+	for _, name := range []string{"database", "tiles", "routing"} {
+		if _, ok := checks[name]; !ok {
+			t.Errorf("health is missing the %s check", name)
+		}
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("health must not be cached: %q", rec.Header().Get("Cache-Control"))
+	}
+}
+
 func TestSearchFindsStationsAndReverseFindsRoad(t *testing.T) {
 	h := testServer(t)
 	_, body := get(t, h, "/api/v1/search?q=andheri&limit=5")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+	"sync/atomic"
 )
 
 // Service loads the graph on first use (it is ~100 MB in memory) and bounds concurrent searches.
@@ -12,6 +13,7 @@ type Service struct {
 	once  sync.Once
 	graph *Graph
 	err   error
+	done  atomic.Bool
 	slots chan struct{}
 }
 
@@ -22,8 +24,19 @@ func NewService(db *sql.DB, concurrency int) *Service {
 
 // Graph returns the loaded graph, loading it on the first call.
 func (s *Service) Graph(ctx context.Context) (*Graph, error) {
-	s.once.Do(func() { s.graph, s.err = Load(context.WithoutCancel(ctx), s.db) })
+	s.once.Do(func() {
+		s.graph, s.err = Load(context.WithoutCancel(ctx), s.db)
+		s.done.Store(true)
+	})
 	return s.graph, s.err
+}
+
+// Peek returns the graph without loading it: ok is false until the first route request has loaded it (or failed).
+func (s *Service) Peek() (g *Graph, ok bool, err error) {
+	if !s.done.Load() {
+		return nil, false, nil
+	}
+	return s.graph, true, s.err
 }
 
 // Route computes a route, waiting for a free search slot.

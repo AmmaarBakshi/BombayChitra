@@ -32,12 +32,13 @@ type Server struct {
 	routes  *routing.Service
 	limiter *ratelimit.Limiter // nil when rate limiting is off
 	keys    map[[32]byte]bool  // SHA-256 digests of the API keys
-	styles  sync.Map           // base URL + name → rendered style bytes
+	started time.Time
+	styles  sync.Map // base URL + name → rendered style bytes
 }
 
 // New creates a server. web is the built web app (embedded or on disk) and may be nil.
 func New(cfg config.Config, st *store.Store, tiles *pmtiles.Reader, web fs.FS) *Server {
-	s := &Server{cfg: cfg, store: st, tiles: tiles, web: web}
+	s := &Server{cfg: cfg, store: st, tiles: tiles, web: web, started: time.Now()}
 	if st != nil {
 		s.routes = routing.NewService(st.DB(), 4)
 	}
@@ -63,6 +64,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /api/v1", s.handleIndex)
 	mux.HandleFunc("GET /api/v1/{$}", s.handleIndex)
+	mux.HandleFunc("GET /api/v1/health", s.handleHealthDetail)
 	mux.HandleFunc("GET /api/v1/meta", s.handleMeta)
 	mux.HandleFunc("GET /api/v1/categories", s.handleCategories)
 	mux.HandleFunc("GET /api/v1/areas", s.handleAreas)
