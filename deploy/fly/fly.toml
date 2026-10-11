@@ -1,0 +1,47 @@
+# Fly.io configuration for a public BombayChitra demo.
+#   fly launch --copy-config --no-deploy --name <your-app>   # once
+#   fly deploy                                               # first deploy, and after each data release
+# See deploy/fly/README.md.
+app = "bombaychitra"
+primary_region = "bom" # Mumbai
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BC_ADDR = ":8080"
+  BC_LOG_FORMAT = "json"
+  # Fly's proxy terminates TLS and appends the client address to X-Forwarded-For.
+  BC_TRUST_PROXY = "true"
+  # Per-client limits for a public server: 300 requests a minute, bursts of 60, a route search costs 5.
+  BC_RATE_LIMIT = "300"
+  BC_RATE_BURST = "60"
+  # Metrics are scraped by Fly on the private port below, not exposed publicly.
+  BC_METRICS_ADDR = ":9091"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 300
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/v1/health"
+
+[metrics]
+  port = 9091
+  path = "/metrics"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
