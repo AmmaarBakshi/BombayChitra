@@ -116,6 +116,22 @@ place. See [Database](database.md) for the schema.
 **Add database content:** add a record type in `data/Records.java`, collect it in a handler via `ctx.sink()`, add the
 table to `data/Schema.java` (bump `Schema.VERSION` for breaking changes), and write it in `DatabaseWriter`.
 
+## Testing
+
+The pipeline has unit tests under `pipeline/test`, written with JUnit and run without a build tool:
+
+```bash
+./scripts/test-pipeline.sh                                              # all tests
+./scripts/test-pipeline.sh --select-class=bombaychitra.pipeline.TaxonomyTest
+```
+
+The script compiles `pipeline/src` and `pipeline/test` with `javac` and runs them with the JUnit console launcher,
+downloading Planetiler and JUnit into `data/tools/` on first use (both checksum-verified). Tests run in seconds and
+need no OpenStreetMap extract: they cover the rule syntax and the shipped `categories.json`, `region.json`
+validation, Overture ↔ OpenStreetMap de-duplication, street and bridge clustering, transit line labels and
+station ordering, building heights and addresses, and the routing graph encoding. Tests live in the same package as
+the code they test, so package-private helpers can be tested directly.
+
 ## Performance
 
 On an 8-core laptop the full build takes about 2½ minutes: about 8 s for pass 1, 42 s for pass 2, 8 s for the

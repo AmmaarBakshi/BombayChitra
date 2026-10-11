@@ -28,9 +28,10 @@ Run before opening a pull request:
 ```bash
 cd server && go vet ./... && go test ./...      # unit tests + integration tests against your local data
 cd web && npm run typecheck && npm run build    # type check, style validation, docs build
+./scripts/test-pipeline.sh                      # pipeline unit tests (JUnit, no OSM data needed)
 ```
 
-CI runs the same checks and also compiles the pipeline with `javac -Werror`.
+`make test` runs all of them. CI runs the same checks and also compiles the pipeline with `javac -Werror`.
 
 ## Code style
 
