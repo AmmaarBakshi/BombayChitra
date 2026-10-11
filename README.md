@@ -69,7 +69,9 @@ git clone https://github.com/AmmaarBakshi/BombayChitra.git && cd BombayChitra
 ./bin/bombaychitra serve                         # → http://localhost:8080
 ```
 
-On Windows use `.\scripts\build-data.ps1`. With Docker: `docker compose run --rm pipeline && docker compose up -d server`.
+No Java? Build only the server and fetch the published dataset instead (`./bin/bombaychitra download`), or grab a
+[release](https://github.com/AmmaarBakshi/BombayChitra/releases) binary and run `bombaychitra download` then
+`bombaychitra serve`. On Windows use `.\scripts\build-data.ps1`. With Docker: `docker compose run --rm pipeline && docker compose up -d server`.
 See [Getting started](docs/getting-started.md) for details and prebuilt releases.
 
 ## Use it from your code

@@ -24,7 +24,10 @@ cd BombayChitra
 
 ### 2. Build the data
 
-This downloads the OpenStreetMap extract for western India (~220 MB, once), then builds
+**Shortcut:** to work on the server or the web app only, skip Java and download the published dataset instead —
+build the server first (step 3), then run `./bin/bombaychitra download`.
+
+Building it yourself downloads the OpenStreetMap extract for western India (~220 MB, once), then builds
 `data/build/bombaychitra.pmtiles` and `data/build/bombaychitra.db`. It takes two to three minutes on an 8-core machine,
 plus the one-time download of the OpenStreetMap and Overture Maps extracts.
 
@@ -66,11 +69,14 @@ docker compose up -d server          # http://localhost:8080
 ## Option 3 — prebuilt release
 
 1. Download the binary for your platform from the
-   [releases page](https://github.com/AmmaarBakshi/BombayChitra/releases).
-2. Download `bombaychitra.pmtiles` and `bombaychitra.db` from the **Data (latest)** release into `data/build/`.
-3. Run `bombaychitra serve`.
+   [releases page](https://github.com/AmmaarBakshi/BombayChitra/releases) and unpack it.
+2. Run `bombaychitra download` — it fetches `bombaychitra.pmtiles` and `bombaychitra.db` from the **Data
+   (latest)** release into `data/build/` and verifies their checksums. (Each versioned release also carries the
+   dataset it was tested with: `bombaychitra download --release v0.1.0`.)
+3. Run `bombaychitra serve` and open **http://localhost:8080**.
 
-The data release is rebuilt weekly from the latest OpenStreetMap data by a GitHub Actions workflow.
+No Java, Go or Node.js is needed. The data release is rebuilt weekly from the latest OpenStreetMap data by a GitHub
+Actions workflow; run `bombaychitra download` again to update.
 
 ## Developing the web app
 
