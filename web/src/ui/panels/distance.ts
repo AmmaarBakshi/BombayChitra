@@ -2,6 +2,7 @@ import type { RouteResult, SearchResult } from '../../api/types.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h } from '../dom.ts';
 import { formatDistance } from '../format.ts';
+import { formatRoute, hashParams, parseRoute, updateHash } from '../hash.ts';
 import { icon } from '../icons.ts';
 import type { Panel } from './panel.ts';
 
@@ -141,13 +142,11 @@ export class DistancePanel implements Panel {
 
   /** Restores a route from the URL (`#dist=lat,lon~lat,lon`). Returns true when one was found. */
   restore(): boolean {
-    const params = new URLSearchParams(location.hash.slice(1));
-    const raw = params.get('dist');
-    if (!raw) return false;
+    const params = hashParams();
+    const route = parseRoute(params.get('dist'));
+    if (!route) return false;
     if (params.get('opt') === 'distance') this.optimize = 'distance';
-    const [a, b] = raw.split('~').map((p) => p.split(',').map(Number));
-    const ok = (p?: number[]) => p && p.length === 2 && p.every(Number.isFinite);
-    if (!ok(a) || !ok(b)) return false;
+    const [a, b] = [route.from, route.to];
     this.modeButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === this.optimize)));
     this.points.from = { lat: a[0], lon: a[1], label: `${a[0].toFixed(5)}, ${a[1].toFixed(5)}` };
     this.setPoint('to', { lat: b[0], lon: b[1], label: `${b[0].toFixed(5)}, ${b[1].toFixed(5)}` });
@@ -323,17 +322,12 @@ export class DistancePanel implements Panel {
   }
 
   private writeHash(remove = false): void {
-    const params = new URLSearchParams(location.hash.slice(1));
     const { from, to } = this.points;
     if (remove || !from || !to) {
-      params.delete('dist');
-      params.delete('opt');
+      updateHash({ dist: null, opt: null });
     } else {
-      params.set('dist', `${from.lat.toFixed(5)},${from.lon.toFixed(5)}~${to.lat.toFixed(5)},${to.lon.toFixed(5)}`);
-      if (this.optimize === 'distance') params.set('opt', 'distance');
-      else params.delete('opt');
+      updateHash({ dist: formatRoute([from.lat, from.lon], [to.lat, to.lon]), opt: this.optimize === 'distance' ? 'distance' : null });
     }
-    history.replaceState(history.state, '', `${location.pathname}${location.search}#${params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',').replace(/%7E/g, '~')}`);
   }
 
   private share(): void {

@@ -3,8 +3,9 @@ import { MapController } from './map/controller.ts';
 import type { AppContext } from './ui/context.ts';
 import { $, h, storageGet, storageSet } from './ui/dom.ts';
 import { formatCoord, formatDate } from './ui/format.ts';
+import { hashParams, parseSelection, updateHash } from './ui/hash.ts';
 import { icon } from './ui/icons.ts';
-import { getSelectionHash, Inspector } from './ui/inspector.ts';
+import { Inspector } from './ui/inspector.ts';
 import { MeasureTool } from './ui/measure.ts';
 import { BridgesPanel } from './ui/panels/bridges.ts';
 import { BuildingsPanel } from './ui/panels/buildings.ts';
@@ -28,7 +29,7 @@ export function createApp(): void {
   const inspector = new Inspector($('#inspector'));
   const panelEl = $('#panel');
 
-  let area: string | null = new URLSearchParams(location.hash.slice(1)).get('area');
+  let area: string | null = hashParams().get('area');
   let measure: MeasureTool | null = null;
   let distance: DistancePanel | null = null;
   const panels: Panel[] = [];
@@ -61,10 +62,7 @@ export function createApp(): void {
     selectArea(id, fit = false) {
       area = id;
       map.setArea(id);
-      const params = new URLSearchParams(location.hash.slice(1));
-      if (id) params.set('area', id);
-      else params.delete('area');
-      history.replaceState(history.state, '', `#${params.toString().replace(/%2F/g, '/').replace(/%3A/g, ':').replace(/%2C/g, ',')}`);
+      updateHash({ area: id });
       const a = ctx.meta?.areas.find((x) => x.id === id);
       if (fit && a) map.fitBounds(a.bbox, 14);
       panels.forEach((p) => p.onAreaChange?.(id));
@@ -223,18 +221,15 @@ export function createApp(): void {
   });
 
   map.map.once('load', () => {
-    const sel = getSelectionHash();
+    const sel = parseSelection(hashParams().get('sel'));
     if (!sel) return;
-    const [kind, value] = [sel.slice(0, sel.indexOf(':')), sel.slice(sel.indexOf(':') + 1)];
-    const id = Number(value);
-    if (kind === 'place') void inspector.place(id);
-    else if (kind === 'street') void inspector.street(id);
-    else if (kind === 'bridge') void inspector.namedBridge(id, false);
-    else if (kind === 'route') void inspector.route(id);
-    else if (kind === 'building') void inspector.buildingById(id, false);
-    else if (kind === 'pin') {
-      const [lat, lon] = value.split(',').map(Number);
-      if (Number.isFinite(lat) && Number.isFinite(lon)) void inspector.reverse([lon, lat]);
+    switch (sel.kind) {
+      case 'place': return void inspector.place(sel.id);
+      case 'street': return void inspector.street(sel.id);
+      case 'bridge': return void inspector.namedBridge(sel.id, false);
+      case 'route': return void inspector.route(sel.id);
+      case 'building': return void inspector.buildingById(sel.id, false);
+      case 'pin': return void inspector.reverse([sel.lon, sel.lat]);
     }
   });
 }

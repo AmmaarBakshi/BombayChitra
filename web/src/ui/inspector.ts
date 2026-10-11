@@ -5,6 +5,7 @@ import { categoryById, groupById } from '../taxonomy.ts';
 import type { AppContext } from './context.ts';
 import { clear, h } from './dom.ts';
 import { capitalise, formatArea, formatCoord, formatDistance, formatDMS, formatNumber } from './format.ts';
+import { updateHash } from './hash.ts';
 import { categoryBadge, icon, kindBadge } from './icons.ts';
 
 type Head = { badge: HTMLElement; title: string; kicker?: string };
@@ -576,15 +577,7 @@ export class Inspector {
 
 /** Stores the open card in the URL hash (alongside MapLibre's `map=` param) so links reopen it. */
 export function setSelectionHash(value: string | null): void {
-  const params = new URLSearchParams(location.hash.slice(1));
-  if (value) params.set('sel', value);
-  else params.delete('sel');
-  const next = params.toString().replace(/%2F/g, '/').replace(/%3A/g, ':').replace(/%2C/g, ',');
-  history.replaceState(history.state, '', `${location.pathname}${location.search}${next ? `#${next}` : ''}`);
-}
-
-export function getSelectionHash(): string | null {
-  return new URLSearchParams(location.hash.slice(1)).get('sel');
+  updateHash({ sel: value });
 }
 
 function safeUrl(url: string): string {
