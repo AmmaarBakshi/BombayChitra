@@ -246,9 +246,9 @@ func info(args []string) error {
 
 func runDownload(args []string) error {
 	fs := flag.NewFlagSet("download", flag.ContinueOnError)
-	data := fs.String("data", filepath.Join("data", "build"), "directory to download into")
-	repo := fs.String("repo", download.DefaultRepo, "GitHub repository publishing the data")
-	release := fs.String("release", download.DefaultRelease, "release tag (data-latest, or a version like v0.1.0)")
+	data := fs.String("data", envOr("BC_DATA", filepath.Join("data", "build")), "directory to download into [BC_DATA]")
+	repo := fs.String("repo", envOr("BC_DATA_REPO", download.DefaultRepo), "GitHub repository publishing the data [BC_DATA_REPO]")
+	release := fs.String("release", envOr("BC_DATA_RELEASE", download.DefaultRelease), "release tag: data-latest, or a version like v0.1.0 [BC_DATA_RELEASE]")
 	url := fs.String("url", "", "download from this base URL instead of a GitHub release")
 	force := fs.Bool("force", false, "download even when the local files are up to date")
 	if err := fs.Parse(args); err != nil {
@@ -261,6 +261,13 @@ func runDownload(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return download.Run(ctx, download.Options{BaseURL: base, Dir: *data, Force: *force, Log: os.Stderr})
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func split(s string) []string {
