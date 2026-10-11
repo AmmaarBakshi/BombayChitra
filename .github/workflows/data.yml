@@ -42,7 +42,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           stamp=$(date -u +%Y-%m-%d)
-          notes="OpenStreetMap data as of ${stamp}. Download both files into data/build/ and run \`bombaychitra serve\`. Data © OpenStreetMap contributors, ODbL."
+          notes="OpenStreetMap data as of ${stamp}. Run \`bombaychitra download\` (or download both files into data/build/) and \`bombaychitra serve\`. Data © OpenStreetMap contributors, ODbL."
           gh release view data-latest >/dev/null 2>&1 || gh release create data-latest --title "Data (latest)" --notes "$notes" --latest=false
           gh release edit data-latest --notes "$notes"
-          gh release upload data-latest data/build/bombaychitra.pmtiles data/build/bombaychitra.db --clobber
+          (cd data/build && sha256sum bombaychitra.pmtiles bombaychitra.db > SHA256SUMS)
+          gh release upload data-latest data/build/bombaychitra.pmtiles data/build/bombaychitra.db data/build/SHA256SUMS --clobber
