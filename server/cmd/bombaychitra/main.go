@@ -4,6 +4,7 @@
 //	bombaychitra serve  [--addr :8080] [--data data/build]
 //	bombaychitra export --kind places --category hospital --area makabo --format geojson -o hospitals.geojson
 //	bombaychitra info   [--data data/build]
+//	bombaychitra download [--data data/build] [--release data-latest]
 //	bombaychitra version
 package main
 
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/config"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/download"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/export"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/httpapi"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
@@ -36,10 +38,11 @@ import (
 const usage = `BombayChitra — open, detailed map of the Mumbai Metropolitan Region
 
 Usage:
-  bombaychitra serve   [flags]   run the HTTP server (API, tiles, styles, web app, docs)
-  bombaychitra export  [flags]   export data as GeoJSON, NDJSON or CSV
-  bombaychitra info    [flags]   print dataset information
-  bombaychitra version           print the version
+  bombaychitra serve    [flags]   run the HTTP server (API, tiles, styles, web app, docs)
+  bombaychitra export   [flags]   export data as GeoJSON, NDJSON or CSV
+  bombaychitra info     [flags]   print dataset information
+  bombaychitra download [flags]   download the published dataset (no Java needed)
+  bombaychitra version            print the version
 
 Run "bombaychitra <command> -h" for command flags.
 `
@@ -57,6 +60,8 @@ func main() {
 		err = runExport(os.Args[2:])
 	case "info":
 		err = info(os.Args[2:])
+	case "download":
+		err = runDownload(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println("bombaychitra", httpapi.Version)
 	case "help", "-h", "--help":
@@ -237,6 +242,25 @@ func info(args []string) error {
 		t.Close()
 	}
 	return nil
+}
+
+func runDownload(args []string) error {
+	fs := flag.NewFlagSet("download", flag.ContinueOnError)
+	data := fs.String("data", filepath.Join("data", "build"), "directory to download into")
+	repo := fs.String("repo", download.DefaultRepo, "GitHub repository publishing the data")
+	release := fs.String("release", download.DefaultRelease, "release tag (data-latest, or a version like v0.1.0)")
+	url := fs.String("url", "", "download from this base URL instead of a GitHub release")
+	force := fs.Bool("force", false, "download even when the local files are up to date")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	base := *url
+	if base == "" {
+		base = download.ReleaseURL(*repo, *release)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return download.Run(ctx, download.Options{BaseURL: base, Dir: *data, Force: *force, Log: os.Stderr})
 }
 
 func split(s string) []string {
