@@ -110,9 +110,10 @@ func serve(args []string) error {
 		slog.Warn("web app not embedded; build it with `npm run build` in web/ (API and tiles still work)")
 	}
 
+	api := httpapi.New(cfg, st, tiles, web)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           httpapi.New(cfg, st, tiles, web).Handler(),
+		Handler:           api.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      120 * time.Second,
@@ -128,8 +129,14 @@ func serve(args []string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	errc := make(chan error, 1)
+	errc := make(chan error, 2)
 	go func() { errc <- srv.Serve(ln) }()
+	if cfg.Metrics && cfg.MetricsAddr != "" {
+		msrv := &http.Server{Addr: cfg.MetricsAddr, Handler: api.MetricsHandler(), ReadHeaderTimeout: 5 * time.Second}
+		defer msrv.Close()
+		go func() { errc <- msrv.ListenAndServe() }()
+		slog.Info("metrics listening", "addr", "http://"+displayAddr(cfg.MetricsAddr)+"/metrics")
+	}
 	select {
 	case err := <-errc:
 		if !errors.Is(err, http.ErrServerClosed) {

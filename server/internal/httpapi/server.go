@@ -33,6 +33,7 @@ type Server struct {
 	limiter *ratelimit.Limiter // nil when rate limiting is off
 	keys    map[[32]byte]bool  // SHA-256 digests of the API keys
 	started time.Time
+	metrics *serverMetrics
 	styles  sync.Map // base URL + name → rendered style bytes
 }
 
@@ -48,6 +49,7 @@ func New(cfg config.Config, st *store.Store, tiles *pmtiles.Reader, web fs.FS) *
 	if cfg.RateLimit > 0 {
 		s.limiter = ratelimit.New(cfg.RateLimit, cfg.RateBurst)
 	}
+	s.metrics = s.newMetrics()
 	if len(cfg.APIKeys) > 0 {
 		s.keys = make(map[[32]byte]bool, len(cfg.APIKeys))
 		for _, k := range cfg.APIKeys {
@@ -95,6 +97,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /styles/{name}", s.handleStyle)
 	if s.cfg.Downloads {
 		mux.HandleFunc("GET /data/{file}", s.handleDownload)
+	}
+	if s.cfg.Metrics && s.cfg.MetricsAddr == "" {
+		mux.HandleFunc("GET /metrics", s.handleMetrics)
 	}
 	if s.static != nil {
 		mux.Handle("GET /", s.static)
@@ -183,7 +188,13 @@ func (s *Server) logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w}
+		s.metrics.inFlight.Add(1)
 		next.ServeHTTP(rec, r)
+		s.metrics.inFlight.Add(-1)
+		if rec.status == 0 {
+			rec.status = http.StatusOK
+		}
+		s.metrics.observe(r, rec.status, rec.bytes, time.Since(start))
 		level := slog.LevelInfo
 		if strings.HasPrefix(r.URL.Path, "/tiles/") || strings.HasPrefix(r.URL.Path, "/assets/") ||
 			strings.HasPrefix(r.URL.Path, "/fonts/") {

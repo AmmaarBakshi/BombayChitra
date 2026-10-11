@@ -97,7 +97,7 @@ func testServer(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { tr.Close() })
-	cfg := config.Config{Database: db, Tiles: tiles, Downloads: true, CORSOrigin: "*"}
+	cfg := config.Config{Database: db, Tiles: tiles, Downloads: true, CORSOrigin: "*", Metrics: true}
 	return New(cfg, st, tr, fstest.MapFS{"index.html": {Data: []byte("app")}}).Handler()
 }
 
@@ -164,6 +164,28 @@ func TestHealth(t *testing.T) {
 	}
 	if rec.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("health must not be cached: %q", rec.Header().Get("Cache-Control"))
+	}
+}
+
+func TestMetrics(t *testing.T) {
+	h := testServer(t)
+	get(t, h, "/api/v1/meta")
+	get(t, h, "/api/v1/places/1")
+	rec, _ := get(t, h, "/metrics")
+	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/plain; version=0.0.4") {
+		t.Fatalf("metrics: %d %q", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`bombaychitra_http_requests_total{route="/api/v1/meta",method="GET",code="200"} 1`,
+		`bombaychitra_http_requests_total{route="/api/v1/places/{id}",method="GET",code="404"} 1`,
+		`bombaychitra_http_request_duration_seconds_count{route="/api/v1/meta"} 1`,
+		"bombaychitra_build_info{",
+		"go_goroutines ",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("metrics missing %q", want)
+		}
 	}
 }
 

@@ -12,21 +12,23 @@ import (
 
 // Config holds runtime settings for the HTTP server.
 type Config struct {
-	Addr       string   // listen address, e.g. ":8080"
-	DataDir    string   // directory containing the build artefacts
-	Tiles      string   // PMTiles archive path (defaults to DataDir/bombaychitra.pmtiles)
-	Database   string   // SQLite path (defaults to DataDir/bombaychitra.db)
-	PublicURL  string   // absolute base URL used in TileJSON/styles; derived from the request when empty
-	TrustProxy bool     // honour X-Forwarded-Proto/Host when deriving the base URL
-	CORSOrigin string   // Access-Control-Allow-Origin for data endpoints ("" disables CORS)
-	WebDir     string   // serve the web app from this directory instead of the embedded build
-	Downloads  bool     // expose the raw .pmtiles and .db files under /data/
-	LogFormat  string   // "text" or "json"
-	LogLevel   string   // "debug", "info", "warn", "error"
-	RateLimit  int      // API requests per minute per client; 0 disables rate limiting
-	RateBurst  int      // requests a client may make at once; 0 derives it from RateLimit
-	APIKeys    []string // keys whose holders bypass the rate limit
-	RequireKey bool     // reject API requests without a valid key
+	Addr        string   // listen address, e.g. ":8080"
+	DataDir     string   // directory containing the build artefacts
+	Tiles       string   // PMTiles archive path (defaults to DataDir/bombaychitra.pmtiles)
+	Database    string   // SQLite path (defaults to DataDir/bombaychitra.db)
+	PublicURL   string   // absolute base URL used in TileJSON/styles; derived from the request when empty
+	TrustProxy  bool     // honour X-Forwarded-Proto/Host when deriving the base URL
+	CORSOrigin  string   // Access-Control-Allow-Origin for data endpoints ("" disables CORS)
+	WebDir      string   // serve the web app from this directory instead of the embedded build
+	Downloads   bool     // expose the raw .pmtiles and .db files under /data/
+	LogFormat   string   // "text" or "json"
+	LogLevel    string   // "debug", "info", "warn", "error"
+	RateLimit   int      // API requests per minute per client; 0 disables rate limiting
+	RateBurst   int      // requests a client may make at once; 0 derives it from RateLimit
+	APIKeys     []string // keys whose holders bypass the rate limit
+	RequireKey  bool     // reject API requests without a valid key
+	Metrics     bool     // expose Prometheus metrics at /metrics
+	MetricsAddr string   // serve /metrics on this separate address instead of the main one
 }
 
 // Parse reads flags (with environment defaults) for the serve command.
@@ -47,6 +49,8 @@ func Parse(name string, args []string) (Config, error) {
 	fs.IntVar(&c.RateLimit, "rate-limit", envInt("BC_RATE_LIMIT", 0), "API requests per minute per client, 0 to disable [BC_RATE_LIMIT]")
 	fs.IntVar(&c.RateBurst, "rate-burst", envInt("BC_RATE_BURST", 0), "API requests a client may make at once (default rate-limit/10) [BC_RATE_BURST]")
 	keys := fs.String("api-keys", env("BC_API_KEYS", ""), "comma-separated API keys, or @file with one key per line [BC_API_KEYS]")
+	fs.BoolVar(&c.Metrics, "metrics", envBool("BC_METRICS", true), "expose Prometheus metrics at /metrics [BC_METRICS]")
+	fs.StringVar(&c.MetricsAddr, "metrics-addr", env("BC_METRICS_ADDR", ""), "serve /metrics on a separate address, e.g. 127.0.0.1:9090 [BC_METRICS_ADDR]")
 	fs.BoolVar(&c.RequireKey, "require-key", envBool("BC_REQUIRE_KEY", false), "reject API requests without a valid key [BC_REQUIRE_KEY]")
 	if err := fs.Parse(args); err != nil {
 		return c, err
