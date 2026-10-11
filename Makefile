@@ -3,7 +3,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X github.com/AmmaarBakshi/BombayChitra/server/internal/httpapi.Version=$(VERSION)
 BIN     := bin/bombaychitra
 
-.PHONY: all data web server run dev test lint docker docker-pipeline clean help
+.PHONY: all data web server run dev test test-pipeline lint docker docker-pipeline clean help
 
 all: web server ## Build the web app and the server binary
 
@@ -25,6 +25,10 @@ dev: ## Run the Vite dev server (proxying API/tiles to a server on :8080)
 test: ## Run all tests and type checks
 	cd server && go vet ./... && go test ./...
 	cd web && npm run typecheck
+	./scripts/test-pipeline.sh
+
+test-pipeline: ## Run the data pipeline's JUnit tests (needs a JDK)
+	./scripts/test-pipeline.sh
 
 docker: ## Build the server image
 	docker build -t bombaychitra:$(VERSION) --build-arg VERSION=$(VERSION) .

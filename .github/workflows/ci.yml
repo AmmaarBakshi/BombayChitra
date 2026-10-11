@@ -69,10 +69,15 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - name: Compile against Planetiler
+      - uses: actions/cache@v6
+        with:
+          path: data/tools/*.jar
+          key: pipeline-tools-${{ hashFiles('scripts/test-pipeline.sh') }}
+      - name: Unit tests
+        # Downloads Planetiler and the JUnit console launcher (checksums verified) on a cache miss.
+        run: scripts/test-pipeline.sh --disable-ansi-colors
+      - name: Compile with warnings as errors
         run: |
-          mkdir -p data/tools pipeline/build/classes
-          curl -fsSL -o data/tools/planetiler.jar https://github.com/onthegomap/planetiler/releases/download/v0.10.2/planetiler.jar
-          echo "f310bd0413e2e4512b27f4046d418664e8e1d3bf31603c2a70e23de06c167e4d  data/tools/planetiler.jar" | sha256sum -c -
+          mkdir -p pipeline/build/strict
           javac -Werror -Xlint:all,-serial,-processing,-this-escape -encoding UTF-8 -implicit:none \
-            -sourcepath pipeline/src -cp data/tools/planetiler.jar -d pipeline/build/classes $(find pipeline/src -name '*.java')
+            -sourcepath pipeline/src -cp data/tools/planetiler-0.10.2.jar -d pipeline/build/strict $(find pipeline/src -name '*.java')
