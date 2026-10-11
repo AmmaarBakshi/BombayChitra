@@ -38,11 +38,20 @@ jobs:
             cp ../LICENSE ../README.md "../dist/${name}/"
             (cd ../dist && if [ "$os" = windows ]; then zip -qr "${name}.zip" "$name"; else tar czf "${name}.tar.gz" "$name"; fi)
           done
-          (cd ../dist && sha256sum *.tar.gz *.zip > checksums.txt)
+      - name: Attach the dataset
+        # The tagged release carries the data it was tested with, so `bombaychitra download --release <tag>` and
+        # the binaries stay a matching pair even after data-latest moves on.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download data-latest --dir dist --pattern 'bombaychitra.*' --pattern SHA256SUMS
+          (cd dist && sha256sum -c SHA256SUMS && rm SHA256SUMS)
+      - name: Checksums
+        run: cd dist && sha256sum *.tar.gz *.zip bombaychitra.pmtiles bombaychitra.db > checksums.txt && cp checksums.txt SHA256SUMS
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.zip dist/checksums.txt --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.zip dist/bombaychitra.pmtiles dist/bombaychitra.db dist/checksums.txt dist/SHA256SUMS --generate-notes --verify-tag
 
   image:
     runs-on: ubuntu-latest
