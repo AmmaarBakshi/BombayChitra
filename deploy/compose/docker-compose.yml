@@ -1,0 +1,53 @@
+# A public BombayChitra on any VPS with Docker: the server behind Caddy, which obtains and renews HTTPS
+# certificates automatically. Point your domain's DNS at the machine, then:
+#   DOMAIN=maps.example.com docker compose up -d
+# Refresh the data after a weekly release with:
+#   docker compose run --rm data && docker compose restart server
+services:
+  data:
+    # Downloads and verifies bombaychitra.pmtiles and bombaychitra.db into the shared volume, then exits.
+    image: ghcr.io/ammaarbakshi/bombaychitra:${BC_VERSION:-latest}
+    command: ["download"]
+    user: "0" # the fresh volume is owned by root; the server only needs to read it
+    environment:
+      BC_DATA: /data
+      BC_DATA_RELEASE: ${BC_DATA_RELEASE:-data-latest}
+    volumes:
+      - data:/data
+
+  server:
+    image: ghcr.io/ammaarbakshi/bombaychitra:${BC_VERSION:-latest}
+    depends_on:
+      data:
+        condition: service_completed_successfully
+    environment:
+      BC_DATA: /data
+      BC_LOG_FORMAT: json
+      BC_TRUST_PROXY: "true"
+      BC_RATE_LIMIT: ${BC_RATE_LIMIT:-300}
+      BC_RATE_BURST: ${BC_RATE_BURST:-60}
+      BC_API_KEYS: ${BC_API_KEYS:-}
+      BC_METRICS_ADDR: ":9091" # reachable only inside the compose network
+    volumes:
+      - data:/data:ro
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on: [server]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to the domain name pointing at this machine}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  data:
+  caddy-data:
+  caddy-config:

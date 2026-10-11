@@ -1,0 +1,11 @@
+# HTTPS reverse proxy for BombayChitra. Caddy leaves already-compressed responses (vector tiles) alone.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:8080 {
+		# The server rate-limits by this address (with BC_TRUST_PROXY=true).
+		header_up X-Real-IP {remote_host}
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+	}
+}
