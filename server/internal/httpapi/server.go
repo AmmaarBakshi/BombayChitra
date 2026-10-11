@@ -3,6 +3,7 @@
 package httpapi
 
 import (
+	"crypto/sha256"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -30,6 +31,7 @@ type Server struct {
 	static  *staticHandler
 	routes  *routing.Service
 	limiter *ratelimit.Limiter // nil when rate limiting is off
+	keys    map[[32]byte]bool  // SHA-256 digests of the API keys
 	styles  sync.Map           // base URL + name → rendered style bytes
 }
 
@@ -44,6 +46,12 @@ func New(cfg config.Config, st *store.Store, tiles *pmtiles.Reader, web fs.FS) *
 	}
 	if cfg.RateLimit > 0 {
 		s.limiter = ratelimit.New(cfg.RateLimit, cfg.RateBurst)
+	}
+	if len(cfg.APIKeys) > 0 {
+		s.keys = make(map[[32]byte]bool, len(cfg.APIKeys))
+		for _, k := range cfg.APIKeys {
+			s.keys[sha256.Sum256([]byte(k))] = true
+		}
 	}
 	return s
 }
@@ -133,7 +141,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 					h.Set("Access-Control-Expose-Headers", "ETag, Content-Length, Content-Range, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining")
 					if r.Method == http.MethodOptions {
 						h.Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
-						h.Set("Access-Control-Allow-Headers", "Range, If-None-Match, If-Match, Content-Type")
+						h.Set("Access-Control-Allow-Headers", "Range, If-None-Match, If-Match, Content-Type, X-API-Key")
 						h.Set("Access-Control-Max-Age", "86400")
 						w.WriteHeader(http.StatusNoContent)
 						return

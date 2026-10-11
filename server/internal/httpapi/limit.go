@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"crypto/sha256"
 	"math"
 	"net"
 	"net/http"
@@ -19,13 +20,32 @@ func requestCost(path string) float64 {
 	return 1
 }
 
-// guard applies the per-client rate limit to /api/ requests.
+// guard checks API keys and applies the per-client rate limit to /api/ requests. A valid key (X-API-Key header or
+// key query parameter) bypasses the limit; with --require-key requests without one are rejected.
 func (s *Server) guard(next http.Handler) http.Handler {
-	if s.limiter == nil {
+	if s.limiter == nil && len(s.keys) == 0 {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/api/") || r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+		key := r.Header.Get("X-API-Key")
+		if key == "" {
+			key = r.URL.Query().Get("key")
+		}
+		switch {
+		case key != "" && s.validKey(key):
+			next.ServeHTTP(w, r)
+			return
+		case key != "":
+			s.fail(w, r, http.StatusUnauthorized, "invalid_key", "unknown API key")
+			return
+		case s.cfg.RequireKey:
+			s.fail(w, r, http.StatusUnauthorized, "missing_key", "an API key is required; send it in the X-API-Key header")
+			return
+		case s.limiter == nil:
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -42,6 +62,12 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// validKey looks a key up by its SHA-256 digest, so the comparison does not leak key prefixes through timing.
+func (s *Server) validKey(key string) bool {
+	_, ok := s.keys[sha256.Sum256([]byte(key))]
+	return ok
 }
 
 // clientKey identifies the client a request counts against: its IP address (IPv6 clients by their /64 network, as a
