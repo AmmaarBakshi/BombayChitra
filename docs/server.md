@@ -29,6 +29,10 @@ Every flag has an environment variable, which is convenient in containers.
 | `--downloads` | `BC_DOWNLOADS` | `true` | Expose `/data/bombaychitra.pmtiles` and `/data/bombaychitra.db` |
 | `--log-format` | `BC_LOG_FORMAT` | `text` | `text` or `json` |
 | `--log-level` | `BC_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+| `--rate-limit` | `BC_RATE_LIMIT` | `0` (off) | API requests per minute per client |
+| `--rate-burst` | `BC_RATE_BURST` | rate ÷ 10 (min. 10) | API requests a client may make at once |
+| `--api-keys` | `BC_API_KEYS` | none | Comma-separated API keys, or `@file` with one key per line (`#` comments allowed) |
+| `--require-key` | `BC_REQUIRE_KEY` | `false` | Reject API requests without a valid key |
 
 ### Endpoints
 
@@ -43,6 +47,39 @@ Every flag has an environment variable, which is convenient in containers.
 | `/data/bombaychitra.pmtiles`, `/data/bombaychitra.db` | Raw downloads with range support |
 | `/openapi.json`, `/openapi.yaml` | API specification |
 | `/healthz` | Liveness probe: `{"status":"ok","version":"…","dataset":"…"}` |
+
+### Rate limiting and API keys
+
+A public server should limit how much one client can ask for: a route search walks a road graph of ~200,000
+segments, and nothing stops a script from asking for thousands. Rate limiting is off by default (a server on your
+own machine needs none) and is turned on with `--rate-limit`:
+
+```bash
+bombaychitra serve --rate-limit 300 --rate-burst 40 --trust-proxy
+```
+
+- Each client gets a **token bucket** of `--rate-burst` tokens that refills at `--rate-limit` tokens per minute.
+  Most requests cost one token; `/api/v1/route` costs five.
+- Clients are identified by **IP address** — IPv6 clients by their `/64` network. Behind a reverse proxy, pass
+  `--trust-proxy` so the address the proxy saw (`X-Real-IP`, or the right-most `X-Forwarded-For` entry) is used;
+  without it every request appears to come from the proxy.
+- Only `/api/` is limited. Tiles, styles, fonts and the web app are static and cache well, so they are not.
+- Every limited response carries `X-RateLimit-Limit` and `X-RateLimit-Remaining`. When the bucket is empty the
+  server answers `429 Too Many Requests` with `Retry-After` (seconds) and
+  `{"error":{"status":429,"code":"rate_limited",…}}`.
+
+**API keys** let known users (your own apps, partners) skip the limit. Give the server a list of keys and clients
+send theirs in the `X-API-Key` header (or the `key` query parameter, for tools that cannot set headers):
+
+```bash
+openssl rand -hex 24 >> keys.txt                       # one key per line, at least 16 characters
+bombaychitra serve --rate-limit 300 --api-keys @keys.txt
+curl -H "X-API-Key: $(head -1 keys.txt)" "http://localhost:8080/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680"
+```
+
+An unknown key is rejected with `401` (`invalid_key`), so a typo is noticed rather than silently rate-limited. With
+`--require-key` the API is private: requests without a key get `401` (`missing_key`), while the map's tiles and
+styles stay public.
 
 ### Caching and compression
 
