@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/geo"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
@@ -75,7 +76,13 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		s.badRequest(w, r, p.err.Error())
 		return
 	}
+	start := time.Now()
 	res, err := s.routes.Route(r.Context(), from.Lon, from.Lat, to.Lon, to.Lat, routing.Optimize(opt))
+	s.metrics.routeDuration.Observe(time.Since(start).Seconds(), "car")
+	s.metrics.routeSearches.Inc("car", outcome(err))
+	if res != nil {
+		s.metrics.routeSettled.Observe(float64(res.Settled), "car")
+	}
 	switch {
 	case errors.Is(err, routing.ErrNoRoad):
 		s.fail(w, r, http.StatusUnprocessableEntity, "no_road", "no drivable road within 1.5 km of one of the points")
@@ -134,6 +141,21 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeJSON(w, r, http.StatusOK, out)
+}
+
+// outcome classifies a routing error for metrics.
+func outcome(err error) string {
+	switch {
+	case err == nil:
+		return "ok"
+	case errors.Is(err, routing.ErrNoRoad):
+		return "no_road"
+	case errors.Is(err, routing.ErrNoRoute):
+		return "no_route"
+	case errors.Is(err, routing.ErrUnavailable):
+		return "unavailable"
+	}
+	return "error"
 }
 
 func end(requested geo.Point, snap routing.Snap) routeEnd {

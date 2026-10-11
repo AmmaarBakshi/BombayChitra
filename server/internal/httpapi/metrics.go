@@ -19,6 +19,10 @@ type serverMetrics struct {
 	bytes       *metrics.CounterVec
 	rateLimited *metrics.CounterVec
 	inFlight    atomic.Int64
+
+	routeSearches *metrics.CounterVec
+	routeDuration *metrics.HistogramVec
+	routeSettled  *metrics.HistogramVec
 }
 
 func (s *Server) newMetrics() *serverMetrics {
@@ -29,7 +33,20 @@ func (s *Server) newMetrics() *serverMetrics {
 		duration:    r.NewHistogramVec("bombaychitra_http_request_duration_seconds", "Time to serve HTTP requests by route pattern.", metrics.DefaultBuckets, "route"),
 		bytes:       r.NewCounterVec("bombaychitra_http_response_bytes_total", "Response body bytes written by route pattern (after compression).", "route"),
 		rateLimited: r.NewCounterVec("bombaychitra_http_rate_limited_total", "API requests rejected by the rate limiter.", "route"),
+
+		routeSearches: r.NewCounterVec("bombaychitra_route_searches_total", "Route searches by travel mode and outcome (ok, no_road, no_route, unavailable, error).", "mode", "outcome"),
+		routeDuration: r.NewHistogramVec("bombaychitra_route_search_duration_seconds", "Time to compute a route, including waiting for a search slot.", metrics.DefaultBuckets, "mode"),
+		routeSettled:  r.NewHistogramVec("bombaychitra_route_settled_vertices", "Graph vertices settled per route search (search effort).", []float64{100, 1000, 5000, 20000, 50000, 100000, 200000}, "mode"),
 	}
+	r.NewGaugeFunc("bombaychitra_routing_graph_vertices", "Vertices in the loaded routing graph (absent until the first route request).", nil, func() []metrics.Sample {
+		if s.routes == nil {
+			return nil
+		}
+		if g, ok, err := s.routes.Peek(); ok && err == nil {
+			return []metrics.Sample{{Value: float64(g.Stats().Vertices)}}
+		}
+		return nil
+	})
 	r.NewGaugeFunc("bombaychitra_http_in_flight_requests", "Requests being served.", nil, func() []metrics.Sample {
 		return []metrics.Sample{{Value: float64(m.inFlight.Load())}}
 	})
