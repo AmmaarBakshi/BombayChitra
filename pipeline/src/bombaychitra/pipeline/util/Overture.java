@@ -47,18 +47,40 @@ public final class Overture {
     return tokens;
   }
 
-  /** True when two names share most of their words, or one name's words are all in the other. */
+  /**
+   * Words that say what a place is rather than which one it is. Two names that share only these ("HDFC Bank ATM",
+   * "ICICI Bank ATM") are different places.
+   */
+  private static final Set<String> GENERIC = Set.of("bank", "atm", "hospital", "clinic", "nursing", "home", "school",
+    "high", "college", "restaurant", "cafe", "hotel", "lodge", "bar", "medical", "medicals", "chemist", "pharmacy",
+    "store", "stores", "shop", "general", "mart", "centre", "center", "road", "station", "temple", "mandir",
+    "church", "mosque", "masjid", "society", "building", "tower", "towers", "apartment", "apartments", "garden",
+    "park", "gym", "salon", "dental", "hall", "office", "petrol", "pump", "police", "post");
+
+  /**
+   * True when two names share most of their words, or one name's words are all in the other — and, when both names
+   * have distinctive words, they share at least one of those.
+   */
   public static boolean similar(Set<String> a, Set<String> b) {
     if (a.isEmpty() || b.isEmpty()) {
       return false;
     }
     int common = 0;
+    boolean distinctiveA = false;
+    boolean distinctiveB = false;
+    boolean distinctiveCommon = false;
     for (String token : a) {
+      boolean generic = GENERIC.contains(token);
+      distinctiveA |= !generic;
       if (b.contains(token)) {
         common++;
+        distinctiveCommon |= !generic;
       }
     }
-    if (common == 0) {
+    for (String token : b) {
+      distinctiveB |= !GENERIC.contains(token);
+    }
+    if (common == 0 || distinctiveA && distinctiveB && !distinctiveCommon) {
       return false;
     }
     int union = a.size() + b.size() - common;
