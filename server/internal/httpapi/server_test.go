@@ -304,3 +304,52 @@ func TestRouteByRoad(t *testing.T) {
 		}
 	}
 }
+
+func TestRouteModes(t *testing.T) {
+	h := testServer(t)
+	const trip = "from=18.9985,72.8580&to=18.9310,73.0300" // Sewri to Ulwe, across Atal Setu by car
+	rec, body := get(t, h, "/api/v1/route?mode=foot&"+trip)
+	if rec.Code == http.StatusServiceUnavailable {
+		t.Skip("dataset built before travel modes")
+	}
+	results := map[string]map[string]any{}
+	for _, q := range []string{"mode=car", "mode=car&avoid=toll", "mode=two_wheeler", "mode=walk"} {
+		rec, body = get(t, h, "/api/v1/route?"+q+"&"+trip)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", q, rec.Code, rec.Body.String())
+		}
+		results[q] = body
+	}
+	if toll := results["mode=car"]["toll_m"].(float64); toll < 15000 {
+		t.Errorf("by car the fastest way is over Atal Setu, got %.0f m of toll road", toll)
+	}
+	for _, q := range []string{"mode=car&avoid=toll", "mode=two_wheeler", "mode=walk"} {
+		if toll := results[q]["toll_m"].(float64); toll != 0 {
+			t.Errorf("%s: %.0f m of toll road", q, toll)
+		}
+	}
+	if m := results["mode=walk"]["mode"]; m != "foot" {
+		t.Errorf("mode=walk answered as %v", m)
+	}
+	walk := results["mode=walk"]["duration_s"].(float64)
+	if car := results["mode=car"]["duration_s"].(float64); walk < 5*car {
+		t.Errorf("walking %.0f s is implausibly close to driving %.0f s", walk, car)
+	}
+
+	steps, _ := results["mode=car"]["steps"].([]any)
+	if len(steps) < 3 {
+		t.Fatalf("steps: %v", steps)
+	}
+	first, last := steps[0].(map[string]any), steps[len(steps)-1].(map[string]any)
+	if first["type"] != "depart" || last["type"] != "arrive" || first["instruction"] == "" {
+		t.Errorf("steps run %v … %v", first, last)
+	}
+	if _, body := get(t, h, "/api/v1/route?steps=false&"+trip); body["steps"] != nil {
+		t.Errorf("steps=false still returned steps")
+	}
+	for _, q := range []string{"mode=plane", "avoid=ferry", "steps=maybe"} {
+		if rec, _ := get(t, h, "/api/v1/route?"+q+"&"+trip); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: %d, want 400", q, rec.Code)
+		}
+	}
+}
