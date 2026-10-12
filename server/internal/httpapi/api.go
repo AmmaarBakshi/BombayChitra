@@ -92,7 +92,30 @@ func (s *Server) handleCategories(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAreas(w http.ResponseWriter, r *http.Request) {
-	s.writeJSON(w, r, http.StatusOK, map[string]any{"items": s.store.Areas()})
+	p := newParams(r.URL)
+	kind := p.str("kind")
+	if kind == "" {
+		kind = p.str("type") // the name the roadmap and early clients used
+	}
+	items := s.store.Areas()
+	if kind != "" {
+		var kinds []string
+		filtered := []store.Area{}
+		for _, a := range items {
+			if !contains(kinds, a.Kind) {
+				kinds = append(kinds, a.Kind)
+			}
+			if a.Kind == kind {
+				filtered = append(filtered, a)
+			}
+		}
+		if len(filtered) == 0 {
+			s.badRequest(w, r, "kind must be one of "+strings.Join(kinds, ", "))
+			return
+		}
+		items = filtered
+	}
+	s.writeJSON(w, r, http.StatusOK, map[string]any{"count": len(items), "items": items})
 }
 
 func (s *Server) handleArea(w http.ResponseWriter, r *http.Request) {

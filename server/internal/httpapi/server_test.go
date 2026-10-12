@@ -313,6 +313,34 @@ func TestRouteByRoad(t *testing.T) {
 	}
 }
 
+func TestAreasByKind(t *testing.T) {
+	h := testServer(t)
+	_, body := get(t, h, "/api/v1/areas?kind=ward")
+	items, _ := body["items"].([]any)
+	if len(items) == 0 {
+		t.Skip("dataset built before the BMC wards were configured")
+	}
+	if len(items) != 24 {
+		t.Errorf("%d wards, want 24", len(items))
+	}
+	for _, it := range items {
+		if a := it.(map[string]any); a["kind"] != "ward" {
+			t.Errorf("non-ward %v in kind=ward", a["id"])
+		}
+	}
+	_, alias := get(t, h, "/api/v1/areas?type=ward")
+	if alias["count"] != body["count"] {
+		t.Errorf("type=ward returned %v areas, kind=ward %v", alias["count"], body["count"])
+	}
+	if rec, _ := get(t, h, "/api/v1/areas?kind=galaxy"); rec.Code != http.StatusBadRequest {
+		t.Errorf("unknown kind: %d, want 400", rec.Code)
+	}
+	_, stats := get(t, h, "/api/v1/stats?area=ward-a")
+	if places, _ := stats["places_by_category"].(map[string]any); places["hospital"] == nil {
+		t.Errorf("A Ward (Colaba, Fort) should have hospitals: %v", stats["totals"])
+	}
+}
+
 func TestMetaListsRoutingModes(t *testing.T) {
 	h := testServer(t)
 	_, body := get(t, h, "/api/v1/meta")
