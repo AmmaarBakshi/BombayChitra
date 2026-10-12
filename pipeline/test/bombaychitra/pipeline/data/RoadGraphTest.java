@@ -60,8 +60,8 @@ class RoadGraphTest {
   @Test
   void crossingWaysAreSplitAtTheSharedNode() throws Exception {
     // A plus sign: two two-way roads crossing at (72.85, 19.05).
-    var ns = new Records.GraphWay(coords(72.85, 19.04, 72.85, 19.05, 72.85, 19.06), (byte) 3, (byte) 0, 35, VEHICLES, "N-S Road");
-    var ew = new Records.GraphWay(coords(72.84, 19.05, 72.85, 19.05, 72.86, 19.05), (byte) 6, (byte) 0, 18, VEHICLES, "E-W Road");
+    var ns = new Records.GraphWay(coords(72.85, 19.04, 72.85, 19.05, 72.85, 19.06), (byte) 3, (byte) 0, 35, VEHICLES, (byte) 0, "N-S Road");
+    var ew = new Records.GraphWay(coords(72.84, 19.05, 72.85, 19.05, 72.86, 19.05), (byte) 6, (byte) 0, 18, VEHICLES, (byte) 0, "E-W Road");
     var meta = new LinkedHashMap<String, String>();
     var blobs = build(List.of(ns, ew), meta);
 
@@ -82,8 +82,8 @@ class RoadGraphTest {
 
   @Test
   void oneWayRoadsOnlyGetForwardEdges() throws Exception {
-    var a = new Records.GraphWay(coords(72.80, 19.00, 72.81, 19.00), (byte) 6, (byte) 1, 18, VEHICLES, null);
-    var b = new Records.GraphWay(coords(72.81, 19.00, 72.82, 19.00), (byte) 6, (byte) -1, 18, VEHICLES, null);
+    var a = new Records.GraphWay(coords(72.80, 19.00, 72.81, 19.00), (byte) 6, (byte) 1, 18, VEHICLES, (byte) 0, null);
+    var b = new Records.GraphWay(coords(72.81, 19.00, 72.82, 19.00), (byte) 6, (byte) -1, 18, VEHICLES, (byte) 0, null);
     var meta = new LinkedHashMap<String, String>();
     var blobs = build(List.of(a, b), meta);
     assertEquals("3", meta.get("routing_vertices"));
@@ -96,7 +96,7 @@ class RoadGraphTest {
   @Test
   void shapesKeepIntermediatePointsAsDeltas() throws Exception {
     // A bent road with no junction in the middle stays one segment with three shape points.
-    var way = new Records.GraphWay(coords(72.80, 19.00, 72.805, 19.004, 72.81, 19.00), (byte) 5, (byte) 0, 26, VEHICLES, "Bend");
+    var way = new Records.GraphWay(coords(72.80, 19.00, 72.805, 19.004, 72.81, 19.00), (byte) 5, (byte) 0, 26, VEHICLES, (byte) 0, "Bend");
     var blobs = build(List.of(way), new LinkedHashMap<>());
     int[] segShape = ints(blobs.get("seg_shape"));
     int[] shape = ints(blobs.get("shape"));

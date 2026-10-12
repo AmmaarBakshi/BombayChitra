@@ -203,7 +203,31 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
       }
     }
     ctx.sink().graphWays.add(new Records.GraphWay(packed, GRAPH_CLASS.getOrDefault(kind, (byte) 6),
-      (byte) (oneway == null ? 0 : oneway), speed, modes, name == null ? null : name.intern()));
+      (byte) (oneway == null ? 0 : oneway), speed, modes, flags(f, highway), name == null ? null : name.intern()));
+  }
+
+  /** Routing segment flags: tolls (Atal Setu, the sea link, expressways), steps, structures, roundabouts, ramps. */
+  static byte flags(SourceFeature f, String highway) {
+    int flags = 0;
+    if (Tags.isYes(f, "toll") || Tags.isYes(f, "toll:motorcar")) {
+      flags |= RoadGraph.TOLL;
+    }
+    if ("steps".equals(highway)) {
+      flags |= RoadGraph.STEPS;
+    }
+    String brunnel = brunnel(f);
+    if ("bridge".equals(brunnel)) {
+      flags |= RoadGraph.BRIDGE;
+    } else if ("tunnel".equals(brunnel)) {
+      flags |= RoadGraph.TUNNEL;
+    }
+    if (f.hasTag("junction", "roundabout", "circular")) {
+      flags |= RoadGraph.ROUNDABOUT;
+    }
+    if (highway.endsWith("_link")) {
+      flags |= RoadGraph.LINK;
+    }
+    return (byte) flags;
   }
 
   static String brunnel(SourceFeature f) {

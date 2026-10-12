@@ -42,6 +42,14 @@ public final class RoadGraph {
   public static final byte FOOT = 4;
   private static final byte VEHICLES = CAR | TWO_WHEELER;
 
+  /** Segment flag bits in {@code seg_flags}, for toll avoidance and turn-by-turn directions. */
+  public static final byte TOLL = 1;
+  public static final byte STEPS = 2;
+  public static final byte BRIDGE = 4;
+  public static final byte TUNNEL = 8;
+  public static final byte ROUNDABOUT = 16;
+  public static final byte LINK = 32;
+
   private RoadGraph() {}
 
   private static long key(int lonE7, int latE7) {
@@ -91,6 +99,7 @@ public final class RoadGraph {
     ByteArrayList segClass = new ByteArrayList();
     ByteArrayList segDir = new ByteArrayList();
     ByteArrayList segAccess = new ByteArrayList();
+    ByteArrayList segFlags = new ByteArrayList();
     IntArrayList segName = new IntArrayList();
     segShape.add(0);
     for (var way : ways) {
@@ -113,6 +122,7 @@ public final class RoadGraph {
           segClass.add(way.roadClass());
           segDir.add((byte) (way.oneway() > 0 ? 1 : way.oneway() < 0 ? 2 : 3));
           segAccess.add(way.modes());
+          segFlags.add(way.flags());
           segName.add(way.name() == null ? -1 : nameIndex.computeIfAbsent(way.name(), n -> nameIndex.size()));
           // Shape: first point absolute, the rest as deltas (small numbers compress well).
           shape.add(c[first * 2], c[first * 2 + 1]);
@@ -186,6 +196,7 @@ public final class RoadGraph {
     blobs.put("seg_class", segClass.toArray());
     blobs.put("seg_dir", segDir.toArray());
     blobs.put("seg_access", segAccess.toArray());
+    blobs.put("seg_flags", segFlags.toArray());
     blobs.put("seg_speed", floats(segSpeed.toArray()));
     blobs.put("seg_name", ints(segName.toArray()));
     blobs.put("names", String.join("\n", List.of(names)).getBytes(StandardCharsets.UTF_8));

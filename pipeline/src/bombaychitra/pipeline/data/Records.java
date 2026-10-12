@@ -51,10 +51,11 @@ public final class Records {
   /**
    * A way in the routing graph: coordinates as interleaved lon/lat × 10<sup>7</sup> (exact, so shared OSM nodes
    * match), {@code oneway} for vehicles (1 forward, -1 backward, 0 both), a typical car speed in km/h (0 when cars may
-   * not use it), and the travel modes that may use it ({@link RoadGraph#CAR}, {@link RoadGraph#TWO_WHEELER},
-   * {@link RoadGraph#FOOT} bits).
+   * not use it), the travel modes that may use it ({@link RoadGraph#CAR}, {@link RoadGraph#TWO_WHEELER},
+   * {@link RoadGraph#FOOT} bits) and segment flags ({@link RoadGraph#TOLL}, {@link RoadGraph#STEPS}…).
    */
-  public record GraphWay(int[] coords, byte roadClass, byte oneway, float speedKmh, byte modes, String name) {}
+  public record GraphWay(int[] coords, byte roadClass, byte oneway, float speedKmh, byte modes, byte flags,
+    String name) {}
 
   /** One polygon making up a configured area (lon/lat). */
   public record AreaPart(String areaId, long relationId, Geometry polygon) {}
