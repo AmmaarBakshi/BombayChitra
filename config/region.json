@@ -253,7 +253,7 @@
       "name": "P/N Ward",
       "short": "P/N",
       "kind": "ward",
-      "description": "BMC ward P/N: Malad, Marve, Madh Island and Manori.",
+      "description": "BMC ward P/N: Malad, Marve and Manori.",
       "relations": [7885384]
     },
     {

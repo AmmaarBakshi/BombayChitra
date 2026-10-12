@@ -29,11 +29,20 @@ export class ExplorePanel implements Panel {
       h('button', { class: 'chip', type: 'button', title, 'aria-pressed': String(current === id), 'data-area': id ?? '', onclick: () => this.ctx.selectArea(id, true) }, label);
 
     const meta = this.ctx.meta;
+    // The 24 BMC wards get a compact grid of their codes (A, F/N, R/C…) below the larger areas.
+    const wards = areas.filter((a) => a.kind === 'ward');
+    const others = areas.filter((a) => a.kind !== 'ward');
     clear(body);
     body.append(
       h('section', { class: 'section' },
         h('h3', {}, 'Areas'),
-        h('div', { class: 'chips' }, chip(null, 'Everything'), ...areas.map((a) => chip(a.id, a.short_name ?? a.name, a.description ?? a.name))),
+        h('div', { class: 'chips' }, chip(null, 'Everything'), ...others.map((a) => chip(a.id, a.short_name ?? a.name, a.description ?? a.name))),
+        wards.length
+          ? h('div', { class: 'ward-picker' },
+            h('div', { class: 'sub', id: 'ward-label' }, 'BMC wards'),
+            h('div', { class: 'chips ward-chips', role: 'group', 'aria-labelledby': 'ward-label' }, ...wards.map((a) => chip(a.id, a.short_name ?? a.name, a.description ? `${a.name} — ${a.description.replace(/^BMC ward [^:]+: /, '')}` : a.name))),
+          )
+          : null,
       ),
       h('section', { class: 'section' }, h('h3', {}, 'At a glance'), this.statsEl),
       h('section', { class: 'section' },

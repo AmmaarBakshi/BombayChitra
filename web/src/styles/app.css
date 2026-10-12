@@ -904,6 +904,28 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   letter-spacing: 0;
 }
 
+/* BMC ward picker */
+
+.ward-picker {
+  margin-top: 10px;
+}
+
+.ward-picker .sub {
+  margin-bottom: 6px;
+}
+
+.ward-chips {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.ward-chips .chip {
+  justify-content: center;
+  padding-inline: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* segmented control */
 
 .segmented {
