@@ -45,8 +45,12 @@ func (s *Store) Reverse(ctx context.Context, p geo.Point) (*Reverse, error) {
 	if out.Locality != nil {
 		parts = append(parts, out.Locality.Name)
 	}
-	if n := len(out.Areas); n > 0 {
-		parts = append(parts, out.Areas[n-1].Name)
+	// End with the most specific city or district; wards stay in Areas but read as jargon in an address.
+	for i := len(out.Areas) - 1; i >= 0; i-- {
+		if out.Areas[i].Kind != "ward" {
+			parts = append(parts, out.Areas[i].Name)
+			break
+		}
 	}
 	out.Label = strings.Join(dedupeStrings(parts), ", ")
 	return out, nil

@@ -229,6 +229,9 @@ func TestSearchFindsStationsAndReverseFindsRoad(t *testing.T) {
 	if rev["road"] == nil || rev["label"] == "" {
 		t.Errorf("reverse geocode returned no road: %v", rev)
 	}
+	if label, _ := rev["label"].(string); strings.HasSuffix(label, "Ward") {
+		t.Errorf("label %q should end with the district, not the ward", label)
+	}
 }
 
 func TestTilesAndConditionalRequests(t *testing.T) {
