@@ -56,6 +56,7 @@ type Result struct {
 	DurationS float64      `json:"duration_s"`
 	TollM     float64      `json:"toll_m"` // distance on toll roads
 	Roads     []RoadUse    `json:"roads"`
+	Steps     []Step       `json:"steps"`
 	Path      [][2]float64 `json:"-"`
 	From, To  Snap         `json:"-"`
 	Settled   int          `json:"-"`
@@ -330,6 +331,7 @@ func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opts Options) (*Re
 			acc.partialFromEnd(ts, 1, to)
 		}
 	}
+	res.Steps = g.steps(res)
 	return res, nil
 }
 
