@@ -8,10 +8,11 @@ import (
 )
 
 type check struct {
-	Status    string  `json:"status"`
-	LatencyMS float64 `json:"latency_ms,omitempty"`
-	Error     string  `json:"error,omitempty"`
-	Detail    any     `json:"detail,omitempty"`
+	Status    string   `json:"status"`
+	LatencyMS *float64 `json:"latency_ms,omitempty"` // measured checks only; may be 0 for a sub-microsecond query
+	Error     string   `json:"error,omitempty"`
+	Note      string   `json:"note,omitempty"`
+	Detail    any      `json:"detail,omitempty"` // always an object
 }
 
 // handleHealthDetail reports the state of every component: database, tiles and routing graph, plus dataset age. It
@@ -28,7 +29,8 @@ func (s *Server) handleHealthDetail(w http.ResponseWriter, r *http.Request) {
 		checks["database"] = check{Status: "error", Error: err.Error()}
 		status = http.StatusServiceUnavailable
 	} else {
-		checks["database"] = check{Status: "ok", LatencyMS: ms(time.Since(start))}
+		latency := ms(time.Since(start))
+		checks["database"] = check{Status: "ok", LatencyMS: &latency}
 	}
 
 	if s.tiles != nil {
@@ -40,7 +42,7 @@ func (s *Server) handleHealthDetail(w http.ResponseWriter, r *http.Request) {
 
 	switch g, ok, err := s.routes.Peek(); {
 	case !ok:
-		checks["routing"] = check{Status: "not_loaded", Detail: "loaded on the first route request"}
+		checks["routing"] = check{Status: "not_loaded", Note: "loaded on the first route request"}
 	case err != nil:
 		checks["routing"] = check{Status: "unavailable", Error: err.Error()}
 	default:
@@ -69,4 +71,4 @@ func (s *Server) handleHealthDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func ms(d time.Duration) float64 { return math.Round(float64(d.Microseconds())/10) / 100 }
+func ms(d time.Duration) float64 { return math.Round(float64(d.Nanoseconds())/1e3) / 1e3 }
