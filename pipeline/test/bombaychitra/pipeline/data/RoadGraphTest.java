@@ -94,6 +94,33 @@ class RoadGraphTest {
   }
 
   @Test
+  void pedestriansWalkOneWayRoadsBothWays() throws Exception {
+    var all = (byte) (RoadGraph.CAR | RoadGraph.TWO_WHEELER | RoadGraph.FOOT);
+    var road = new Records.GraphWay(coords(72.80, 19.00, 72.81, 19.00), (byte) 6, (byte) 1, 18, all, (byte) 0, "Lane");
+    var steps = new Records.GraphWay(coords(72.81, 19.00, 72.81, 19.001), (byte) 10, (byte) 0, 0, RoadGraph.FOOT,
+      RoadGraph.STEPS, null);
+    var meta = new LinkedHashMap<String, String>();
+    var blobs = build(List.of(road, steps), meta);
+    assertEquals("2", meta.get("routing_version"));
+    assertEquals("4", meta.get("routing_edges"), "both directions of both segments");
+    assertArrayEquals(new byte[]{all, RoadGraph.FOOT}, blobs.get("seg_access"));
+    assertArrayEquals(new byte[]{0, RoadGraph.STEPS}, blobs.get("seg_flags"));
+
+    // Car times: finite along the one-way street only.
+    int[] edgeSeg = ints(blobs.get("edge_seg"));
+    float[] edgeTime = new float[edgeSeg.length];
+    ByteBuffer.wrap(blobs.get("edge_time")).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(edgeTime);
+    int finite = 0;
+    for (int e = 0; e < edgeSeg.length; e++) {
+      if (Float.isFinite(edgeTime[e])) {
+        finite++;
+        assertEquals(0, edgeSeg[e], "only the street, driven forwards");
+      }
+    }
+    assertEquals(1, finite);
+  }
+
+  @Test
   void shapesKeepIntermediatePointsAsDeltas() throws Exception {
     // A bent road with no junction in the middle stays one segment with three shape points.
     var way = new Records.GraphWay(coords(72.80, 19.00, 72.805, 19.004, 72.81, 19.00), (byte) 5, (byte) 0, 26, VEHICLES, (byte) 0, "Bend");
