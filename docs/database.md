@@ -25,7 +25,7 @@ also query it directly.
 | `area_members` | | Which areas contain each place, street, bridge and locality (`kind`, `member_id`, `area_id`) |
 | `area_stats` | | Per-area statistics; `area_id = '*'` is the whole dataset |
 | `places` | 154k | Points of interest with address, phone, website, hours, operator, brand, cuisine, accessibility, station lines (`extra`) and all tags; 109k from Overture Maps (`osm_type = 'overture'`) |
-| `routing` | 12 | The car road network as compressed arrays — see [Routing graph](#routing-graph) |
+| `routing` | 15 | The road and path network as compressed arrays — see [Routing graph](#routing-graph) |
 | `localities` | 2k | Suburbs, neighbourhoods, villages with population |
 | `streets` | 6k | Named roads merged from connected ways: class, length, bbox, centre, nearest locality |
 | `roads` | 20k | Named road segments: lanes, speed limit, surface, one-way, bridge/tunnel flags, GeoJSON geometry |
@@ -121,9 +121,10 @@ More languages are in [`examples/`](../examples/README.md) and on the [Integrati
 
 ## Routing graph
 
-The `routing` table holds the car road network behind `/api/v1/route` as named blobs: little-endian arrays,
-each gzip-compressed (about 10 MB in total). Vertices are the points where drivable ways meet or end; a segment is
-the road between two vertices with its full shape.
+The `routing` table holds the road and path network behind `/api/v1/route` as named blobs: little-endian arrays,
+each gzip-compressed (about 14 MB in total). Vertices are the points where ways meet or end; a segment is the way
+between two vertices with its full shape. Every way someone may use is included — roads for cars and two-wheelers,
+footways, paths, steps and foot over-bridges for pedestrians — and each segment says who may use it.
 
 | Blob | Type | Content |
 |---|---|---|
@@ -131,17 +132,28 @@ the road between two vertices with its full shape.
 | `offsets` | int32 × (vertices + 1) | Edges leaving vertex *v* are `offsets[v] … offsets[v+1] − 1` |
 | `edge_to` | int32 per edge | Destination vertex |
 | `edge_seg` | int32 per edge | Segment *s*, or `~s` (bitwise not) when the edge runs against the segment's shape |
-| `edge_time` | float32 per edge | Travel time in seconds |
+| `edge_time` | float32 per edge | Car travel time in seconds; `+Inf` where cars may not go (footpaths, the wrong way up a one-way street) |
 | `seg_len` | float32 per segment | Length in metres |
 | `seg_shape` | int32 × (segments + 1) | Offsets into `shape`, in points |
 | `shape` | int32 × 2 per point | Segment shapes: first point absolute (lon, lat × 10⁷), the rest as deltas |
-| `seg_class` | uint8 per segment | 1 motorway, 2 trunk, 3 primary, 4 secondary, 5 tertiary, 6 minor, 7 service |
-| `seg_dir` | uint8 per segment | Bit 1: drivable along the shape; bit 2: against it |
+| `seg_class` | uint8 per segment | 1 motorway, 2 trunk, 3 primary, 4 secondary, 5 tertiary, 6 minor, 7 service, 8 pedestrian, 9 track, 10 path |
+| `seg_dir` | uint8 per segment | For vehicles — bit 1: may drive along the shape; bit 2: against it. Pedestrians may walk both ways |
+| `seg_access` | uint8 per segment | Who may use it — bit 1: car; bit 2: two-wheeler; bit 4: on foot |
+| `seg_speed` | float32 per segment | Typical car speed in km/h; 0 where vehicles may not go |
+| `seg_flags` | uint8 per segment | Bit 1: toll; 2: steps; 4: bridge; 8: tunnel; 16: roundabout; 32: ramp (`*_link`) |
 | `seg_name` | int32 per segment | Index into `names`, or −1 |
-| `names` | UTF-8 text | Road names, one per line |
+| `names` | UTF-8 text | Road names (or route numbers), one per line |
 
-`meta` records `routing_version`, `routing_profile` (`car`) and the vertex, edge and segment counts. Travel times
-use typical urban speeds per road class (see `DRIVE_SPEED` in `pipeline/…/layers/Roads.java`).
+A direction of a segment has an edge when a vehicle may drive it or anyone may walk it, so a reader picking a
+travel mode keeps the edges whose segment allows that mode — and, for vehicles, whose direction `seg_dir` allows.
+
+Access follows the OpenStreetMap tags (`access`, `motor_vehicle`, `motorcar`, `motorcycle`, `foot`…; the first one
+present decides). Untagged motorways — expressways, sea links, freeways — are closed to two-wheelers and
+pedestrians, as they are by law in India. Speeds are typical urban speeds per road class, capped by `maxspeed` (see
+`DRIVE_SPEED` in `pipeline/…/layers/Roads.java`); the server derives walking and two-wheeler speeds from them.
+
+`meta` records `routing_version` (2; version 1 graphs had cars only and no `seg_access`, `seg_speed` or
+`seg_flags`), `routing_profile` (`car,two_wheeler,foot`) and the vertex, edge and segment counts.
 
 ## Notes
 
