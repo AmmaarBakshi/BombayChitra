@@ -37,3 +37,24 @@ test('switch to the dark theme and remember it', async ({ page }) => {
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
+
+test('open a shared walking route with directions', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+
+  // Andheri station to the metro station across the road, on foot.
+  await page.goto('/#dist=19.11971,72.84643~19.12090,72.84810&mode=foot');
+  await expect(page.locator('#tab-distance')).toBeVisible();
+  await expect(page.locator('.travel-modes button[data-travel="foot"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.route-summary')).toContainText('on foot');
+  const steps = page.locator('.route-steps li');
+  await expect(steps.last()).toContainText('Arrive at your destination');
+  expect(await steps.count()).toBeGreaterThan(1);
+
+  // Switching to a car recomputes and updates the link.
+  await page.locator('.travel-modes button[data-travel="car"]').click();
+  await expect(page.locator('.route-summary')).toContainText('by road');
+  await expect(page).not.toHaveURL(/mode=foot/);
+  expect(errors).toEqual([]);
+});
