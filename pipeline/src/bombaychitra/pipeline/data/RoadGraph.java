@@ -23,17 +23,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The car routing graph behind "distance by road", stored in the {@code routing} table as gzip-compressed
- * little-endian arrays (format in {@code docs/database.md}).
+ * The routing graph behind "distance by road", stored in the {@code routing} table as gzip-compressed little-endian
+ * arrays (format in {@code docs/database.md}).
  *
  * <p>Ways are split wherever they share a node with another way (or end), giving vertices and road segments. A
- * segment keeps its full shape and can be driven forward, backward or both ways; directed edges in compressed sparse
- * row form point from each vertex to its neighbours.
+ * segment keeps its full shape, the travel modes that may use it, and the directions vehicles may drive it in
+ * (pedestrians may walk any segment both ways); directed edges in compressed sparse row form point from each vertex
+ * to its neighbours.
  */
 public final class RoadGraph {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RoadGraph.class);
-  public static final int VERSION = 1;
+  public static final int VERSION = 2;
+
+  /** Travel mode bits in {@code seg_access}. */
+  public static final byte CAR = 1;
+  public static final byte TWO_WHEELER = 2;
+  public static final byte FOOT = 4;
+  private static final byte VEHICLES = CAR | TWO_WHEELER;
 
   private RoadGraph() {}
 
@@ -41,7 +48,7 @@ public final class RoadGraph {
     return ((long) lonE7 << 32) | (latE7 & 0xffffffffL);
   }
 
-  public static void write(Connection db, Collection<Records.DriveWay> ways, Map<String, String> meta)
+  public static void write(Connection db, Collection<Records.GraphWay> ways, Map<String, String> meta)
     throws SQLException {
     if (ways.isEmpty()) {
       return;
@@ -83,6 +90,7 @@ public final class RoadGraph {
     IntArrayList shape = new IntArrayList();
     ByteArrayList segClass = new ByteArrayList();
     ByteArrayList segDir = new ByteArrayList();
+    ByteArrayList segAccess = new ByteArrayList();
     IntArrayList segName = new IntArrayList();
     segShape.add(0);
     for (var way : ways) {
@@ -104,6 +112,7 @@ public final class RoadGraph {
           segSpeed.add(way.speedKmh());
           segClass.add(way.roadClass());
           segDir.add((byte) (way.oneway() > 0 ? 1 : way.oneway() < 0 ? 2 : 3));
+          segAccess.add(way.modes());
           segName.add(way.name() == null ? -1 : nameIndex.computeIfAbsent(way.name(), n -> nameIndex.size()));
           // Shape: first point absolute, the rest as deltas (small numbers compress well).
           shape.add(c[first * 2], c[first * 2 + 1]);
@@ -119,14 +128,13 @@ public final class RoadGraph {
     }
     int segments = segFrom.size();
 
-    // 3. Directed edges in CSR order.
+    // 3. Directed edges in CSR order: a direction has an edge when a vehicle may drive it or anyone may walk it.
     int[] degree = new int[vertexCount + 1];
     for (int s = 0; s < segments; s++) {
-      byte dir = segDir.get(s);
-      if ((dir & 1) != 0) {
+      if (forward(segDir.get(s), segAccess.get(s))) {
         degree[segFrom.get(s) + 1]++;
       }
-      if ((dir & 2) != 0) {
+      if (backward(segDir.get(s), segAccess.get(s))) {
         degree[segTo.get(s) + 1]++;
       }
     }
@@ -138,20 +146,23 @@ public final class RoadGraph {
     int[] edgeTo = new int[edges];
     int[] edgeSeg = new int[edges];
     float[] edgeTime = new float[edges];
+    // edge_time is the car's time, +Inf where cars may not go, so version 1 readers never route a car over a footpath.
     for (int s = 0; s < segments; s++) {
       byte dir = segDir.get(s);
-      float seconds = segLen.get(s) / (segSpeed.get(s) / 3.6f);
-      if ((dir & 1) != 0) {
+      byte access = segAccess.get(s);
+      boolean car = (access & CAR) != 0 && segSpeed.get(s) > 0;
+      float seconds = car ? segLen.get(s) / (segSpeed.get(s) / 3.6f) : Float.POSITIVE_INFINITY;
+      if (forward(dir, access)) {
         int e = cursor[segFrom.get(s)]++;
         edgeTo[e] = segTo.get(s);
         edgeSeg[e] = s;
-        edgeTime[e] = seconds;
+        edgeTime[e] = (dir & 1) != 0 ? seconds : Float.POSITIVE_INFINITY;
       }
-      if ((dir & 2) != 0) {
+      if (backward(dir, access)) {
         int e = cursor[segTo.get(s)]++;
         edgeTo[e] = segFrom.get(s);
         edgeSeg[e] = ~s;
-        edgeTime[e] = seconds;
+        edgeTime[e] = (dir & 2) != 0 ? seconds : Float.POSITIVE_INFINITY;
       }
     }
 
@@ -174,6 +185,8 @@ public final class RoadGraph {
     blobs.put("shape", ints(shape.toArray()));
     blobs.put("seg_class", segClass.toArray());
     blobs.put("seg_dir", segDir.toArray());
+    blobs.put("seg_access", segAccess.toArray());
+    blobs.put("seg_speed", floats(segSpeed.toArray()));
     blobs.put("seg_name", ints(segName.toArray()));
     blobs.put("names", String.join("\n", List.of(names)).getBytes(StandardCharsets.UTF_8));
 
@@ -188,12 +201,20 @@ public final class RoadGraph {
       }
     }
     meta.put("routing_version", String.valueOf(VERSION));
-    meta.put("routing_profile", "car");
+    meta.put("routing_profile", "car,two_wheeler,foot");
     meta.put("routing_vertices", String.valueOf(vertexCount));
     meta.put("routing_edges", String.valueOf(edges));
     meta.put("routing_segments", String.valueOf(segments));
     LOGGER.info("Routing graph: {} ways → {} vertices, {} segments, {} directed edges, {} MB in {}s", ways.size(),
       vertexCount, segments, edges, bytes / 1_000_000, (System.nanoTime() - start) / 1_000_000_000);
+  }
+
+  private static boolean forward(byte dir, byte access) {
+    return (access & FOOT) != 0 || (access & VEHICLES) != 0 && (dir & 1) != 0;
+  }
+
+  private static boolean backward(byte dir, byte access) {
+    return (access & FOOT) != 0 || (access & VEHICLES) != 0 && (dir & 2) != 0;
   }
 
   private static byte[] ints(int[] values) {

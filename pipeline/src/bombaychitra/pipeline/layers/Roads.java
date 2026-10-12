@@ -1,6 +1,7 @@
 package bombaychitra.pipeline.layers;
 
 import bombaychitra.pipeline.data.Records;
+import bombaychitra.pipeline.data.RoadGraph;
 import bombaychitra.pipeline.util.Tags;
 import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.FeatureMerge;
@@ -59,8 +60,16 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
     Map.entry("living_street", 10f), Map.entry("service", 12f)
   );
   /** Road class codes stored in the routing graph (see docs/database.md). */
-  private static final Map<String, Byte> DRIVE_CLASS = Map.of("motorway", (byte) 1, "trunk", (byte) 2, "primary",
-    (byte) 3, "secondary", (byte) 4, "tertiary", (byte) 5, "minor", (byte) 6, "service", (byte) 7);
+  private static final Map<String, Byte> GRAPH_CLASS = Map.of("motorway", (byte) 1, "trunk", (byte) 2, "primary",
+    (byte) 3, "secondary", (byte) 4, "tertiary", (byte) 5, "minor", (byte) 6, "service", (byte) 7, "pedestrian",
+    (byte) 8, "track", (byte) 9, "path", (byte) 10);
+  /**
+   * Ways people may walk on unless tagged otherwise. Motorways (expressways, sea links, freeways) are closed to
+   * pedestrians in India, as they are to two-wheelers; busways are for buses.
+   */
+  private static final Set<String> WALKABLE = Set.of("trunk", "trunk_link", "primary", "primary_link", "secondary",
+    "secondary_link", "tertiary", "tertiary_link", "unclassified", "residential", "road", "living_street", "service",
+    "pedestrian", "track", "footway", "path", "steps", "cycleway", "bridleway", "corridor");
   private static final Set<String> ALLOWED = Set.of("yes", "designated", "permissive", "destination", "customers",
     "delivery");
 
@@ -121,12 +130,12 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
       .setMinPixelSize(0)
       .setSortKey(f.getWayZorder());
 
-    Float speed = DRIVE_SPEED.get(highway);
-    if (speed != null && drivable(f) && ctx.inBounds(f)) {
+    byte modes = modes(f, highway);
+    if (modes != 0 && ctx.inBounds(f)) {
       try {
-        driveWay(f, kind, speed, name != null ? name : ref);
+        graphWay(f, kind, highway, modes, name != null ? name : ref);
       } catch (GeometryException e) {
-        e.log("drive way");
+        e.log("graph way");
       }
     }
 
@@ -140,18 +149,39 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
     }
   }
 
-  /** Car access: excludes private, emergency-only and motor-vehicle-free ways unless cars are explicitly allowed. */
-  private static boolean drivable(SourceFeature f) {
-    for (String key : new String[]{"motorcar", "motor_vehicle", "vehicle", "access"}) {
+  /** The travel modes ({@link RoadGraph} bits) that may use a way. */
+  static byte modes(SourceFeature f, String highway) {
+    byte modes = 0;
+    boolean motorway = highway.startsWith("motorway");
+    boolean emergency = f.hasTag("service", "emergency_access");
+    if (DRIVE_SPEED.containsKey(highway)) {
+      if (permits(f, !emergency, "motorcar", "motor_vehicle", "vehicle", "access")) {
+        modes |= RoadGraph.CAR;
+      }
+      // Two-wheelers are banned from expressways, sea links and freeways (OSM marks most with motorcycle=no too).
+      if (permits(f, !emergency && !motorway, "motorcycle", "motor_vehicle", "vehicle", "access")) {
+        modes |= RoadGraph.TWO_WHEELER;
+      }
+    }
+    if ((WALKABLE.contains(highway) || motorway) && permits(f, !motorway, "foot", "access")) {
+      modes |= RoadGraph.FOOT;
+    }
+    return modes;
+  }
+
+  /** The first of {@code keys} that is tagged decides; untagged ways get {@code fallback}. */
+  private static boolean permits(SourceFeature f, boolean fallback, String... keys) {
+    for (String key : keys) {
       String value = Tags.clean(f.getString(key));
       if (value != null) {
         return ALLOWED.contains(value);
       }
     }
-    return !f.hasTag("service", "emergency_access");
+    return fallback;
   }
 
-  private void driveWay(SourceFeature f, String kind, float speed, String name) throws GeometryException {
+  private void graphWay(SourceFeature f, String kind, String highway, byte modes, String name)
+    throws GeometryException {
     var coords = f.latLonGeometry().getCoordinates();
     if (coords.length < 2) {
       return;
@@ -162,12 +192,18 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
       packed[i * 2 + 1] = (int) Math.round(coords[i].y * 1e7);
     }
     Integer oneway = oneway(f);
-    float limit = Parse.parseIntOrNull(f.getString("maxspeed")) instanceof Integer max && max > 0 ? max : speed;
-    if (f.hasTag("service", "parking_aisle", "drive-through", "driveway")) {
-      speed = Math.min(speed, 8f);
+    float speed = 0;
+    if ((modes & (RoadGraph.CAR | RoadGraph.TWO_WHEELER)) != 0) {
+      speed = DRIVE_SPEED.get(highway);
+      if (Parse.parseIntOrNull(f.getString("maxspeed")) instanceof Integer max && max > 0) {
+        speed = Math.min(speed, max);
+      }
+      if (f.hasTag("service", "parking_aisle", "drive-through", "driveway")) {
+        speed = Math.min(speed, 8f);
+      }
     }
-    ctx.sink().driveWays.add(new Records.DriveWay(packed, DRIVE_CLASS.getOrDefault(kind, (byte) 6),
-      (byte) (oneway == null ? 0 : oneway), Math.min(speed, limit), name == null ? null : name.intern()));
+    ctx.sink().graphWays.add(new Records.GraphWay(packed, GRAPH_CLASS.getOrDefault(kind, (byte) 6),
+      (byte) (oneway == null ? 0 : oneway), speed, modes, name == null ? null : name.intern()));
   }
 
   static String brunnel(SourceFeature f) {

@@ -120,7 +120,7 @@ public final class DatabaseWriter {
       writeStreets(db, areas, localities);
       writeBridges(db, areas, localities);
       writeBuildings(db, areas, localities);
-      RoadGraph.write(db, sink.driveWays, routingMeta);
+      RoadGraph.write(db, sink.graphWays, routingMeta);
       flushSearch();
       flushMembers();
       script(db, Schema.INDEXES);

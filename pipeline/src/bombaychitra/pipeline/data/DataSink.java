@@ -22,7 +22,7 @@ public final class DataSink {
   public final Collection<Records.RouteWay> routeWays = new ConcurrentLinkedQueue<>();
   public final Collection<Records.RouteStop> routeStops = new ConcurrentLinkedQueue<>();
   public final Collection<Records.AreaPart> areaParts = new ConcurrentLinkedQueue<>();
-  public final Collection<Records.DriveWay> driveWays = new ConcurrentLinkedQueue<>();
+  public final Collection<Records.GraphWay> graphWays = new ConcurrentLinkedQueue<>();
   public final Map<Long, Records.Route> routes = new ConcurrentHashMap<>();
 
   /**
@@ -62,7 +62,7 @@ public final class DataSink {
     routeWays.clear();
     routeStops.clear();
     areaParts.clear();
-    driveWays.clear();
+    graphWays.clear();
     routes.clear();
     synchronized (this) {
       statChunks.clear();
