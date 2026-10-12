@@ -31,16 +31,30 @@ type routeRoad struct {
 }
 
 type routeResponse struct {
-	Optimize  string      `json:"optimize"`
-	DistanceM float64     `json:"distance_m"`
-	DurationS float64     `json:"duration_s"`
-	StraightM float64     `json:"straight_m"`
-	From      routeEnd    `json:"from"`
-	To        routeEnd    `json:"to"`
-	Roads     []routeRoad `json:"roads"`
-	BBox      []float64   `json:"bbox"`
-	Geometry  lineString  `json:"geometry"`
+	Mode      routing.Mode   `json:"mode"`
+	Optimize  string         `json:"optimize"`
+	Avoid     []string       `json:"avoid"`
+	DistanceM float64        `json:"distance_m"`
+	DurationS float64        `json:"duration_s"`
+	StraightM float64        `json:"straight_m"`
+	TollM     float64        `json:"toll_m"`
+	From      routeEnd       `json:"from"`
+	To        routeEnd       `json:"to"`
+	Roads     []routeRoad    `json:"roads"`
+	Steps     []routing.Step `json:"steps,omitempty"`
+	BBox      []float64      `json:"bbox"`
+	Geometry  lineString     `json:"geometry"`
 }
+
+// modeAliases accept everyday names for the travel modes.
+var modeAliases = map[string]routing.Mode{
+	"car": routing.Car, "drive": routing.Car, "driving": routing.Car,
+	"two_wheeler": routing.TwoWheeler, "bike": routing.TwoWheeler, "motorcycle": routing.TwoWheeler, "scooter": routing.TwoWheeler,
+	"foot": routing.Foot, "walk": routing.Foot, "walking": routing.Foot,
+}
+
+// travel describes a mode in error messages.
+var travel = map[routing.Mode]string{routing.Car: "drivable road", routing.TwoWheeler: "road open to two-wheelers", routing.Foot: "road or path you can walk on"}
 
 type lineString struct {
 	Type        string       `json:"type"`
@@ -72,23 +86,46 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 	from, to := p.pair("from"), p.pair("to")
 	opt := p.oneOf("optimize", "time", "time", "distance")
 	format := p.oneOf("format", "json", "json", "geojson")
+	mode, ok := modeAliases[strings.ToLower(p.str("mode"))]
+	if p.str("mode") == "" {
+		mode, ok = routing.Car, true
+	}
+	if !ok {
+		p.fail("mode must be car, two_wheeler or foot")
+	}
+	avoid := []string{}
+	for _, a := range p.list("avoid") {
+		if a != "toll" {
+			p.fail("avoid must be toll")
+		}
+		avoid = append(avoid, a)
+	}
+	withSteps := p.str("steps") == "" || p.boolean("steps")
 	if p.err != nil {
 		s.badRequest(w, r, p.err.Error())
 		return
 	}
 	start := time.Now()
-	res, err := s.routes.Route(r.Context(), from.Lon, from.Lat, to.Lon, to.Lat, routing.Options{Optimize: routing.Optimize(opt)})
-	s.metrics.routeDuration.Observe(time.Since(start).Seconds(), "car")
-	s.metrics.routeSearches.Inc("car", outcome(err))
+	res, err := s.routes.Route(r.Context(), from.Lon, from.Lat, to.Lon, to.Lat,
+		routing.Options{Mode: mode, Optimize: routing.Optimize(opt), AvoidTolls: len(avoid) > 0})
+	s.metrics.routeDuration.Observe(time.Since(start).Seconds(), string(mode))
+	s.metrics.routeSearches.Inc(string(mode), outcome(err))
 	if res != nil {
-		s.metrics.routeSettled.Observe(float64(res.Settled), "car")
+		s.metrics.routeSettled.Observe(float64(res.Settled), string(mode))
 	}
 	switch {
 	case errors.Is(err, routing.ErrNoRoad):
-		s.fail(w, r, http.StatusUnprocessableEntity, "no_road", "no drivable road within 1.5 km of one of the points")
+		s.fail(w, r, http.StatusUnprocessableEntity, "no_road", "no "+travel[mode]+" within 1.5 km of one of the points")
 		return
 	case errors.Is(err, routing.ErrNoRoute):
-		s.fail(w, r, http.StatusUnprocessableEntity, "no_route", "the points are not connected by drivable roads")
+		msg := "the points are not connected by any " + travel[mode]
+		if len(avoid) > 0 {
+			msg += " without tolls"
+		}
+		s.fail(w, r, http.StatusUnprocessableEntity, "no_route", msg)
+		return
+	case errors.Is(err, routing.ErrModeUnavailable):
+		s.fail(w, r, http.StatusServiceUnavailable, "mode_unavailable", "this dataset only has the car network; rebuild it with the current pipeline for "+string(mode)+" routes")
 		return
 	case errors.Is(err, routing.ErrUnavailable):
 		s.fail(w, r, http.StatusServiceUnavailable, "routing_unavailable", "this dataset has no routing graph; rebuild it with the current pipeline")
@@ -99,14 +136,20 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out := routeResponse{
+		Mode:      mode,
 		Optimize:  opt,
+		Avoid:     avoid,
 		DistanceM: math.Round(res.DistanceM),
 		DurationS: math.Round(res.DurationS),
 		StraightM: math.Round(geo.Haversine(*from, *to)),
+		TollM:     math.Round(res.TollM),
 		From:      end(*from, res.From),
 		To:        end(*to, res.To),
 		Roads:     []routeRoad{},
 		Geometry:  lineString{Type: "LineString", Coordinates: make([][2]float64, len(res.Path))},
+	}
+	if withSteps {
+		out.Steps = res.Steps
 	}
 	bbox := []float64{math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1)}
 	for i, c := range res.Path {
@@ -132,8 +175,9 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		s.writeGeoJSON(w, r, map[string]any{
 			"type": "FeatureCollection",
 			"features": []feature{
-				{Type: "Feature", Geometry: line, Properties: map[string]any{"role": "route", "optimize": opt,
-					"distance_m": out.DistanceM, "duration_s": out.DurationS, "straight_m": out.StraightM, "roads": out.Roads}},
+				{Type: "Feature", Geometry: line, Properties: map[string]any{"role": "route", "mode": mode, "optimize": opt,
+					"avoid": avoid, "distance_m": out.DistanceM, "duration_s": out.DurationS, "straight_m": out.StraightM,
+					"toll_m": out.TollM, "roads": out.Roads, "steps": out.Steps}},
 				{Type: "Feature", Geometry: pointGeometry(out.From.Snapped.Lon, out.From.Snapped.Lat), Properties: map[string]any{"role": "from", "road": out.From.Snapped.Road}},
 				{Type: "Feature", Geometry: pointGeometry(out.To.Snapped.Lon, out.To.Snapped.Lat), Properties: map[string]any{"role": "to", "road": out.To.Snapped.Road}},
 			},
