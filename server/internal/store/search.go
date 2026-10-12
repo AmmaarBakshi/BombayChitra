@@ -50,7 +50,7 @@ func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds 
 	if match == "" {
 		return []SearchResult{}, nil
 	}
-	sqlText := `SELECT kind, ref, name, detail, category, lon, lat, weight, bm25(search, 10.0, 4.0, 1.0)
+	sqlText := `SELECT kind, ref, name, alt, detail, category, lon, lat, weight, bm25(search, 10.0, 4.0, 1.0)
 		FROM search WHERE search MATCH ?`
 	args := []any{match}
 	if len(kinds) > 0 {
@@ -69,23 +69,15 @@ func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds 
 	for rows.Next() {
 		var r SearchResult
 		var ref any
-		var detail, category sql.NullString
+		var alt, detail, category sql.NullString
 		var weight, bm25 float64
-		if err := rows.Scan(&r.Kind, &ref, &r.Name, &detail, &category, &r.Lon, &r.Lat, &weight, &bm25); err != nil {
+		if err := rows.Scan(&r.Kind, &ref, &r.Name, &alt, &detail, &category, &r.Lon, &r.Lat, &weight, &bm25); err != nil {
 			return nil, err
 		}
 		r.Detail, r.Category = str(detail), str(category)
 		r.ID = normaliseRef(ref)
 		score := -bm25 * (1 + 0.15*-weight)
-		name := normalise(r.Name)
-		switch {
-		case name == query:
-			score *= 2.2
-		case strings.HasPrefix(name, query):
-			score *= 1.6
-		case strings.Contains(name, query):
-			score *= 1.15
-		}
+		score *= nameBoost(r.Kind, normalise(r.Name), alt.String, query)
 		if near != nil {
 			d := round(geo.Haversine(*near, geo.Point{Lon: r.Lon, Lat: r.Lat}), 0)
 			r.DistanceM = &d
@@ -103,6 +95,60 @@ func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds 
 		return nil, err
 	}
 	return results, nil
+}
+
+// nameBoost rewards results whose names match the query well, beyond what bm25 sees. The best applicable boost
+// wins.
+func nameBoost(kind, name, alt, query string) float64 {
+	boost := 1.0
+	switch {
+	case name == query:
+		boost = 2.2
+	case strings.HasPrefix(name, query):
+		boost = 1.6
+	case containsWords(name, query):
+		boost = 1.4 // "csmt" in "Mumbai CSMT"
+	case strings.Contains(name, query):
+		boost = 1.15
+	}
+	if kind == "line" || kind == "area" {
+		return boost // a line's other names mention its termini; they are not aliases
+	}
+	// bm25 weighs the alt column 4 against the name's 10, which the alias boosts make up for.
+	if isCode(query) && hasCode(alt, query) {
+		// A code written in capitals among the names (short_name=CSMT;CST;VT, BKC, LTT): people type these to
+		// mean exactly that place, so it counts as an exact name match.
+		boost = max(boost, 2.2*10/4)
+	} else if strings.Contains(query, " ") && containsWords(normalise(alt), query) {
+		// A whole multi-word other name, such as a former name ("Victoria Terminus").
+		boost = max(boost, 2.0*10/4)
+	}
+	return boost
+}
+
+// isCode reports whether a normalised query looks like a short code: one word of two to four letters or digits
+// (CST, BKC, CSMT), shorter than ordinary place names such as Thane or Dadar.
+func isCode(query string) bool {
+	return len(query) >= 2 && len(query) <= 4 && !strings.Contains(query, " ")
+}
+
+// hasCode reports whether text contains the code as a separate word written in capitals.
+func hasCode(text, query string) bool {
+	code := strings.ToUpper(query)
+	for _, word := range strings.FieldsFunc(text, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }) {
+		if word == code && strings.ToUpper(word) == word && strings.ContainsFunc(word, unicode.IsLetter) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsWords reports whether the normalised words of query appear, in order and as whole words, in text.
+func containsWords(text, query string) bool {
+	if text == "" || query == "" {
+		return false
+	}
+	return strings.Contains(" "+text+" ", " "+query+" ")
 }
 
 // dedupe drops repeated hits for the same thing: e.g. the two bus stops named "Lilavati Hospital" on either side of
