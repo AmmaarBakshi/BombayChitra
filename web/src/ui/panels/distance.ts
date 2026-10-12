@@ -236,7 +236,7 @@ export class DistancePanel implements Panel {
     clear(this.result);
     this.result.append(h('div', { class: 'skeleton', style: 'height:64px' }), h('div', { class: 'skeleton' }));
     try {
-      const res = await this.ctx.api.route([from.lon, from.lat], [to.lon, to.lat], this.optimize, this.abort.signal);
+      const res = await this.ctx.api.route([from.lon, from.lat], [to.lon, to.lat], { optimize: this.optimize }, this.abort.signal);
       this.show(res);
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;

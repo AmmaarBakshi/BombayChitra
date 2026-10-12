@@ -262,15 +262,34 @@ export interface RouteEnd {
   snapped: { lat: number; lon: number; road?: string; offset_m: number };
 }
 
+export type TravelMode = 'car' | 'two_wheeler' | 'foot';
+
+/** One turn-by-turn instruction. `type` and `modifier` are stable codes; `instruction` is ready-made English. */
+export interface RouteStep {
+  type: 'depart' | 'turn' | 'continue' | 'ramp' | 'roundabout' | 'exit_roundabout' | 'arrive';
+  modifier?: 'straight' | 'slight_left' | 'left' | 'sharp_left' | 'slight_right' | 'right' | 'sharp_right' | 'uturn';
+  name?: string;
+  distance_m: number;
+  duration_s: number;
+  location: LonLat;
+  bearing: number;
+  instruction: string;
+}
+
 export interface RouteResult {
+  mode: TravelMode;
   optimize: 'time' | 'distance';
+  avoid: 'toll'[];
   distance_m: number;
   duration_s: number;
   straight_m: number;
+  /** Distance on toll roads (Atal Setu, the sea link, expressways). */
+  toll_m: number;
   from: RouteEnd;
   to: RouteEnd;
-  /** Roads in driving order; unnamed stretches have no name. */
+  /** Roads in travel order; unnamed stretches have no name. */
   roads: { name?: string; distance_m: number }[];
+  steps?: RouteStep[];
   bbox: BBox;
   geometry: GeoJSON.LineString;
 }

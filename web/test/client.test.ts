@@ -27,11 +27,14 @@ describe('BombayChitraClient', () => {
 
   it('sends route ends as lat,lon', async () => {
     const fetch = mockFetch(200, {});
-    await new BombayChitraClient('').route([72.8464, 19.1197], [72.868, 19.066], 'distance');
+    await new BombayChitraClient('').route([72.8464, 19.1197], [72.868, 19.066], { optimize: 'distance', mode: 'foot', avoid: ['toll'] });
     const url = new URL(fetch.mock.calls[0][0], 'http://localhost');
     expect(url.searchParams.get('from')).toBe('19.119700,72.846400');
     expect(url.searchParams.get('to')).toBe('19.066000,72.868000');
     expect(url.searchParams.get('optimize')).toBe('distance');
+    expect(url.searchParams.get('mode')).toBe('foot');
+    expect(url.searchParams.get('avoid')).toBe('toll');
+    expect(url.searchParams.has('steps')).toBe(false);
   });
 
   it('turns error envelopes into ApiError', async () => {
