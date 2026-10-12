@@ -31,7 +31,8 @@ BombayChitra has three components connected by two open file formats.
 | `api/openapi.yaml` | The API contract; also renders the API reference and lets you generate clients. |
 | `docs/` | This documentation, rendered into the web build. |
 | `examples/` | Small programs using the API and the database from many languages. |
-| `scripts/` | Data build scripts for Bash and PowerShell. |
+| `scripts/` | Data build scripts for Bash and PowerShell, the pipeline test runner and the data regression check. |
+| `deploy/` | Ready-made deployments: Fly.io, Docker Compose with Caddy, systemd. |
 
 ## Why these technologies
 
@@ -60,11 +61,23 @@ share one definition, and the same styles work in MapLibre Native on Android and
 |---|---|
 | Data build | ~2½ min for the full MMR on 8 cores (tiles, database and routing graph), 3 GB heap |
 | Tiles | 96 MB for z0–z15 with 2.1 million buildings, largest tile 150 KB gzipped |
-| Database | 209 MB with spatial and full-text indexes and the routing graph |
-| Routing | A* over 170,000 junctions: 1–20 ms per route; the graph takes ~30 MB of server memory |
+| Database | 212 MB with spatial and full-text indexes and the routing graph |
+| Routing | A* over 198,000 junctions (roads, footpaths, steps, foot over-bridges): 1–25 ms per route; the graph takes ~40 MB of server memory, plus ~4 MB per travel mode used |
 | Web app | 46 KB gzipped app code + MapLibre (286 KB gzipped, cached separately) |
 | Tile request | one in-memory directory lookup + one disk read, served gzip-encoded as stored |
 | Static files | brotli/gzip precompressed at build time, content-hashed and cached immutably |
+
+## How routing works
+
+The pipeline turns every way someone may use into one graph: ways are split where they share a node, each segment
+keeps its shape, length, road class, car speed, flags (toll, steps, bridge, roundabout, ramp) and which of car,
+two-wheeler and pedestrian may use it, and directed edges are stored in compressed sparse row form (see
+[Database](database.md#routing-graph)). The server loads the graph on the first route request and, per travel mode,
+derives a profile of travel times — `+Inf` where the mode may not go. A route is an A* search over those times with a
+straight-line heuristic scaled by the mode's top speed, from the nearest point on a usable segment to the
+destination's. The path is then walked once more to assemble the geometry, the roads used and turn-by-turn steps:
+consecutive segments of one road merge into one step, the turn angle between headings names the manoeuvre, and
+unnamed paths are described for walkers ("Cross the foot over-bridge").
 
 ## Data flow for a click on the map
 
