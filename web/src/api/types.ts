@@ -48,6 +48,8 @@ export interface Meta {
   license: string;
   links: Record<string, unknown>;
   areas: Area[];
+  /** Routing support of the dataset; `modes` lists the travel modes /route accepts. */
+  routing?: { available: boolean; version?: number; modes?: TravelMode[] };
 }
 
 export interface Place {

@@ -214,6 +214,7 @@ export function createApp(): void {
     $('#status-data').textContent = `OSM data ${formatDate(meta.dataset.source_timestamp ?? meta.dataset.built_at)}`;
     show(storageGet(TAB_KEY) ?? 'explore');
     if (area) ctx.selectArea(area, false);
+    distance!.setAvailableModes(meta.routing?.modes ?? ['car']);
     if (distance!.restore()) openDistance();
   }).catch(() => {
     show('layers');

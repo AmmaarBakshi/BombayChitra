@@ -43,6 +43,7 @@ export class DistancePanel implements Panel {
   private optimize: 'time' | 'distance' = 'time';
   private mode: TravelMode = (MODES.find((m) => m.id === storageGet(MODE_KEY))?.id) ?? 'car';
   private avoidTolls = false;
+  private available: TravelMode[] = MODES.map((m) => m.id);
   private readonly travelButtons: HTMLButtonElement[] = [];
   private readonly tollToggle = h('input', { type: 'checkbox' }) as HTMLInputElement;
   private readonly tollRow = h('label', { class: 'switch-row compact' }, this.tollToggle, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, 'Avoid tolls'));
@@ -104,6 +105,7 @@ export class DistancePanel implements Panel {
       if (this.points.from && this.points.to) void this.compute();
     });
     this.tollRow.hidden = this.mode === 'foot';
+    this.applyAvailability();
     body.append(
       h('div', { class: 'route-head' },
         h('div', { class: 'title' }, 'Distance by road'),
@@ -163,7 +165,7 @@ export class DistancePanel implements Panel {
     if (!route) return false;
     if (params.get('opt') === 'distance') this.optimize = 'distance';
     const travel = MODES.find((m) => m.id === params.get('mode'));
-    if (travel) this.mode = travel.id;
+    if (travel && this.available.includes(travel.id)) this.mode = travel.id;
     this.avoidTolls = params.get('avoid') === 'toll';
     this.tollToggle.checked = this.avoidTolls;
     this.tollRow.hidden = this.mode === 'foot';
@@ -197,6 +199,21 @@ export class DistancePanel implements Panel {
   }
 
   // ---------------------------------------------------------------- internals
+
+  /** Offers only the travel modes the dataset supports (older datasets route cars only). */
+  setAvailableModes(modes: TravelMode[]): void {
+    this.available = modes.length ? modes : ['car'];
+    this.applyAvailability();
+    if (!this.available.includes(this.mode)) this.setMode(this.available[0]);
+  }
+
+  private applyAvailability(): void {
+    for (const btn of this.travelButtons) {
+      const ok = this.available.includes(btn.dataset.travel as TravelMode);
+      btn.disabled = !ok;
+      btn.title = ok ? (MODES.find((m) => m.id === btn.dataset.travel)?.label ?? '') : 'Not available with this dataset';
+    }
+  }
 
   private setMode(mode: TravelMode): void {
     this.mode = mode;

@@ -923,6 +923,11 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   color: var(--muted);
 }
 
+.segmented button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .segmented button[aria-pressed='true'] {
   background: var(--surface-solid);
   color: var(--text);
