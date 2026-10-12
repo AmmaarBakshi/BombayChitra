@@ -149,6 +149,27 @@ components:
       description: Feature id (`osm_id × 10 + type`) or OSM shorthand (`n123`, `w123`, `r123`).
       schema: { type: string }
       example: '311442962'
+    roadId:
+      name: id
+      in: path
+      required: true
+      description: Road segment id (`osm_id × 10 + 2`) or OSM shorthand (`w553233662`).
+      schema: { type: string }
+      example: '5532336622'
+    bridgeId:
+      name: id
+      in: path
+      required: true
+      description: Bridge id (`osm_id × 10 + type`) or OSM shorthand (`w289540742`).
+      schema: { type: string }
+      example: '2895407422'
+    buildingId:
+      name: id
+      in: path
+      required: true
+      description: Building id (`osm_id × 10 + type`) or OSM shorthand (`w507222815`).
+      schema: { type: string }
+      example: '5072228152'
 
   schemas:
     Error:
@@ -513,7 +534,7 @@ paths:
       summary: Road segment
       description: One named OSM way with its attributes and LineString geometry.
       parameters:
-        - $ref: '#/components/parameters/featureId'
+        - $ref: '#/components/parameters/roadId'
       responses:
         '200': { description: Road }
         '404': { description: Not found or unnamed }
@@ -605,7 +626,7 @@ paths:
       operationId: getBridge
       summary: Bridge way detail
       parameters:
-        - $ref: '#/components/parameters/featureId'
+        - $ref: '#/components/parameters/bridgeId'
       responses:
         '200': { description: Bridge way with geometry and tags }
         '404': { description: Not found }
@@ -654,7 +675,7 @@ paths:
       operationId: getBuilding
       summary: Building detail
       parameters:
-        - $ref: '#/components/parameters/featureId'
+        - $ref: '#/components/parameters/buildingId'
       responses:
         '200': { description: Building with tags }
         '404': { description: Not found (building has no stored details) }
