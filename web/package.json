@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:contract": "vitest run test/contract",
+    "test:e2e": "playwright test",
     "preview": "vite preview",
     "fetch-fonts": "node build/fetch-fonts.mjs"
   },
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@mapbox/maki": "^8.2.0",
     "@maplibre/maplibre-gl-style-spec": "^26.4.4",
+    "@playwright/test": "^1.64.1",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^24.19.2",
     "marked": "^18.1.0",

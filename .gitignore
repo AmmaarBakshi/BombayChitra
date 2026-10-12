@@ -9,6 +9,8 @@
 
 # Toolchains
 node_modules/
+/web/test-results/
+/web/playwright-report/
 /web/dist/
 /server/internal/webui/dist/*
 !/server/internal/webui/dist/.gitkeep
