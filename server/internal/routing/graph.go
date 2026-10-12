@@ -116,10 +116,6 @@ func Load(ctx context.Context, db *sql.DB) (*Graph, error) {
 		segFlags:  blobs["seg_flags"],
 		segSpeed:  floats(blobs["seg_speed"]),
 		segName:   ints(blobs["seg_name"]),
-		version:   1,
-	}
-	if g.segAccess != nil {
-		g.version = 2
 	}
 	if n := blobs["names"]; len(n) > 0 {
 		g.names = strings.Split(string(n), "\n")
@@ -138,6 +134,11 @@ func (g *Graph) init() error {
 		len(g.segShape) != segments+1 || len(g.segClass) != segments || len(g.segDir) != segments ||
 		len(g.segName) != segments || int(g.offsets[vertices]) != edges || int(g.segShape[segments])*2 != len(g.shape) {
 		return errors.New("routing graph arrays are inconsistent")
+	}
+	// Version 2 added the access, flag and speed arrays.
+	g.version = 1
+	if g.segAccess != nil {
+		g.version = 2
 	}
 	if g.version >= 2 && (len(g.segAccess) != segments || len(g.segFlags) != segments || len(g.segSpeed) != segments) {
 		return errors.New("routing graph access arrays are inconsistent")
