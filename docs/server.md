@@ -10,6 +10,7 @@ bombaychitra serve    [flags]   run the HTTP server
 bombaychitra export   [flags]   export data as GeoJSON, NDJSON or CSV
 bombaychitra info     [flags]   print dataset information
 bombaychitra download [flags]   download the published dataset
+bombaychitra route    [flags]   print a route and its directions
 bombaychitra version            print the version
 ```
 
@@ -180,6 +181,29 @@ bombaychitra export --kind places --category hospital --area makabo --format geo
 ## `info`
 
 Prints dataset metadata (build time, source timestamp, counts) and tile archive statistics.
+
+## `route`
+
+Routes straight from the database, without a server — useful to check the routing graph after a data build:
+
+```text
+$ bombaychitra route --from 19.1197,72.8464 --to 19.1209,72.8481 --mode foot
+0.5 km, 6 min by foot
+  1. Head north along the foot over-bridge                            29 m
+  2. Turn right and cross the foot over-bridge                       263 m
+  3. Turn sharp right                                                 68 m
+  4. Turn right onto Andheri Station Road                            109 m
+  5. Arrive at your destination
+```
+
+| Flag | Description |
+|---|---|
+| `--from`, `--to` | Ends as `lat,lon` |
+| `--mode` | `car` (default), `two_wheeler` or `foot` |
+| `--shortest` | Minimise distance instead of time |
+| `--avoid-tolls` | Keep off toll roads |
+| `--json` | Print the full result as JSON |
+| `--data` | Data directory (`BC_DATA`, default `data/build`) |
 
 ## `download`
 
