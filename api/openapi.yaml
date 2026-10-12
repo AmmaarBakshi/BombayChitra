@@ -53,7 +53,7 @@ tags:
   - name: Transit
     description: Metro, monorail and suburban railway lines, routes and stations.
   - name: Routing
-    description: Distance and route by road between two points (car).
+    description: Distance, time, route and turn-by-turn directions between two points by car, two-wheeler or on foot.
   - name: Tiles
     description: Vector tiles and map styles for any MapLibre-compatible client.
 
@@ -731,13 +731,21 @@ paths:
     get:
       tags: [Routing]
       operationId: route
-      summary: Distance by road
+      summary: Route by car, two-wheeler or on foot
       description: |
-        The driving route between two points: distance by road, estimated time, the straight-line distance, the roads
-        used in order and the route geometry. Each end is snapped to the nearest drivable road (within 1.5 km) and
-        one-way rules are followed. Times use typical urban speeds per road class without live traffic, so peak-hour
-        journeys take longer; turn restrictions are not modelled. With `format=geojson` returns a FeatureCollection
-        of the route line and its two ends.
+        The route between two points: distance, estimated time, the straight-line distance, the distance on toll
+        roads, the roads used in order, turn-by-turn steps and the route geometry. Each end is snapped to the nearest
+        road or path the travel mode may use (within 1.5 km).
+
+        - **car** (default) follows one-way rules and access restrictions at typical urban speeds.
+        - **two_wheeler** rides a fifth faster than cars through traffic (up to 60 km/h) and stays off motorways —
+          expressways, Atal Setu, the Bandra-Worli Sea Link, the Eastern Freeway and the Coastal Road.
+        - **foot** walks at 4.8 km/h (half that on steps) on roads, footpaths, steps and foot over-bridges, ignoring
+          one-way rules and keeping off motorways.
+
+        Times use typical speeds per road class without live traffic, so peak-hour journeys take longer; turn
+        restrictions are not modelled. With `format=geojson` returns a FeatureCollection of the route line (with the
+        summary and steps as properties) and its two ends.
       parameters:
         - name: from
           in: query
@@ -751,10 +759,22 @@ paths:
           description: Destination as `lat,lon`.
           schema: { type: string }
           example: 19.0660,72.8680
+        - name: mode
+          in: query
+          description: 'Travel mode: `car`, `two_wheeler` or `foot` (`drive`, `bike`, `scooter`, `walk` are accepted too).'
+          schema: { type: string, enum: [car, two_wheeler, foot], default: car }
         - name: optimize
           in: query
           description: '`time` for the fastest route (default) or `distance` for the shortest.'
           schema: { type: string, enum: [time, distance], default: time }
+        - name: avoid
+          in: query
+          description: '`toll` to keep off toll roads (Atal Setu, the sea link, expressways).'
+          schema: { type: string, enum: [toll] }
+        - name: steps
+          in: query
+          description: Include turn-by-turn steps (default `true`).
+          schema: { type: boolean, default: true }
         - $ref: '#/components/parameters/format'
       responses:
         '200':
@@ -762,19 +782,26 @@ paths:
           content:
             application/json:
               example:
+                mode: car
                 optimize: time
-                distance_m: 10812
-                duration_s: 975
-                straight_m: 6405
-                from: { lat: 19.1197, lon: 72.8464, snapped: { lat: 19.119702, lon: 72.846381, road: Andheri - Kurla Road, offset_m: 2 } }
-                to: { lat: 19.066, lon: 72.868, snapped: { lat: 19.065965, lon: 72.867996, road: G Block Road, offset_m: 4 } }
-                roads: [{ name: Andheri - Kurla Road, distance_m: 1830 }, { name: Western Express Highway, distance_m: 4120 }, { distance_m: 210 }]
-                bbox: [72.8464, 19.066, 72.868, 19.1197]
-                geometry: { type: LineString, coordinates: [[72.846381, 19.119702], [72.846512, 19.119431]] }
-        '400': { description: 'Missing or invalid `from`, `to` or `optimize`' }
-        '422': { description: 'No drivable road within 1.5 km of a point (`no_road`), or no road connection (`no_route`)' }
+                avoid: []
+                distance_m: 10836
+                duration_s: 950
+                straight_m: 6388
+                toll_m: 0
+                from: { lat: 19.1197, lon: 72.8464, snapped: { lat: 19.119641, lon: 72.846216, road: Madhavdas Amarshi Marg, offset_m: 20 } }
+                to: { lat: 19.066, lon: 72.868, snapped: { lat: 19.066015, lon: 72.867986, road: Avenue 3, offset_m: 2 } }
+                roads: [{ name: Madhavdas Amarshi Marg, distance_m: 74 }, { name: Swami Vivekanand Road, distance_m: 436 }, { name: G K Gokhale Bridge, distance_m: 26 }]
+                steps:
+                  - { type: depart, name: Madhavdas Amarshi Marg, distance_m: 74, duration_s: 10, location: [72.846216, 19.119641], bearing: 312, instruction: Head north-west on Madhavdas Amarshi Marg }
+                  - { type: turn, modifier: left, name: Swami Vivekanand Road, distance_m: 436, duration_s: 45, location: [72.845589, 19.119921], bearing: 200, instruction: Turn left onto Swami Vivekanand Road }
+                  - { type: arrive, distance_m: 0, duration_s: 0, location: [72.867986, 19.066015], bearing: 0, instruction: Arrive at your destination }
+                bbox: [72.843633, 19.066015, 72.872476, 19.119921]
+                geometry: { type: LineString, coordinates: [[72.846216, 19.119641], [72.846201, 19.119673]] }
+        '400': { description: 'Missing or invalid `from`, `to`, `mode`, `optimize` or `avoid`' }
+        '422': { description: 'No usable road or path within 1.5 km of a point (`no_road`), or the points are not connected for the mode (`no_route`)' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
-        '503': { description: 'The dataset has no routing graph (`routing_unavailable`)' }
+        '503': { description: 'The dataset has no routing graph (`routing_unavailable`), or was built before travel modes and only routes cars (`mode_unavailable`)' }
 
   /tiles/bombaychitra.json:
     get:
