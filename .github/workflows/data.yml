@@ -42,6 +42,18 @@ jobs:
       - name: Verify the server against the new data
         run: go test ./...
         working-directory: server
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: API contract test
+        # Every documented example request must still answer as api/openapi.yaml says, with the new data.
+        run: |
+          (cd server && go build -o ../bin/bombaychitra ./cmd/bombaychitra)
+          ./bin/bombaychitra serve --addr 127.0.0.1:8080 --log-level warn &
+          for i in $(seq 30); do curl -sf http://127.0.0.1:8080/healthz > /dev/null && break; sleep 1; done
+          cd web && npm ci && BC_API_URL=http://127.0.0.1:8080 npm run test:contract
       - name: Compare with the previous release
         # Fails the run (so nothing is published) when places, bridges, buildings, transit or the routing graph
         # shrink by more than 5 % — usually upstream vandalism or a broken download, not a real change. Re-run the
