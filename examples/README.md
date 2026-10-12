@@ -8,6 +8,7 @@ from `BOMBAYCHITRA_URL` (default `http://localhost:8080`).
 |---|---|---|---|
 | Shell | [`curl/examples.sh`](curl/examples.sh) | A tour of the API with curl | `sh curl/examples.sh` |
 | Python | [`python/nearby.py`](python/nearby.py) | Nearest hospitals to a point (standard library only) | `python python/nearby.py` |
+| Python | [`python/directions.py`](python/directions.py) | A trip by car, two-wheeler and on foot, with walking directions | `python python/directions.py` |
 | Python | [`python/offline_sqlite.py`](python/offline_sqlite.py) | Query `bombaychitra.db` directly, no server | `python python/offline_sqlite.py data/build/bombaychitra.db` |
 | JavaScript | [`javascript/search.mjs`](javascript/search.mjs) | Search and reverse geocoding (Node 18+) | `node javascript/search.mjs "gateway of india"` |
 | HTML | [`html/embed.html`](html/embed.html) | Embed the map in any web page | open in a browser |
