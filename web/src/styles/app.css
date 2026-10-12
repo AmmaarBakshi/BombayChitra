@@ -447,6 +447,8 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  padding-inline: 6px;
+  white-space: nowrap;
 }
 
 .switch-row.compact {

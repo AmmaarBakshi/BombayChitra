@@ -308,7 +308,7 @@ export class DistancePanel implements Panel {
     this.ctx.map.setSelection({
       type: 'FeatureCollection',
       features: [
-        { type: 'Feature', geometry: res.geometry, properties: { colour: COLOUR, width: 6 } },
+        { type: 'Feature', geometry: res.geometry, properties: { colour: COLOUR, width: 6, dashed: res.mode === 'foot' } },
         ...this.endFeatures(),
       ],
     });
