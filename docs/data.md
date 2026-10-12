@@ -92,6 +92,26 @@ bombaychitra export --kind bridges --format geojson -o bridges.geojson
 Rebuild with `scripts/build-data.sh --refresh_sources` to fetch the latest extract, then restart the server. The
 database is opened read-only and treated as immutable, so replace both files together and restart.
 
+## Quality checks
+
+OpenStreetMap is edited by anyone, and Overture Maps changes its schema between releases, so every weekly build is
+checked before it is published. `scripts/check-data.py` compares the new database with the current `data-latest`
+release:
+
+- rows per table, places per category and per source (OpenStreetMap or Overture Maps);
+- bridge kilometres and every building footprint;
+- transit lines and stops, and the length of Metro Line 3 (a fully mapped line, so a good canary);
+- the size of the routing graph.
+
+If anything with at least 50 items shrinks by more than 5 %, the workflow fails and the old release stays online.
+The report (also shown in the run's summary) lists every drop, so a maintainer can find the cause — usually a
+vandalised relation or a failed download — or, for a genuine change, re-run the workflow with `allow_regressions`.
+Run it locally against any two builds:
+
+```bash
+python3 scripts/check-data.py data/build/bombaychitra.db --baseline old/bombaychitra.db
+```
+
 ## Licence and attribution
 
 The data is © OpenStreetMap contributors and available under the
