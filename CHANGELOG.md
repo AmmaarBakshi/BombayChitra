@@ -48,8 +48,24 @@ project uses [Semantic Versioning](https://semver.org/).
   hardened systemd units with a weekly data refresh timer.
 - Tests: pipeline unit tests with JUnit (`scripts/test-pipeline.sh`, no build tool) and web unit tests with Vitest
   (`npm test`), both run in CI.
+- Routes by two-wheeler and on foot as well as by car (`mode=car|two_wheeler|foot`): the routing graph (format
+  version 2) now includes footways, steps, pedestrian streets and foot over-bridges, records which modes may use each
+  segment (motorways are closed to two-wheelers and pedestrians), and flags tolls, steps, bridges, tunnels,
+  roundabouts and ramps. Version 1 graphs still route cars.
+- Turn-by-turn steps in every route (type, modifier, road, distance, time, location and an English instruction),
+  `toll_m` and `avoid=toll`; `/api/v1/meta` lists the supported travel modes; `bombaychitra route` prints a route
+  from the command line.
+- Web: a car / two-wheeler / walk switch, an "avoid tolls" toggle, toll notices, a directions list and dashed walking
+  routes in the distance panel; travel mode and toll choice are part of shareable links.
+- Quality gates for the weekly data release: a regression check against the previous build
+  (`scripts/check-data.py`, fails on drops above 5 %), an API contract test that calls every documented example
+  (`npm run test:contract`) and a Playwright smoke test of the map (`npm run test:e2e`).
 
 ### Fixed
 
 - Overture places were dropped as duplicates of a different nearby business that shared only generic words with
   them ("ICICI Bank ATM" next to "HDFC Bank ATM"); names must now share a distinctive word.
+- Searching for a code or former name ("CST", "VT", "Victoria Terminus") now finds the place it belongs to before
+  businesses that merely contain the letters.
+- `/api/v1/health` always reports the database latency, and its routing detail is always an object.
+- The API reference's road, bridge and building examples used an id that did not exist.
