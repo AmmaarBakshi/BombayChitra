@@ -436,6 +436,85 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   color: var(--text);
 }
 
+.travel-modes {
+  display: flex;
+  width: 100%;
+}
+
+.travel-modes button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.switch-row.compact {
+  padding: 2px 0 8px;
+  font-size: 13px;
+}
+
+.route-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.route-directions {
+  margin-top: 12px;
+}
+
+.route-directions summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.route-steps {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-step:hover {
+  background: var(--surface-2);
+}
+
+.route-step-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .route-roads h3 {
   margin: 12px 0 6px;
   font-size: 11.5px;

@@ -1,6 +1,6 @@
-import type { RouteResult, SearchResult } from '../../api/types.ts';
+import type { RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
 import type { AppContext } from '../context.ts';
-import { append, clear, debounce, h } from '../dom.ts';
+import { append, clear, debounce, h, storageGet, storageSet } from '../dom.ts';
 import { formatDistance, formatDuration } from '../format.ts';
 import { formatRoute, hashParams, parseRoute, updateHash } from '../hash.ts';
 import { icon } from '../icons.ts';
@@ -15,6 +15,14 @@ export interface RoutePoint {
 }
 
 const COLOUR = '#e8590c';
+const MODE_KEY = 'bc-route-mode';
+const MODES: { id: TravelMode; label: string; icon: string; verb: string }[] = [
+  { id: 'car', label: 'Car', icon: 'car', verb: 'drive' },
+  { id: 'two_wheeler', label: 'Two-wheeler', icon: 'scooter', verb: 'ride' },
+  { id: 'foot', label: 'Walk', icon: 'walk', verb: 'walk' },
+];
+/** Rotation of the direction arrow for each step modifier (degrees, clockwise). */
+const ARROW: Record<string, number> = { straight: 0, slight_right: 40, right: 90, sharp_right: 135, uturn: 180, sharp_left: -135, left: -90, slight_left: -40 };
 const COORD = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
 const LABEL: Record<RouteEndName, string> = { from: 'From', to: 'To' };
 
@@ -33,6 +41,11 @@ export class DistancePanel implements Panel {
 
   private points: Record<RouteEndName, RoutePoint | null> = { from: null, to: null };
   private optimize: 'time' | 'distance' = 'time';
+  private mode: TravelMode = (MODES.find((m) => m.id === storageGet(MODE_KEY))?.id) ?? 'car';
+  private avoidTolls = false;
+  private readonly travelButtons: HTMLButtonElement[] = [];
+  private readonly tollToggle = h('input', { type: 'checkbox' }) as HTMLInputElement;
+  private readonly tollRow = h('label', { class: 'switch-row compact' }, this.tollToggle, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, 'Avoid tolls'));
   private readonly inputs: Record<RouteEndName, HTMLInputElement>;
   private readonly menus: Record<RouteEndName, HTMLUListElement>;
   private readonly pickButtons: Record<RouteEndName, HTMLButtonElement>;
@@ -83,17 +96,27 @@ export class DistancePanel implements Panel {
     for (const m of modes) {
       this.modeButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.optimize), 'data-mode': m.id, onclick: () => this.setOptimize(m.id) }, m.label));
     }
+    for (const m of MODES) {
+      this.travelButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.mode), 'data-travel': m.id, title: m.label, onclick: () => this.setMode(m.id) }, icon(m.icon, 16), h('span', {}, m.label)));
+    }
+    this.tollToggle.addEventListener('change', () => {
+      this.avoidTolls = this.tollToggle.checked;
+      if (this.points.from && this.points.to) void this.compute();
+    });
+    this.tollRow.hidden = this.mode === 'foot';
     body.append(
       h('div', { class: 'route-head' },
         h('div', { class: 'title' }, 'Distance by road'),
-        h('div', { class: 'sub', style: 'white-space:normal' }, 'Driving distance and time between two places along the road network, with the route on the map.'),
+        h('div', { class: 'sub', style: 'white-space:normal' }, 'Distance, time and turn-by-turn directions between two places by car, two-wheeler or on foot, with the route on the map.'),
       ),
+      h('div', { class: 'segmented travel-modes', role: 'group', 'aria-label': 'Travel by' }, ...this.travelButtons),
       h('div', { class: 'route-form' }, row('from'), row('to')),
       h('div', { class: 'route-tools' },
         h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' }, ...this.modeButtons),
         h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), 'Swap'),
         'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), 'Me') : null,
       ),
+      this.tollRow,
       this.result,
     );
     this.renderEmpty();
@@ -139,8 +162,14 @@ export class DistancePanel implements Panel {
     const route = parseRoute(params.get('dist'));
     if (!route) return false;
     if (params.get('opt') === 'distance') this.optimize = 'distance';
+    const travel = MODES.find((m) => m.id === params.get('mode'));
+    if (travel) this.mode = travel.id;
+    this.avoidTolls = params.get('avoid') === 'toll';
+    this.tollToggle.checked = this.avoidTolls;
+    this.tollRow.hidden = this.mode === 'foot';
     const [a, b] = [route.from, route.to];
     this.modeButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === this.optimize)));
+    this.travelButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.travel === this.mode)));
     this.points.from = { lat: a[0], lon: a[1], label: `${a[0].toFixed(5)}, ${a[1].toFixed(5)}` };
     this.setPoint('to', { lat: b[0], lon: b[1], label: `${b[0].toFixed(5)}, ${b[1].toFixed(5)}` });
     this.inputs.from.value = this.points.from.label;
@@ -168,6 +197,14 @@ export class DistancePanel implements Panel {
   }
 
   // ---------------------------------------------------------------- internals
+
+  private setMode(mode: TravelMode): void {
+    this.mode = mode;
+    storageSet(MODE_KEY, mode);
+    this.travelButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.travel === mode)));
+    this.tollRow.hidden = mode === 'foot';
+    if (this.points.from && this.points.to) void this.compute();
+  }
 
   private setOptimize(mode: 'time' | 'distance'): void {
     this.optimize = mode;
@@ -236,7 +273,8 @@ export class DistancePanel implements Panel {
     clear(this.result);
     this.result.append(h('div', { class: 'skeleton', style: 'height:64px' }), h('div', { class: 'skeleton' }));
     try {
-      const res = await this.ctx.api.route([from.lon, from.lat], [to.lon, to.lat], { optimize: this.optimize }, this.abort.signal);
+      const avoid: 'toll'[] = this.avoidTolls && this.mode !== 'foot' ? ['toll'] : [];
+      const res = await this.ctx.api.route([from.lon, from.lat], [to.lon, to.lat], { mode: this.mode, optimize: this.optimize, avoid }, this.abort.signal);
       this.show(res);
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
@@ -263,12 +301,17 @@ export class DistancePanel implements Panel {
     const named = new Map<string, number>();
     for (const r of res.roads) if (r.name) named.set(r.name, (named.get(r.name) ?? 0) + r.distance_m);
     const main = [...named].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const verb = MODES.find((m) => m.id === res.mode)?.verb ?? 'drive';
     clear(this.result);
     append(this.result, [
       h('div', { class: 'route-summary' },
-        h('div', {}, h('b', { class: 'route-big' }, formatDistance(res.distance_m)), h('span', { class: 'sub' }, 'by road')),
-        h('div', {}, h('b', { class: 'route-big' }, formatDuration(res.duration_s)), h('span', { class: 'sub' }, res.optimize === 'time' ? 'fastest drive' : 'on the shortest route')),
+        h('div', {}, h('b', { class: 'route-big' }, formatDistance(res.distance_m)), h('span', { class: 'sub' }, res.mode === 'foot' ? 'on foot' : 'by road')),
+        h('div', {}, h('b', { class: 'route-big' }, formatDuration(res.duration_s)), h('span', { class: 'sub' }, res.optimize === 'time' ? `fastest ${verb}` : 'on the shortest route')),
       ),
+      res.toll_m > 0
+        ? h('div', { class: 'route-notice' }, icon('toll', 16), h('span', { class: 'grow' }, `Includes ${formatDistance(res.toll_m)} of toll road`),
+          h('button', { class: 'link-btn', type: 'button', onclick: () => { this.tollToggle.checked = true; this.tollToggle.dispatchEvent(new Event('change')); } }, 'Avoid tolls'))
+        : null,
       h('dl', { class: 'kv' },
         h('dt', {}, 'Straight line'), h('dd', {}, `${formatDistance(res.straight_m)} · road is ${detour.toFixed(2)}× longer`),
         h('dt', {}, 'From'), h('dd', { 'data-end': 'from' }, from?.label ?? '', res.from.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (joins ${res.from.snapped.road ?? 'the road'} ${formatDistance(res.from.snapped.offset_m)} away)`) : null),
@@ -277,13 +320,35 @@ export class DistancePanel implements Panel {
       main.length
         ? h('div', { class: 'route-roads' }, h('h3', {}, 'Main roads'), h('ol', {}, ...main.map(([name, m]) => h('li', {}, h('span', { class: 'grow' }, name), h('span', { class: 'mono' }, formatDistance(m))))))
         : null,
+      res.steps?.length ? this.stepList(res.steps) : null,
       h('div', { class: 'btn-row', style: 'margin-top:10px' },
         h('button', { class: 'btn', type: 'button', onclick: () => this.ctx.map.fitBounds(res.bbox, 16) }, icon('route', 15), 'Show route'),
         h('button', { class: 'btn', type: 'button', onclick: () => this.share() }, icon('link', 15), 'Share'),
         h('button', { class: 'btn', type: 'button', onclick: () => this.reset() }, icon('close', 15), 'Clear'),
       ),
-      h('p', { class: 'foot-note' }, 'Estimated from road types and one-way rules, without live traffic; peak-hour journeys take longer. Turn restrictions are not considered.'),
+      h('p', { class: 'foot-note' }, res.mode === 'foot'
+        ? 'Walking at 4.8 km/h along roads, footpaths, steps and foot over-bridges; one-way rules do not apply. Expressways, sea links and freeways are closed to pedestrians.'
+        : `Estimated from road types and one-way rules, without live traffic; peak-hour journeys take longer. Turn restrictions are not considered.${res.mode === 'two_wheeler' ? ' Two-wheelers are not allowed on expressways, sea links and freeways.' : ''}`),
     ]);
+  }
+
+  /** Turn-by-turn directions; choosing a step shows where it happens. */
+  private stepList(steps: RouteStep[]): HTMLElement {
+    const list = h('ol', { class: 'route-steps' }, ...steps.map((step) => {
+      const glyph = step.type === 'arrive' ? icon('flag', 16) : icon('arrow', 16);
+      if (step.type !== 'arrive') glyph.style.transform = `rotate(${step.type === 'depart' ? 0 : ARROW[step.modifier ?? 'straight'] ?? 0}deg)`;
+      return h('li', {},
+        h('button', { type: 'button', class: 'route-step', onclick: () => this.ctx.map.flyTo(step.location, 17) },
+          h('span', { class: 'route-step-icon', 'aria-hidden': 'true' }, glyph),
+          h('span', { class: 'grow' }, step.instruction),
+          step.distance_m > 0 ? h('span', { class: 'mono meta' }, formatDistance(step.distance_m)) : null,
+        ),
+      );
+    }));
+    return h('details', { class: 'route-directions', open: steps.length <= 12 },
+      h('summary', {}, `Directions · ${steps.length - 1} step${steps.length === 2 ? '' : 's'}`),
+      list,
+    );
   }
 
   private endFeatures(): GeoJSON.Feature[] {
@@ -317,9 +382,14 @@ export class DistancePanel implements Panel {
   private writeHash(remove = false): void {
     const { from, to } = this.points;
     if (remove || !from || !to) {
-      updateHash({ dist: null, opt: null });
+      updateHash({ dist: null, opt: null, mode: null, avoid: null });
     } else {
-      updateHash({ dist: formatRoute([from.lat, from.lon], [to.lat, to.lon]), opt: this.optimize === 'distance' ? 'distance' : null });
+      updateHash({
+        dist: formatRoute([from.lat, from.lon], [to.lat, to.lon]),
+        opt: this.optimize === 'distance' ? 'distance' : null,
+        mode: this.mode === 'car' ? null : this.mode,
+        avoid: this.avoidTolls && this.mode !== 'foot' ? 'toll' : null,
+      });
     }
   }
 

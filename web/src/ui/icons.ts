@@ -37,6 +37,12 @@ const UI: Record<string, string> = {
   sidebar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1.5M5.5 11h1.5"/>',
   swap: '<path d="M7 4v16M7 4 4 7M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/>',
   crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+  car: '<path d="M5 16V11l2-5h10l2 5v5M3 11h18M5 16h14v3H5zM7.5 13.5h1M15.5 13.5h1"/>',
+  scooter: '<circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7l2-6h-3M14 7h3l1 4M6 14.5 9 9h4"/>',
+  walk: '<circle cx="13" cy="4.5" r="1.8"/><path d="m9 21 2.5-6.5L14 17v4M11.5 14.5 12.5 9l3 3 3 1M12.5 9 9 10.5 7.5 14"/>',
+  arrow: '<path d="M12 20V5M6 11l6-6 6 6"/>',
+  flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  toll: '<path d="M4 20V8l8-4 8 4v12M4 12h16M9 20v-4h6v4"/>',
 };
 
 export function icon(name: keyof typeof UI | string, size = 18): SVGElement {
