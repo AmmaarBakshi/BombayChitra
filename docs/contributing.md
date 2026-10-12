@@ -33,6 +33,24 @@ cd web && npm test && npm run build             # unit tests (Vitest), type chec
 
 `make test` runs all of them. CI runs the same checks and also compiles the pipeline with `javac -Werror`.
 
+Two more suites need a running server with data, so CI runs them in the weekly **Data** workflow, against each new
+build before it is published:
+
+```bash
+./bin/bombaychitra serve &                                   # with data and the web app built
+cd web
+BC_API_URL=http://localhost:8080 npm run test:contract       # every api/openapi.yaml example against the server
+npx playwright install chromium                              # once (or BC_E2E_CHANNEL=chrome / msedge)
+BC_E2E_URL=http://localhost:8080 npm run test:e2e            # load the map, search CST, open the card, route
+```
+
+The **contract test** fails when a response no longer has a field (with the same JSON type) shown in the
+endpoint's documented example, or breaks its schema — so change `api/openapi.yaml` together with the server. The
+**smoke test** catches a map that does not load or throws in the browser.
+
+`scripts/check-data.py` (with its tests in `scripts/test_check_data.py`) is the data regression check described in
+[Data](data.md#quality-checks).
+
 ## Code style
 
 - **Go:** `gofmt`; small packages under `server/internal`; errors returned, not logged and ignored.
