@@ -313,6 +313,16 @@ func TestRouteByRoad(t *testing.T) {
 	}
 }
 
+func TestMetaListsRoutingModes(t *testing.T) {
+	h := testServer(t)
+	_, body := get(t, h, "/api/v1/meta")
+	routing, _ := body["routing"].(map[string]any)
+	modes, _ := routing["modes"].([]any)
+	if routing["available"] != true || len(modes) == 0 || modes[0] != "car" {
+		t.Errorf("meta routing: %v", routing)
+	}
+}
+
 func TestRouteModes(t *testing.T) {
 	h := testServer(t)
 	const trip = "from=18.9985,72.8580&to=18.9310,73.0300" // Sewri to Ulwe, across Atal Setu by car

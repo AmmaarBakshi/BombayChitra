@@ -54,9 +54,20 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 			"sqlite":  base + "/data/bombaychitra.db",
 		}
 	}
+	// Routing modes come from the build metadata, so answering does not load the graph.
+	routingInfo := map[string]any{"available": m["routing_version"] != ""}
+	if v, err := strconv.Atoi(m["routing_version"]); err == nil {
+		routingInfo["version"] = v
+		modes := []string{"car"}
+		if v >= 2 && m["routing_profile"] != "" {
+			modes = strings.Split(m["routing_profile"], ",")
+		}
+		routingInfo["modes"] = modes
+	}
 	s.writeJSON(w, r, http.StatusOK, map[string]any{
 		"name":           "BombayChitra",
 		"server":         Version,
+		"routing":        routingInfo,
 		"region":         map[string]any{"id": m["region_id"], "name": m["region_name"], "description": m["description"], "bounds": bounds, "center": center, "zoom": zoom, "maxzoom": maxzoom},
 		"dataset":        map[string]any{"built_at": m["built_at"], "source": m["source_name"], "source_url": m["source_url"], "source_timestamp": m["source_timestamp"], "schema_version": m["schema_version"], "generator": m["generator"]},
 		"counts":         counts,

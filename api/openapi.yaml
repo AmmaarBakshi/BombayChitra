@@ -227,7 +227,7 @@ paths:
       tags: [Dataset]
       operationId: getMeta
       summary: Dataset metadata
-      description: Region, bounds, build and source dates, record counts, configured areas and links to tiles, styles and downloads.
+      description: Region, bounds, build and source dates, record counts, configured areas, the travel modes routing supports and links to tiles, styles and downloads.
       responses:
         '200':
           description: Metadata
@@ -235,6 +235,7 @@ paths:
             application/json:
               example:
                 name: BombayChitra
+                routing: { available: true, version: 2, modes: [car, two_wheeler, foot] }
                 region: { id: mmr, name: Mumbai Metropolitan Region, bounds: [72.7, 18.8, 73.85, 19.82], center: [72.8777, 19.076], zoom: 11, maxzoom: 15 }
                 dataset: { built_at: '2026-10-11T06:02:35Z', source: Geofabrik India · Western Zone, source_timestamp: '2026-10-09T20:21:04Z', schema_version: '2' }
                 counts: { places: 45559, streets: 6138, roads: 20532, bridges: 6169, named_bridges: 1100, buildings: 76039, transit_lines: 54, localities: 2047 }
