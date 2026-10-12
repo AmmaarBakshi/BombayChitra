@@ -62,6 +62,17 @@ jobs:
         run: CGO_ENABLED=0 go build -trimpath -o ../bin/bombaychitra ./cmd/bombaychitra
         working-directory: server
 
+  scripts:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Unit tests
+        run: python -m unittest discover -s scripts -p 'test_*.py' -v
+
   pipeline:
     name: Data pipeline
     runs-on: ubuntu-latest

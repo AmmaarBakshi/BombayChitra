@@ -4,6 +4,11 @@ name: Data
 # "data-latest" release, so anyone can run BombayChitra without building data themselves.
 on:
   workflow_dispatch:
+    inputs:
+      allow_regressions:
+        description: Publish even if the data regression check finds drops
+        type: boolean
+        default: false
   schedule:
     - cron: '30 2 * * 1' # Mondays 02:30 UTC (08:00 IST)
 
@@ -37,6 +42,19 @@ jobs:
       - name: Verify the server against the new data
         run: go test ./...
         working-directory: server
+      - name: Compare with the previous release
+        # Fails the run (so nothing is published) when places, bridges, buildings, transit or the routing graph
+        # shrink by more than 5 % — usually upstream vandalism or a broken download, not a real change. Re-run the
+        # workflow with "allow_regressions" after checking a legitimate drop.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download data-latest --dir previous --pattern bombaychitra.db 2>/dev/null; then
+            python3 scripts/check-data.py data/build/bombaychitra.db --baseline previous/bombaychitra.db \
+              ${{ inputs.allow_regressions && '--warn-only' || '' }}
+          else
+            echo "No previous release to compare with"
+          fi
       - name: Publish release assets
         env:
           GH_TOKEN: ${{ github.token }}
