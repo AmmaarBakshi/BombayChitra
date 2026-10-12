@@ -5,23 +5,27 @@
 //	bombaychitra export --kind places --category hospital --area makabo --format geojson -o hospitals.geojson
 //	bombaychitra info   [--data data/build]
 //	bombaychitra download [--data data/build] [--release data-latest]
+//	bombaychitra route --from 19.1197,72.8464 --to 19.0660,72.8680 [--mode foot]
 //	bombaychitra version
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -31,6 +35,7 @@ import (
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/export"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/httpapi"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/store"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/webui"
 )
@@ -42,6 +47,7 @@ Usage:
   bombaychitra export   [flags]   export data as GeoJSON, NDJSON or CSV
   bombaychitra info     [flags]   print dataset information
   bombaychitra download [flags]   download the published dataset (no Java needed)
+  bombaychitra route    [flags]   print a route and its directions
   bombaychitra version            print the version
 
 Run "bombaychitra <command> -h" for command flags.
@@ -62,6 +68,8 @@ func main() {
 		err = info(os.Args[2:])
 	case "download":
 		err = runDownload(os.Args[2:])
+	case "route":
+		err = runRoute(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println("bombaychitra", httpapi.Version)
 	case "help", "-h", "--help":
@@ -261,6 +269,90 @@ func runDownload(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return download.Run(ctx, download.Options{BaseURL: base, Dir: *data, Force: *force, Log: os.Stderr})
+}
+
+func runRoute(args []string) error {
+	fs := flag.NewFlagSet("route", flag.ContinueOnError)
+	data := fs.String("data", envOr("BC_DATA", filepath.Join("data", "build")), "data directory [BC_DATA]")
+	from := fs.String("from", "", "start as lat,lon")
+	to := fs.String("to", "", "destination as lat,lon")
+	mode := fs.String("mode", "car", "car, two_wheeler or foot")
+	shortest := fs.Bool("shortest", false, "minimise distance instead of time")
+	avoidTolls := fs.Bool("avoid-tolls", false, "keep off toll roads")
+	asJSON := fs.Bool("json", false, "print the result as JSON")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	a, err := latLon(*from)
+	if err != nil {
+		return fmt.Errorf("--from: %w", err)
+	}
+	b, err := latLon(*to)
+	if err != nil {
+		return fmt.Errorf("--to: %w", err)
+	}
+	m := routing.Mode(*mode)
+	if !m.Valid() {
+		return fmt.Errorf("--mode must be car, two_wheeler or foot")
+	}
+	st, err := store.Open(filepath.Join(*data, "bombaychitra.db"))
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	g, err := routing.Load(context.Background(), st.DB())
+	if err != nil {
+		return err
+	}
+	opts := routing.Options{Mode: m, AvoidTolls: *avoidTolls, Optimize: routing.Fastest}
+	if *shortest {
+		opts.Optimize = routing.Shortest
+	}
+	res, err := g.Route(a[1], a[0], b[1], b[0], opts)
+	if err != nil {
+		return err
+	}
+	if *asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(res)
+	}
+	fmt.Printf("%.1f km, %d min by %s", res.DistanceM/1000, int(math.Round(res.DurationS/60)), strings.ReplaceAll(string(m), "_", "-"))
+	if res.TollM > 0 {
+		fmt.Printf(" (%.1f km on toll roads)", res.TollM/1000)
+	}
+	fmt.Println()
+	for i, s := range res.Steps {
+		dist := ""
+		if s.DistanceM > 0 {
+			dist = fmt.Sprintf("%.1f km", s.DistanceM/1000)
+			if s.DistanceM < 1000 {
+				dist = fmt.Sprintf("%.0f m", s.DistanceM)
+			}
+		}
+		fmt.Printf("%3d. %-60s %8s\n", i+1, s.Instruction, dist)
+	}
+	return nil
+}
+
+// latLon parses "lat,lon".
+func latLon(s string) ([2]float64, error) {
+	lat, lon, ok := strings.Cut(s, ",")
+	if !ok {
+		return [2]float64{}, fmt.Errorf("want lat,lon, got %q", s)
+	}
+	var p [2]float64
+	var err error
+	if p[0], err = strconv.ParseFloat(strings.TrimSpace(lat), 64); err != nil {
+		return p, err
+	}
+	if p[1], err = strconv.ParseFloat(strings.TrimSpace(lon), 64); err != nil {
+		return p, err
+	}
+	if math.Abs(p[0]) > 90 || math.Abs(p[1]) > 180 {
+		return p, fmt.Errorf("%q is out of range", s)
+	}
+	return p, nil
 }
 
 func envOr(key, fallback string) string {
