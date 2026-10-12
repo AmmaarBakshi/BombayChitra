@@ -77,7 +77,7 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start := time.Now()
-	res, err := s.routes.Route(r.Context(), from.Lon, from.Lat, to.Lon, to.Lat, routing.Optimize(opt))
+	res, err := s.routes.Route(r.Context(), from.Lon, from.Lat, to.Lon, to.Lat, routing.Options{Optimize: routing.Optimize(opt)})
 	s.metrics.routeDuration.Observe(time.Since(start).Seconds(), "car")
 	s.metrics.routeSearches.Inc("car", outcome(err))
 	if res != nil {

@@ -1,9 +1,10 @@
-// Package routing computes driving routes on the road graph stored in the database ("distance by road").
+// Package routing computes routes by car, two-wheeler or on foot over the road and path graph stored in the
+// database ("distance by road").
 //
 // The pipeline stores the graph in the routing table as gzip-compressed little-endian arrays (see
-// docs/database.md): vertices where roads meet, road segments with their shapes, and directed edges in compressed
-// sparse row form. Routes are found with A* and a straight-line heuristic, which is exact (never overestimates)
-// because no road is shorter than the straight line or faster than the top speed.
+// docs/database.md): vertices where ways meet, segments with their shapes and the travel modes allowed on them, and
+// directed edges in compressed sparse row form. Routes are found with A* and a straight-line heuristic, which is
+// exact (never overestimates) because no way is shorter than the straight line or faster than the mode's top speed.
 package routing
 
 import (
@@ -17,6 +18,7 @@ import (
 	"io"
 	"math"
 	"strings"
+	"sync"
 )
 
 // ErrUnavailable means the database has no routing graph (built by an older pipeline).
@@ -31,34 +33,43 @@ const (
 
 // Graph is an immutable road graph; safe for concurrent use.
 type Graph struct {
-	nodes    []int32 // lon, lat × 1e7 per vertex
-	offsets  []int32 // CSR: edges of vertex v are offsets[v]..offsets[v+1]
-	edgeTo   []int32
-	edgeSeg  []int32 // segment index, or ^index when the edge runs against the segment's shape
-	edgeTime []float32
-	segLen   []float32
-	segTime  []float32
-	segFrom  []int32
-	segTo    []int32
-	segShape []int32 // CSR offsets into shape, in points
-	shape    []int32 // absolute lon, lat × 1e7
-	segClass []uint8
-	segDir   []uint8 // bit 1: drivable along the shape, bit 2: against it
-	segName  []int32
-	names    []string
-	grid     map[int64][]int32
+	nodes     []int32 // lon, lat × 1e7 per vertex
+	offsets   []int32 // CSR: edges of vertex v are offsets[v]..offsets[v+1]
+	edgeTo    []int32
+	edgeSeg   []int32 // segment index, or ^index when the edge runs against the segment's shape
+	edgeTime  []float32
+	segLen    []float32
+	segTime   []float32
+	segFrom   []int32
+	segTo     []int32
+	segShape  []int32 // CSR offsets into shape, in points
+	shape     []int32 // absolute lon, lat × 1e7
+	segClass  []uint8
+	segDir    []uint8 // vehicles — bit 1: may drive along the shape, bit 2: against it
+	segAccess []uint8 // modeCar | modeTwoWheeler | modeFoot
+	segFlags  []uint8 // flagToll, flagSteps…
+	segSpeed  []float32
+	segName   []int32
+	names     []string
+	grid      map[int64][]int32
+	version   int
+
+	profiles sync.Map // profileKey → *profile
 }
 
 // Stats describes the graph size.
 type Stats struct {
-	Vertices int `json:"vertices"`
-	Segments int `json:"segments"`
-	Edges    int `json:"edges"`
+	Version  int    `json:"version"`
+	Vertices int    `json:"vertices"`
+	Segments int    `json:"segments"`
+	Edges    int    `json:"edges"`
+	Modes    []Mode `json:"modes"`
 }
 
 // Stats returns the graph size.
 func (g *Graph) Stats() Stats {
-	return Stats{Vertices: len(g.offsets) - 1, Segments: len(g.segLen), Edges: len(g.edgeTo)}
+	return Stats{Version: g.version, Vertices: len(g.offsets) - 1, Segments: len(g.segLen), Edges: len(g.edgeTo),
+		Modes: g.Modes()}
 }
 
 // Load reads the graph from the database's routing table.
@@ -91,17 +102,24 @@ func Load(ctx context.Context, db *sql.DB) (*Graph, error) {
 		return nil, ErrUnavailable
 	}
 	g := &Graph{
-		nodes:    ints(blobs["nodes"]),
-		offsets:  ints(blobs["offsets"]),
-		edgeTo:   ints(blobs["edge_to"]),
-		edgeSeg:  ints(blobs["edge_seg"]),
-		edgeTime: floats(blobs["edge_time"]),
-		segLen:   floats(blobs["seg_len"]),
-		segShape: ints(blobs["seg_shape"]),
-		shape:    ints(blobs["shape"]),
-		segClass: blobs["seg_class"],
-		segDir:   blobs["seg_dir"],
-		segName:  ints(blobs["seg_name"]),
+		nodes:     ints(blobs["nodes"]),
+		offsets:   ints(blobs["offsets"]),
+		edgeTo:    ints(blobs["edge_to"]),
+		edgeSeg:   ints(blobs["edge_seg"]),
+		edgeTime:  floats(blobs["edge_time"]),
+		segLen:    floats(blobs["seg_len"]),
+		segShape:  ints(blobs["seg_shape"]),
+		shape:     ints(blobs["shape"]),
+		segClass:  blobs["seg_class"],
+		segDir:    blobs["seg_dir"],
+		segAccess: blobs["seg_access"],
+		segFlags:  blobs["seg_flags"],
+		segSpeed:  floats(blobs["seg_speed"]),
+		segName:   ints(blobs["seg_name"]),
+		version:   1,
+	}
+	if g.segAccess != nil {
+		g.version = 2
 	}
 	if n := blobs["names"]; len(n) > 0 {
 		g.names = strings.Split(string(n), "\n")
@@ -112,7 +130,8 @@ func Load(ctx context.Context, db *sql.DB) (*Graph, error) {
 	return g, nil
 }
 
-// init validates the arrays and derives segment endpoints, times, absolute shapes and the snap index.
+// init validates the arrays, fills in what version 1 graphs lack (cars only) and derives segment endpoints, car
+// times, absolute shapes and the snap index.
 func (g *Graph) init() error {
 	vertices, segments, edges := len(g.offsets)-1, len(g.segLen), len(g.edgeTo)
 	if vertices < 1 || len(g.nodes) != 2*vertices || len(g.edgeSeg) != edges || len(g.edgeTime) != edges ||
@@ -120,9 +139,15 @@ func (g *Graph) init() error {
 		len(g.segName) != segments || int(g.offsets[vertices]) != edges || int(g.segShape[segments])*2 != len(g.shape) {
 		return errors.New("routing graph arrays are inconsistent")
 	}
+	if g.version >= 2 && (len(g.segAccess) != segments || len(g.segFlags) != segments || len(g.segSpeed) != segments) {
+		return errors.New("routing graph access arrays are inconsistent")
+	}
 	g.segFrom = make([]int32, segments)
 	g.segTo = make([]int32, segments)
 	g.segTime = make([]float32, segments)
+	for i := range g.segTime {
+		g.segTime[i] = float32(math.Inf(1))
+	}
 	for v := 0; v < vertices; v++ {
 		for e := g.offsets[v]; e < g.offsets[v+1]; e++ {
 			s := g.edgeSeg[e]
@@ -132,7 +157,21 @@ func (g *Graph) init() error {
 				s = ^s
 				g.segFrom[s], g.segTo[s] = g.edgeTo[e], int32(v)
 			}
-			g.segTime[s] = g.edgeTime[e]
+			// The reverse edge of a one-way street exists for pedestrians only and has no car time.
+			if t := g.edgeTime[e]; !math.IsInf(float64(t), 1) {
+				g.segTime[s] = t
+			}
+		}
+	}
+	if g.version < 2 {
+		g.segAccess = make([]uint8, segments)
+		g.segFlags = make([]uint8, segments)
+		g.segSpeed = make([]float32, segments)
+		for s := range segments {
+			g.segAccess[s] = modeCar
+			if g.segTime[s] > 0 {
+				g.segSpeed[s] = g.segLen[s] / g.segTime[s] * 3.6
+			}
 		}
 	}
 	// Shapes are stored as a first point plus deltas.

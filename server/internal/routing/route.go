@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	// ErrNoRoad means no drivable road is within reach of a route end.
-	ErrNoRoad = errors.New("no drivable road near this point")
-	// ErrNoRoute means the two points are not connected by drivable roads.
-	ErrNoRoute = errors.New("no road route between these points")
+	// ErrNoRoad means no usable road or path is within reach of a route end.
+	ErrNoRoad = errors.New("no usable road near this point")
+	// ErrNoRoute means the two points are not connected for the travel mode.
+	ErrNoRoute = errors.New("no route between these points")
 )
 
-// MaxSnapM is how far a route end may be from the nearest drivable road.
+// MaxSnapM is how far a route end may be from the nearest usable road or path.
 const MaxSnapM = 1500
 
 // Optimize selects what the route minimises.
@@ -25,6 +25,13 @@ const (
 	Fastest  Optimize = "time"
 	Shortest Optimize = "distance"
 )
+
+// Options configures a route search. The zero value is the fastest route by car.
+type Options struct {
+	Mode       Mode
+	Optimize   Optimize
+	AvoidTolls bool
+}
 
 // Snap is a point on a road segment.
 type Snap struct {
@@ -44,16 +51,38 @@ type RoadUse struct {
 
 // Result is a computed route.
 type Result struct {
+	Mode      Mode         `json:"mode"`
 	DistanceM float64      `json:"distance_m"`
 	DurationS float64      `json:"duration_s"`
+	TollM     float64      `json:"toll_m"` // distance on toll roads
 	Roads     []RoadUse    `json:"roads"`
 	Path      [][2]float64 `json:"-"`
 	From, To  Snap         `json:"-"`
 	Settled   int          `json:"-"`
+	legs      []leg
 }
 
-// Nearest returns the closest point on a drivable road within MaxSnapM.
+// leg is one segment (or part of one) along the route, in travel order.
+type leg struct {
+	seg       int32
+	from, to  float64 // positions along the segment's shape, 0..1
+	pathStart int     // index in Path where the leg starts
+	pathEnd   int     // index in Path where it ends
+	distanceM float64
+	durationS float64
+}
+
+// Nearest returns the closest point on a road or path a car may use, within MaxSnapM.
 func (g *Graph) Nearest(lon, lat float64) (Snap, error) {
+	p, err := g.profile(Car, false)
+	if err != nil {
+		return Snap{}, err
+	}
+	return g.nearest(lon, lat, p)
+}
+
+// nearest returns the closest point on a segment the profile may use.
+func (g *Graph) nearest(lon, lat float64, p *profile) (Snap, error) {
 	kx := 111_320 * math.Cos(lat*math.Pi/180)
 	const ky = 110_574.0
 	best := Snap{seg: -1, DistM: math.Inf(1)}
@@ -71,7 +100,9 @@ func (g *Graph) Nearest(lon, lat float64) (Snap, error) {
 						continue
 					}
 					seen[s] = true
-					g.snapToSegment(s, lon, lat, kx, ky, &best)
+					if p.usable(s) {
+						g.snapToSegment(s, lon, lat, kx, ky, &best)
+					}
 				}
 			}
 		}
@@ -164,29 +195,41 @@ func (s *search) set(v int32, cost float64, prev int32) {
 	s.stamp[v], s.g[v], s.prev[v] = s.gen, cost, prev
 }
 
-// Route finds the best driving route between two lon/lat points.
-func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Result, error) {
-	from, err := g.Nearest(fromLon, fromLat)
+// Route finds the best route between two lon/lat points.
+func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opts Options) (*Result, error) {
+	if opts.Mode == "" {
+		opts.Mode = Car
+	}
+	p, err := g.profile(opts.Mode, opts.AvoidTolls)
 	if err != nil {
 		return nil, err
 	}
-	to, err := g.Nearest(toLon, toLat)
+	from, err := g.nearest(fromLon, fromLat, p)
+	if err != nil {
+		return nil, err
+	}
+	to, err := g.nearest(toLon, toLat, p)
 	if err != nil {
 		return nil, err
 	}
 	weight := func(s int32) float64 { return float64(g.segLen[s]) }
-	edgeWeight := func(e int32) float64 { return float64(g.segLen[segOf(g.edgeSeg[e])]) }
+	edgeWeight := func(e int32) float64 {
+		if math.IsInf(float64(p.edgeTime[e]), 1) {
+			return math.Inf(1)
+		}
+		return float64(g.segLen[segOf(g.edgeSeg[e])])
+	}
 	scale := 1.0
-	if opt != Shortest {
-		weight = func(s int32) float64 { return float64(g.segTime[s]) }
-		edgeWeight = func(e int32) float64 { return float64(g.edgeTime[e]) }
-		scale = 1 / topSpeed
+	if opts.Optimize != Shortest {
+		weight = func(s int32) float64 { return float64(p.segTime[s]) }
+		edgeWeight = func(e int32) float64 { return float64(p.edgeTime[e]) }
+		scale = 1 / p.maxSpeed
 	}
 
 	// Costs to leave the start segment towards each end, and to reach the target from each end of its segment.
 	fs, ts := from.seg, to.seg
-	fwd := func(s int32) bool { return g.segDir[s]&1 != 0 }
-	back := func(s int32) bool { return g.segDir[s]&2 != 0 }
+	fwd := func(s int32) bool { return g.allowedDirection(opts.Mode, s, true) }
+	back := func(s int32) bool { return g.allowedDirection(opts.Mode, s, false) }
 	best := math.Inf(1)
 	bestEnd := int32(-1)
 	direct := false
@@ -242,8 +285,12 @@ func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Re
 			best, bestEnd, direct = gv+leg, v, false
 		}
 		for e := g.offsets[v]; e < g.offsets[v+1]; e++ {
+			ew := edgeWeight(e)
+			if math.IsInf(ew, 1) {
+				continue
+			}
 			w := g.edgeTo[e]
-			if c := gv + edgeWeight(e); c < sr.cost(w) {
+			if c := gv + ew; c < sr.cost(w) {
 				sr.set(w, c, e)
 				heap.Push(&sr.queue, item{w, c + h(w)})
 			}
@@ -253,11 +300,12 @@ func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Re
 		return nil, ErrNoRoute
 	}
 
-	res := &Result{From: from, To: to, Settled: settled}
-	acc := &builder{g: g, res: res}
+	res := &Result{Mode: opts.Mode, From: from, To: to, Settled: settled}
+	acc := &builder{g: g, p: p, res: res}
 	if direct {
 		acc.partial(fs, from, to.frac)
 		acc.add(to.Lon, to.Lat)
+		acc.closeLeg()
 	} else {
 		var edges []int32
 		v := bestEnd
@@ -275,7 +323,7 @@ func (g *Graph) Route(fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Re
 		for i := len(edges) - 1; i >= 0; i-- {
 			acc.edge(edges[i])
 		}
-		// The route reaches the target segment at its shape start (driving along it) or end (driving against it).
+		// The route reaches the target segment at its shape start (travelling along it) or end (against it).
 		if bestEnd == g.segFrom[ts] {
 			acc.partialFromEnd(ts, 0, to)
 		} else {
@@ -305,7 +353,9 @@ func (g *Graph) edgeFrom(e int32) int32 {
 
 type builder struct {
 	g   *Graph
+	p   *profile
 	res *Result
+	cur *leg
 }
 
 func (b *builder) add(lon, lat float64) {
@@ -316,13 +366,39 @@ func (b *builder) add(lon, lat float64) {
 	b.res.Path = append(p, [2]float64{lon, lat})
 }
 
+// openLeg starts recording a leg at the current end of the path.
+func (b *builder) openLeg(s int32, from, to float64) {
+	b.closeLeg()
+	start := max(0, len(b.res.Path)-1)
+	b.cur = &leg{seg: s, from: from, to: to, pathStart: start}
+}
+
+func (b *builder) closeLeg() {
+	if b.cur == nil {
+		return
+	}
+	b.cur.pathEnd = len(b.res.Path) - 1
+	if b.cur.distanceM >= 0.01 {
+		b.res.legs = append(b.res.legs, *b.cur)
+	}
+	b.cur = nil
+}
+
 func (b *builder) use(s int32, frac float64) {
 	length := float64(b.g.segLen[s]) * frac
 	if length < 0.01 {
 		return // a route end snapped exactly onto a junction
 	}
+	duration := float64(b.p.segTime[s]) * frac
 	b.res.DistanceM += length
-	b.res.DurationS += float64(b.g.segTime[s]) * frac
+	b.res.DurationS += duration
+	if b.g.segFlags[s]&flagToll != 0 {
+		b.res.TollM += length
+	}
+	if b.cur != nil {
+		b.cur.distanceM += length
+		b.cur.durationS += duration
+	}
 	name := b.g.name(s)
 	if n := len(b.res.Roads); n > 0 && b.res.Roads[n-1].Name == name {
 		b.res.Roads[n-1].DistanceM += length
@@ -331,10 +407,11 @@ func (b *builder) use(s int32, frac float64) {
 	}
 }
 
-// partial drives along segment s from a snap point to position frac (0 = shape start, 1 = shape end).
+// partial travels along segment s from a snap point to position frac (0 = shape start, 1 = shape end).
 func (b *builder) partial(s int32, from Snap, frac float64) {
 	g := b.g
 	b.add(from.Lon, from.Lat)
+	b.openLeg(s, from.frac, frac)
 	first, last := g.segShape[s], g.segShape[s+1]-1
 	if frac >= from.frac {
 		for p := from.index + 1; p <= last; p++ {
@@ -354,9 +431,10 @@ func (b *builder) partial(s int32, from Snap, frac float64) {
 	b.use(s, math.Abs(frac-from.frac))
 }
 
-// partialFromEnd drives the last segment from one of its ends (0 = shape start, 1 = shape end) to the snap point.
+// partialFromEnd travels the last segment from one of its ends (0 = shape start, 1 = shape end) to the snap point.
 func (b *builder) partialFromEnd(s int32, end float64, to Snap) {
 	g := b.g
+	b.openLeg(s, end, to.frac)
 	first, last := g.segShape[s], g.segShape[s+1]-1
 	if end == 0 {
 		for p := first; p <= to.index; p++ {
@@ -369,6 +447,7 @@ func (b *builder) partialFromEnd(s int32, end float64, to Snap) {
 	}
 	b.add(to.Lon, to.Lat)
 	b.use(s, math.Abs(end-to.frac))
+	b.closeLeg()
 }
 
 // beyond reports whether shape point p lies past position frac along segment s; before is the reverse.
@@ -398,11 +477,13 @@ func (b *builder) edge(e int32) {
 	g := b.g
 	s := g.edgeSeg[e]
 	if s >= 0 {
+		b.openLeg(s, 0, 1)
 		for p := g.segShape[s]; p < g.segShape[s+1]; p++ {
 			b.add(g.point(p))
 		}
 	} else {
 		s = ^s
+		b.openLeg(s, 1, 0)
 		for p := g.segShape[s+1] - 1; p >= g.segShape[s]; p-- {
 			b.add(g.point(p))
 		}

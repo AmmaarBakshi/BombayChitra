@@ -40,7 +40,7 @@ func (s *Service) Peek() (g *Graph, ok bool, err error) {
 }
 
 // Route computes a route, waiting for a free search slot.
-func (s *Service) Route(ctx context.Context, fromLon, fromLat, toLon, toLat float64, opt Optimize) (*Result, error) {
+func (s *Service) Route(ctx context.Context, fromLon, fromLat, toLon, toLat float64, opts Options) (*Result, error) {
 	g, err := s.Graph(ctx)
 	if err != nil {
 		return nil, err
@@ -51,5 +51,5 @@ func (s *Service) Route(ctx context.Context, fromLon, fromLat, toLon, toLat floa
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	return g.Route(fromLon, fromLat, toLon, toLat, opt)
+	return g.Route(fromLon, fromLat, toLon, toLat, opts)
 }

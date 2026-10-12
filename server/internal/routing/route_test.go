@@ -85,7 +85,7 @@ func TestRouteFollowsOneWays(t *testing.T) {
 	ab := haversine(72.80, 19.00, 72.81, 19.00)
 	ad := haversine(72.80, 19.00, 72.81, 19.01)
 
-	r, err := g.Route(72.8005, 19.0, 72.8195, 19.0, Shortest)
+	r, err := g.Route(72.8005, 19.0, 72.8195, 19.0, Options{Optimize: Shortest})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestRouteFollowsOneWays(t *testing.T) {
 	}
 
 	// C→A cannot use the one-way B→C backwards, so it goes over the hill.
-	r, err = g.Route(72.8195, 19.0, 72.8005, 19.0, Shortest)
+	r, err = g.Route(72.8195, 19.0, 72.8005, 19.0, Options{Optimize: Shortest})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestRouteFollowsOneWays(t *testing.T) {
 
 func TestRouteAlongOneSegment(t *testing.T) {
 	g := testGraph(t)
-	r, err := g.Route(72.802, 19.0001, 72.808, 19.0001, Fastest)
+	r, err := g.Route(72.802, 19.0001, 72.808, 19.0001, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,11 +137,11 @@ func TestFastestPrefersQuickerRoad(t *testing.T) {
 		{0, 2, 3, 65, "Highway"},
 		{2, 1, 3, 65, "Highway"},
 	})
-	fast, err := g.Route(72.80, 19.0, 72.83, 19.0, Fastest)
+	fast, err := g.Route(72.80, 19.0, 72.83, 19.0, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	short, err := g.Route(72.80, 19.0, 72.83, 19.0, Shortest)
+	short, err := g.Route(72.80, 19.0, 72.83, 19.0, Options{Optimize: Shortest})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestFastestPrefersQuickerRoad(t *testing.T) {
 
 func TestNoRoadNearby(t *testing.T) {
 	g := testGraph(t)
-	if _, err := g.Route(73.5, 19.5, 72.80, 19.0, Fastest); !errors.Is(err, ErrNoRoad) {
+	if _, err := g.Route(73.5, 19.5, 72.80, 19.0, Options{}); !errors.Is(err, ErrNoRoad) {
 		t.Errorf("err = %v, want ErrNoRoad", err)
 	}
 }
