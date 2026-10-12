@@ -217,6 +217,14 @@ func TestSearchFindsStationsAndReverseFindsRoad(t *testing.T) {
 	if len(items) == 0 {
 		t.Fatal("no search results for andheri")
 	}
+	// Station codes find the station, not businesses that happen to contain the letters.
+	for _, code := range []string{"CST", "VT", "CSMT"} {
+		_, body := get(t, h, "/api/v1/search?limit=3&q="+code)
+		items, _ := body["items"].([]any)
+		if len(items) == 0 || items[0].(map[string]any)["category"] != "railway_station" {
+			t.Errorf("search %s: first result %v, want the CSMT railway station", code, items)
+		}
+	}
 	_, rev := get(t, h, "/api/v1/reverse?lat=19.0545&lon=72.8405")
 	if rev["road"] == nil || rev["label"] == "" {
 		t.Errorf("reverse geocode returned no road: %v", rev)
