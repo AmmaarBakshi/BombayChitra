@@ -116,3 +116,17 @@ func TestModifierAndCardinal(t *testing.T) {
 		}
 	}
 }
+
+func TestTinyStretchesAreFolded(t *testing.T) {
+	// A 5 m jog along an unnamed footpath between two streets is not worth its own instruction.
+	g := buildGraphV2(t, [][2]float64{{72.80, 19.00}, {72.80, 19.003}, {72.80005, 19.003}, {72.80005, 19.006}}, []seg2{
+		{from: 0, to: 1, dir: 3, speed: 18, access: all, name: "Station Road"},
+		{from: 1, to: 2, dir: 3, access: modeFoot, class: 10},
+		{from: 2, to: 3, dir: 3, speed: 18, access: all, name: "Market Lane"},
+	})
+	r := route(t, g, [2]float64{72.80, 19.0001}, [2]float64{72.80005, 19.0059}, Options{Mode: Foot})
+	want := "Head north on Station Road | Continue onto Market Lane | Arrive at your destination"
+	if got := instructions(r.Steps); got != want {
+		t.Fatalf("steps:\n got %s\nwant %s", got, want)
+	}
+}

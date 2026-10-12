@@ -24,9 +24,14 @@ type Step struct {
 // stepMinM is how far along a leg bearings are measured, smoothing out tiny kinks at junctions.
 const stepMinM = 12
 
+// tinyStretchM is the length below which a stretch between two manoeuvres is noise — a few metres of footpath
+// between a road and a crossing — and is folded into the step before it.
+const tinyStretchM = 15
+
 // A stretch is a run of legs travelled without a manoeuvre: the same road, or unnamed ways without a real turn.
 type stretch struct {
 	first, last int
+	exit        int    // leg whose end gives the heading for the next turn (last, unless tiny stretches were folded in)
 	name        string // road name, "" when unnamed
 	label       string // name, or a description of an unnamed path ("the foot over-bridge")
 	kind        string // "roundabout", "ramp" or ""
@@ -61,12 +66,14 @@ func (g *Graph) steps(res *Result) []Step {
 				same = true // keep going round, whatever the segments are called
 			}
 			if same {
-				cur.last = i
+				cur.last, cur.exit = i, i
 				continue
 			}
 		}
-		stretches = append(stretches, stretch{first: i, last: i, name: name, label: label, kind: kind})
+		stretches = append(stretches, stretch{first: i, last: i, exit: i, name: name, label: label, kind: kind})
 	}
+
+	stretches = foldTiny(stretches, legs)
 
 	steps := make([]Step, 0, len(stretches)+1)
 	for k, st := range stretches {
@@ -92,7 +99,7 @@ func (g *Graph) steps(res *Result) []Step {
 			continue
 		}
 		prev := stretches[k-1]
-		angle := turnAngle(exitBearing(res.Path, legs[prev.last]), bearing)
+		angle := turnAngle(exitBearing(res.Path, legs[prev.exit]), bearing)
 		step.Modifier = modifier(angle)
 		switch {
 		case st.kind == "roundabout":
@@ -118,6 +125,25 @@ func (g *Graph) steps(res *Result) []Step {
 		steps = append(steps, step)
 	}
 	return append(steps, arrive)
+}
+
+// foldTiny merges stretches shorter than tinyStretchM into the stretch before them, unless they enter a roundabout
+// or a ramp, which are worth announcing however short. The next turn is then measured from the heading before the
+// jog, which is the change of direction a person notices.
+func foldTiny(stretches []stretch, legs []leg) []stretch {
+	out := stretches[:0:0]
+	for _, st := range stretches {
+		var length float64
+		for i := st.first; i <= st.last; i++ {
+			length += legs[i].distanceM
+		}
+		if n := len(out); n > 0 && length < tinyStretchM && st.kind == "" && out[n-1].kind == "" {
+			out[n-1].last = st.last
+			continue
+		}
+		out = append(out, st)
+	}
+	return out
 }
 
 // describe names an unnamed path for directions ("Cross the foot over-bridge"); unnamed roads stay unnamed.
