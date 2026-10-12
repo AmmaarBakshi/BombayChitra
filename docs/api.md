@@ -56,8 +56,10 @@ curl "$B/api/v1/transit/routes/3808111?format=geojson"
 # Statistics for an area
 curl "$B/api/v1/stats?area=navi-mumbai"
 
-# Distance by road: Andheri station to BKC (fastest), and the shortest route as GeoJSON
+# Distance by road: Andheri station to BKC (fastest by car), on foot, by two-wheeler without tolls, and as GeoJSON
 curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680"
+curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&mode=foot"
+curl "$B/api/v1/route?from=18.9985,72.8580&to=18.9310,73.0300&mode=two_wheeler&avoid=toll&steps=false"
 curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&optimize=distance&format=geojson"
 ```
 
@@ -77,28 +79,63 @@ when they are much closer than a real road.
 
 ### Distance by road
 
-`/api/v1/route?from=lat,lon&to=lat,lon` returns the driving route between two points:
+`/api/v1/route?from=lat,lon&to=lat,lon` returns the route between two points by car (default), two-wheeler or on
+foot:
 
 ```json
 {
-  "optimize": "time",
-  "distance_m": 10812, "duration_s": 975, "straight_m": 6405,
-  "from": { "lat": 19.1197, "lon": 72.8464, "snapped": { "lat": 19.119702, "lon": 72.846381, "road": "Andheri - Kurla Road", "offset_m": 2 } },
-  "to":   { "lat": 19.066, "lon": 72.868, "snapped": { "lat": 19.065965, "lon": 72.867996, "road": "G Block Road", "offset_m": 4 } },
-  "roads": [{ "name": "Andheri - Kurla Road", "distance_m": 1830 }, { "name": "Western Express Highway", "distance_m": 4120 }],
-  "bbox": [72.8464, 19.066, 72.868, 19.1197],
-  "geometry": { "type": "LineString", "coordinates": [[72.846381, 19.119702], "…"] }
+  "mode": "car", "optimize": "time", "avoid": [],
+  "distance_m": 10836, "duration_s": 950, "straight_m": 6388, "toll_m": 0,
+  "from": { "lat": 19.1197, "lon": 72.8464, "snapped": { "lat": 19.119641, "lon": 72.846216, "road": "Madhavdas Amarshi Marg", "offset_m": 20 } },
+  "to":   { "lat": 19.066, "lon": 72.868, "snapped": { "lat": 19.066015, "lon": 72.867986, "road": "Avenue 3", "offset_m": 2 } },
+  "roads": [{ "name": "Madhavdas Amarshi Marg", "distance_m": 74 }, { "name": "Swami Vivekanand Road", "distance_m": 436 }, "…"],
+  "steps": [
+    { "type": "depart", "name": "Madhavdas Amarshi Marg", "distance_m": 74, "duration_s": 10, "location": [72.846216, 19.119641], "bearing": 312, "instruction": "Head north-west on Madhavdas Amarshi Marg" },
+    { "type": "turn", "modifier": "left", "name": "Swami Vivekanand Road", "distance_m": 436, "duration_s": 45, "location": [72.845589, 19.119921], "bearing": 200, "instruction": "Turn left onto Swami Vivekanand Road" },
+    "…",
+    { "type": "arrive", "distance_m": 0, "duration_s": 0, "location": [72.867986, 19.066015], "bearing": 0, "instruction": "Arrive at your destination" }
+  ],
+  "bbox": [72.843633, 19.066015, 72.872476, 19.119921],
+  "geometry": { "type": "LineString", "coordinates": [[72.846216, 19.119641], "…"] }
 }
 ```
 
-- Each end is snapped to the nearest road a car can use (within 1.5 km); `snapped.offset_m` is how far that is.
-- `optimize=time` (default) gives the fastest route, `optimize=distance` the shortest.
-- Durations use typical urban speeds per road class (65 km/h on expressways down to 18 km/h on residential
-  streets), not live traffic, so treat them as off-peak estimates. One-way streets, access restrictions and
-  roundabouts are respected; turn restrictions are not.
-- Errors: `422` with code `no_road` (nothing drivable nearby) or `no_route` (not connected).
-- Routes are computed with A* on a 170,000-junction graph in a few milliseconds; the graph is loaded on the first
-  request.
+| Parameter | Values |
+|---|---|
+| `mode` | `car` (default), `two_wheeler`, `foot` — `drive`, `bike`, `scooter` and `walk` work too |
+| `optimize` | `time` (default, fastest) or `distance` (shortest) |
+| `avoid` | `toll` keeps off toll roads |
+| `steps` | `false` leaves out the turn-by-turn steps |
+| `format` | `geojson` for a FeatureCollection of the line and its ends |
+
+**Travel modes.**
+
+| Mode | Uses | Speed |
+|---|---|---|
+| `car` | Roads cars may use, following one-way rules and access tags | Typical urban speeds per road class: 65 km/h on expressways down to 18 km/h on residential streets |
+| `two_wheeler` | The same roads except motorways: expressways, Atal Setu, the Bandra-Worli Sea Link, the Eastern Freeway and the Coastal Road are closed to two-wheelers | A fifth faster than cars through traffic, up to 60 km/h |
+| `foot` | Roads (except motorways), footpaths, pedestrian streets, steps, subways and foot over-bridges, in either direction | 4.8 km/h, 2.4 km/h on steps |
+
+**Tolls.** `toll_m` is the distance on toll roads (Atal Setu, the sea link, expressways — wherever OpenStreetMap
+has `toll=yes`). With `avoid=toll` the route keeps off them; if that is impossible the answer is `422 no_route`.
+
+**Steps.** Each step is one manoeuvre followed by a stretch of travel: `type` is `depart`, `turn`, `continue`,
+`ramp`, `roundabout`, `exit_roundabout` or `arrive`; `modifier` is `straight`, `slight_left`, `left`,
+`sharp_left`, `slight_right`, `right`, `sharp_right` or `uturn`; `distance_m` and `duration_s` cover the stretch
+after the manoeuvre; `location` is where it happens and `bearing` the heading afterwards. `instruction` is
+ready-made English ("Turn left onto Swami Vivekanand Road", "Cross the foot over-bridge"); apps that show another
+language can build their own text from `type`, `modifier` and `name`. Consecutive segments of the same road are
+merged into one step.
+
+Notes:
+
+- Each end is snapped to the nearest road or path the mode may use (within 1.5 km); `snapped.offset_m` is how far.
+- Durations are off-peak estimates without live traffic. One-way streets, access restrictions and roundabouts are
+  respected; turn restrictions are not.
+- Errors: `422` with code `no_road` (nothing usable nearby) or `no_route` (not connected for that mode); `503
+  mode_unavailable` from datasets built before travel modes existed (cars only).
+- Routes are computed with A* on a graph of about 200,000 junctions in a few milliseconds; the graph is loaded on
+  the first request and each mode's costs are prepared on its first use. Route requests cost five rate-limit tokens.
 
 ### Places along a route or in view
 
