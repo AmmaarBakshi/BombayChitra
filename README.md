@@ -28,8 +28,10 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
 - **Advanced building data** — 2.1 million footprints (OpenStreetMap plus Google and Microsoft machine-learned
   outlines via Overture Maps), 3D extrusion from validated heights and floor counts, the tallest towers, footprint
   area and per-area statistics.
-- **Distance by road** — driving distance, time and route between any two places (fastest or shortest), following
-  one-way streets; from the toolbar, any place card ("Route here") or the API.
+- **Routes by car, two-wheeler or on foot** — distance, time, turn-by-turn directions and the route between any two
+  places (fastest or shortest). Cars follow one-way streets; two-wheelers stay off the sea links, Atal Setu and the
+  freeways; walkers use footpaths, steps and foot over-bridges. Toll roads are flagged and can be avoided. From the
+  toolbar, any place card ("Route here"), the API or `bombaychitra route`.
 - **All of transport** — Western, Central, Harbour, Trans-Harbour and Uran suburban lines; every metro line in
   service (1, 2A, 2B, 3, 7, 9, Navi Mumbai Line 1), under construction (2B, 4, 4A, 5, 6, 7A, 9 extensions, Navi
   Mumbai Line 1 Stage 2) and proposed (10, 11, Thane Ring Metro), and the monorail, in their official colours with
@@ -83,6 +85,7 @@ curl "http://localhost:8080/api/v1/reverse?lat=19.0545&lon=72.8405"
 curl "http://localhost:8080/api/v1/places?area=makabo&category=college&format=geojson"
 curl "http://localhost:8080/api/v1/transit/lines?mode=subway"
 curl "http://localhost:8080/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680"   # distance by road
+curl "http://localhost:8080/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&mode=foot"   # walking directions
 ```
 
 ```js
