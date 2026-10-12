@@ -111,6 +111,198 @@
       "kind": "taluka",
       "description": "Uran sub-district: Ulwe, Dronagiri, JNPA port and Navi Mumbai International Airport.",
       "relations": [10353549]
+    },
+    {
+      "id": "ward-a",
+      "name": "A Ward",
+      "short": "A",
+      "kind": "ward",
+      "description": "BMC ward A: Colaba, Fort, Churchgate, Nariman Point and Cuffe Parade.",
+      "relations": [7885399]
+    },
+    {
+      "id": "ward-b",
+      "name": "B Ward",
+      "short": "B",
+      "kind": "ward",
+      "description": "BMC ward B: Dongri, Masjid Bunder, Umerkhadi and the docks around Carnac Bunder.",
+      "relations": [7885397]
+    },
+    {
+      "id": "ward-c",
+      "name": "C Ward",
+      "short": "C",
+      "kind": "ward",
+      "description": "BMC ward C: Kalbadevi, Bhuleshwar, Marine Lines and Girgaon's market streets.",
+      "relations": [7885398]
+    },
+    {
+      "id": "ward-d",
+      "name": "D Ward",
+      "short": "D",
+      "kind": "ward",
+      "description": "BMC ward D: Malabar Hill, Grant Road, Tardeo, Walkeshwar and Kemps Corner.",
+      "relations": [7885394]
+    },
+    {
+      "id": "ward-e",
+      "name": "E Ward",
+      "short": "E",
+      "kind": "ward",
+      "description": "BMC ward E: Byculla, Mazgaon, Agripada and Madanpura.",
+      "relations": [7885393]
+    },
+    {
+      "id": "ward-fn",
+      "name": "F/N Ward",
+      "short": "F/N",
+      "kind": "ward",
+      "description": "BMC ward F/N: Matunga, Sion, Wadala, Antop Hill and King's Circle.",
+      "relations": [7885396]
+    },
+    {
+      "id": "ward-fs",
+      "name": "F/S Ward",
+      "short": "F/S",
+      "kind": "ward",
+      "description": "BMC ward F/S: Parel, Sewri, Lalbaug, Naigaon and Cotton Green.",
+      "relations": [7885395]
+    },
+    {
+      "id": "ward-gn",
+      "name": "G/N Ward",
+      "short": "G/N",
+      "kind": "ward",
+      "description": "BMC ward G/N: Dadar, Mahim, Dharavi and Shivaji Park.",
+      "relations": [7885381]
+    },
+    {
+      "id": "ward-gs",
+      "name": "G/S Ward",
+      "short": "G/S",
+      "kind": "ward",
+      "description": "BMC ward G/S: Worli, Prabhadevi, Lower Parel and Mahalaxmi.",
+      "relations": [7885391]
+    },
+    {
+      "id": "ward-he",
+      "name": "H/E Ward",
+      "short": "H/E",
+      "kind": "ward",
+      "description": "BMC ward H/E: Bandra East, Khar East, Santacruz East and the Bandra Kurla Complex.",
+      "relations": [7885378]
+    },
+    {
+      "id": "ward-hw",
+      "name": "H/W Ward",
+      "short": "H/W",
+      "kind": "ward",
+      "description": "BMC ward H/W: Bandra West, Khar West and Santacruz West.",
+      "relations": [7885382]
+    },
+    {
+      "id": "ward-ke",
+      "name": "K/E Ward",
+      "short": "K/E",
+      "kind": "ward",
+      "description": "BMC ward K/E: Andheri East, Vile Parle East, Jogeshwari East and the airport.",
+      "relations": [7885379]
+    },
+    {
+      "id": "ward-kw",
+      "name": "K/W Ward",
+      "short": "K/W",
+      "kind": "ward",
+      "description": "BMC ward K/W: Andheri West, Vile Parle West, Juhu, Versova and Jogeshwari West.",
+      "relations": [7885383]
+    },
+    {
+      "id": "ward-l",
+      "name": "L Ward",
+      "short": "L",
+      "kind": "ward",
+      "description": "BMC ward L: Kurla, Chandivali, Saki Naka and Tilak Nagar's western edge.",
+      "relations": [7885380]
+    },
+    {
+      "id": "ward-me",
+      "name": "M/E Ward",
+      "short": "M/E",
+      "kind": "ward",
+      "description": "BMC ward M/E: Govandi, Mankhurd, Deonar, Trombay and Shivaji Nagar.",
+      "relations": [7885392]
+    },
+    {
+      "id": "ward-mw",
+      "name": "M/W Ward",
+      "short": "M/W",
+      "kind": "ward",
+      "description": "BMC ward M/W: Chembur, Tilak Nagar and the RCF area.",
+      "relations": [7885389]
+    },
+    {
+      "id": "ward-n",
+      "name": "N Ward",
+      "short": "N",
+      "kind": "ward",
+      "description": "BMC ward N: Ghatkopar, Vikhroli and Vidyavihar.",
+      "relations": [7885388]
+    },
+    {
+      "id": "ward-pn",
+      "name": "P/N Ward",
+      "short": "P/N",
+      "kind": "ward",
+      "description": "BMC ward P/N: Malad, Marve, Madh Island and Manori.",
+      "relations": [7885384]
+    },
+    {
+      "id": "ward-ps",
+      "name": "P/S Ward",
+      "short": "P/S",
+      "kind": "ward",
+      "description": "BMC ward P/S: Goregaon and Aarey.",
+      "relations": [7885377]
+    },
+    {
+      "id": "ward-rc",
+      "name": "R/C Ward",
+      "short": "R/C",
+      "kind": "ward",
+      "description": "BMC ward R/C: Borivali, Gorai and the edge of Sanjay Gandhi National Park.",
+      "relations": [7885385]
+    },
+    {
+      "id": "ward-rn",
+      "name": "R/N Ward",
+      "short": "R/N",
+      "kind": "ward",
+      "description": "BMC ward R/N: Dahisar.",
+      "relations": [7885390]
+    },
+    {
+      "id": "ward-rs",
+      "name": "R/S Ward",
+      "short": "R/S",
+      "kind": "ward",
+      "description": "BMC ward R/S: Kandivali, Charkop and Poisar.",
+      "relations": [7885376]
+    },
+    {
+      "id": "ward-s",
+      "name": "S Ward",
+      "short": "S",
+      "kind": "ward",
+      "description": "BMC ward S: Bhandup, Powai, Kanjurmarg and Vikhroli's eastern part.",
+      "relations": [7885387]
+    },
+    {
+      "id": "ward-t",
+      "name": "T Ward",
+      "short": "T",
+      "kind": "ward",
+      "description": "BMC ward T: Mulund.",
+      "relations": [7885386]
     }
   ],
   "transit": {
