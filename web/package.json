@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:contract": "vitest run test/contract",
     "preview": "vite preview",
     "fetch-fonts": "node build/fetch-fonts.mjs"
   },
