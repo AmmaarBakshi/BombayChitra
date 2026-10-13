@@ -207,6 +207,11 @@ export function createApp(): void {
   langBtn.title = `${t('lang.switch')}: ${t('lang.name')} → ${t('lang.name', {}, next)}`;
   langBtn.setAttribute('aria-label', langBtn.title);
   langBtn.addEventListener('click', () => setLanguage(next));
+  // "Skip to the map" focuses the map canvas, so the arrow keys pan it straight away.
+  $('[data-skip="map"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    map.map.getCanvas().focus();
+  });
   const searchInput = $('#search-input') as HTMLInputElement;
   searchInput.placeholder = t('search.placeholder');
   $('label[for="search-input"]').textContent = t('search.label');

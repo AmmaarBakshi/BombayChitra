@@ -119,6 +119,25 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Skip links: hidden until focused from the keyboard */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font-weight: 650;
+  box-shadow: var(--shadow);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
