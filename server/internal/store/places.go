@@ -166,6 +166,7 @@ func (s *Store) Place(ctx context.Context, id int64) (*PlaceDetail, error) {
 	d.Wikidata, d.Wikipedia = str(wikidata), str(wikipedia)
 	d.AreaM2 = ptrFloat(area)
 	d.Tags = json.RawMessage(tags)
+	d.Heritage = s.HeritageFor(d.ID)
 	d.OSMURL = osmURL(d.ID)
 	d.Source = "openstreetmap"
 	if d.ID%10 == overtureType {

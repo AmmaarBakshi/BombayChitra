@@ -34,6 +34,9 @@ type Store struct {
 	categories map[string]Category
 	pins       pinIndex // PIN code areas, derived from addresses on first use
 	spelling   bool     // the search index has folded spellings (norm column)
+	heritage   []HeritageSite
+	hotspots   []Hotspot
+	season     Season
 }
 
 // Open opens the database read-only. The file is treated as immutable: rebuild it and restart the server to publish
@@ -98,6 +101,9 @@ func (s *Store) load(ctx context.Context) error {
 	}
 	s.spelling = s.meta["search_spelling"] == "1"
 	if err := s.loadCategories(ctx); err != nil {
+		return err
+	}
+	if err := s.loadCurated(ctx); err != nil {
 		return err
 	}
 	return s.loadAreas(ctx)
