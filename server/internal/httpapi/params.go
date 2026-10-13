@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,10 +13,13 @@ import (
 // params wraps query parsing and accumulates the first validation error.
 type params struct {
 	q   url.Values
+	r   *http.Request // set by requestParams, for checks that need the request context
 	err error
 }
 
 func newParams(u *url.URL) *params { return &params{q: u.Query()} }
+
+func requestParams(r *http.Request) *params { return &params{q: r.URL.Query(), r: r} }
 
 func (p *params) fail(format string, args ...any) {
 	if p.err == nil {

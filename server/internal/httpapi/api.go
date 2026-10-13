@@ -97,9 +97,18 @@ func (s *Server) handleAreas(w http.ResponseWriter, r *http.Request) {
 	if kind == "" {
 		kind = p.str("type") // the name the roadmap and early clients used
 	}
+	if kind == "pincode" {
+		pins, err := s.store.PinCodes(r.Context())
+		if err != nil {
+			s.handleErr(w, r, err)
+			return
+		}
+		s.writeJSON(w, r, http.StatusOK, map[string]any{"count": len(pins), "items": pins})
+		return
+	}
 	items := s.store.Areas()
 	if kind != "" {
-		var kinds []string
+		kinds := []string{"pincode"}
 		filtered := []store.Area{}
 		for _, a := range items {
 			if !contains(kinds, a.Kind) {
@@ -119,7 +128,12 @@ func (s *Server) handleAreas(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleArea(w http.ResponseWriter, r *http.Request) {
-	a, err := s.store.Area(r.Context(), r.PathValue("id"))
+	id := r.PathValue("id")
+	area := s.store.Area
+	if store.IsPinCode(id) {
+		area = s.store.PinCode
+	}
+	a, err := area(r.Context(), id)
 	if err != nil {
 		s.handleErr(w, r, err)
 		return
@@ -135,11 +149,20 @@ func (s *Server) handleArea(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	area := newParams(r.URL).str("area")
-	if area != "" && !s.store.AreaExists(area) {
+	if area != "" && !s.validArea(r, area) {
 		s.badRequest(w, r, "unknown area "+area)
 		return
 	}
-	stats, err := s.store.Stats(r.Context(), area)
+	var stats map[string]float64
+	var err error
+	if store.IsPinCode(area) {
+		var pin *store.Area
+		if pin, err = s.store.PinCode(r.Context(), area); err == nil {
+			stats = pin.Stats
+		}
+	} else {
+		stats, err = s.store.Stats(r.Context(), area)
+	}
 	if err != nil {
 		s.handleErr(w, r, err)
 		return
@@ -224,14 +247,19 @@ func (s *Server) placeQuery(p *params) store.PlaceQuery {
 			p.fail("unknown group %q (see /api/v1/categories)", g)
 		}
 	}
-	if q.Area != "" && !s.store.AreaExists(q.Area) {
+	if q.Area != "" && !s.validArea(p.r, q.Area) {
 		p.fail("unknown area %q (see /api/v1/areas)", q.Area)
 	}
 	return q
 }
 
+// validArea accepts configured areas and, for place queries and statistics, PIN codes.
+func (s *Server) validArea(r *http.Request, id string) bool {
+	return s.store.AreaExists(id) || s.store.PinCodeExists(r.Context(), id)
+}
+
 func (s *Server) handlePlaces(w http.ResponseWriter, r *http.Request) {
-	p := newParams(r.URL)
+	p := requestParams(r)
 	q := s.placeQuery(p)
 	if near := p.point(false); near != nil {
 		q.Near = near
@@ -246,7 +274,7 @@ func (s *Server) handlePlaces(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleNearby(w http.ResponseWriter, r *http.Request) {
-	p := newParams(r.URL)
+	p := requestParams(r)
 	q := s.placeQuery(p)
 	q.Near = p.point(true)
 	q.RadiusM = p.float("radius", 500, 1, 10000)
@@ -296,7 +324,7 @@ func (s *Server) handleStations(w http.ResponseWriter, r *http.Request) {
 	if mode != "" {
 		q.Categories = []string{mode + "_station"}
 	}
-	if q.Area != "" && !s.store.AreaExists(q.Area) {
+	if q.Area != "" && !s.validArea(r, q.Area) {
 		p.fail("unknown area %q", q.Area)
 	}
 	if p.err != nil {
