@@ -32,6 +32,7 @@ type Store struct {
 	areaShapes map[string]*geo.PolygonIndex
 	groups     []CategoryGroup
 	categories map[string]Category
+	pins       pinIndex // PIN code areas, derived from addresses on first use
 }
 
 // Open opens the database read-only. The file is treated as immutable: rebuild it and restart the server to publish

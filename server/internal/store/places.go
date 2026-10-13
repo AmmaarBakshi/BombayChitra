@@ -78,7 +78,16 @@ func (s *Store) Places(ctx context.Context, q PlaceQuery) ([]Place, error) {
 		where = append(where, "p.group_id IN ("+placeholders(len(q.Groups))+")")
 		args = append(args, anySlice(q.Groups)...)
 	}
-	if q.Area != "" {
+	if IsPinCode(q.Area) {
+		// A PIN code area: the places addressed with it, within its outline's bounding box (which leaves out the
+		// outliers the area itself ignores).
+		pin, err := s.PinCode(ctx, q.Area)
+		if err != nil {
+			return nil, err
+		}
+		where = append(where, "REPLACE(p.postcode, ' ', '') = ? AND p.lon BETWEEN ? AND ? AND p.lat BETWEEN ? AND ?")
+		args = append(args, q.Area, pin.BBox[0], pin.BBox[2], pin.BBox[1], pin.BBox[3])
+	} else if q.Area != "" {
 		where = append(where, "p.id IN (SELECT member_id FROM area_members WHERE area_id = ? AND kind = 'place')")
 		args = append(args, q.Area)
 	}
