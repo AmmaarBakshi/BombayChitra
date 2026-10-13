@@ -1,6 +1,6 @@
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { categories, groups } from '../../taxonomy.ts';
-import { fonts, isBridge, isTunnel, matchKey, nameField, roadOrder, roadSortKey, zoomExp, zoomLinear } from './expr.ts';
+import { fonts, isBridge, isTunnel, labelField, type Language, matchKey, roadOrder, roadSortKey, zoomExp, zoomLinear } from './expr.ts';
 import type { Palette } from './palette.ts';
 
 export const SOURCE = 'bc';
@@ -8,6 +8,8 @@ export const SOURCE = 'bc';
 export interface LayerOptions {
   /** App mode uses runtime-generated POI badges and global-state filters; standalone styles stay SDK-portable. */
   app: boolean;
+  /** Label language (default: the names as mapped, mostly English). */
+  lang?: Language;
 }
 
 type Layer = LayerSpecification;
@@ -95,6 +97,7 @@ export function labelTone(hex: string, theme: 'light' | 'dark'): string {
 
 export function buildLayers(P: Palette, opts: LayerOptions): Layer[] {
   const theme = P.name;
+  const nameField = labelField(opts.lang);
   const layers: Layer[] = [];
   const add = (...l: Layer[]) => layers.push(...l);
 
@@ -593,7 +596,7 @@ export function buildLayers(P: Palette, opts: LayerOptions): Layer[] {
       layout: {
         'symbol-placement': 'line',
         'symbol-sort-key': ['-', 10, roadSortKey],
-        'text-field': ['case', ['has', 'name'], ['get', 'name'], ['get', 'ref']],
+        'text-field': ['case', ['has', 'name'], nameField, ['get', 'ref']],
         'text-font': fonts.regular,
         'text-size': zoomLinear(
           [11, matchKey('kind', { motorway: 10, trunk: 10, primary: 10 }, 9)],

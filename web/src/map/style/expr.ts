@@ -25,7 +25,14 @@ export const isBridge: ExpressionSpecification = ['==', ['get', 'brunnel'], 'bri
 export const isTunnel: ExpressionSpecification = ['==', ['get', 'brunnel'], 'tunnel'];
 export const notBrunnel: ExpressionSpecification = ['!', ['has', 'brunnel']];
 
-export const nameField: ExpressionSpecification = ['coalesce', ['get', 'name'], ''];
+/** Languages the map can be labelled in: the default names (mostly English), Marathi or Hindi. */
+export type Language = 'en' | 'mr' | 'hi';
+export const LANGUAGES: Language[] = ['en', 'mr', 'hi'];
+
+/** Label text: the name in the chosen language where the tiles have it (`name:mr`, `name:hi`), else the name. */
+export function labelField(lang: Language = 'en'): ExpressionSpecification {
+  return lang === 'en' ? ['coalesce', ['get', 'name'], ''] : ['coalesce', ['get', `name:${lang}`], ['get', 'name'], ''];
+}
 
 export const fonts = {
   regular: ['Noto Sans Regular'],

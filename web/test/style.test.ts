@@ -1,6 +1,6 @@
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 import { describe, expect, it } from 'vitest';
-import { buildStyle } from '../src/map/style/index.ts';
+import { buildStyle, LANGUAGES } from '../src/map/style/index.ts';
 import { labelTone } from '../src/map/style/layers.ts';
 import { palettes, type ThemeName } from '../src/map/style/palette.ts';
 
@@ -47,5 +47,16 @@ describe('palettes', () => {
     const lum = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
     expect(lum(labelTone('#0b84e6', 'light'))).toBeLessThan(lum('#0b84e6'));
     expect(lum(labelTone('#0b84e6', 'dark'))).toBeGreaterThan(lum('#0b84e6'));
+  });
+});
+
+describe('label languages', () => {
+  it.each(LANGUAGES)('%s styles are valid and label in that language', (lang) => {
+    const style = buildStyle({ theme: 'light', base: 'https://maps.example.com', lang });
+    expect(validateStyleMin(style as Parameters<typeof validateStyleMin>[0])).toEqual([]);
+    const text = JSON.stringify(style.layers);
+    if (lang === 'en') expect(text).not.toContain('name:');
+    else expect(text).toContain(`["coalesce",["get","name:${lang}"],["get","name"],""]`);
+    expect(style.metadata).toMatchObject({ 'bombaychitra:language': lang });
   });
 });
