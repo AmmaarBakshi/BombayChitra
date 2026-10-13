@@ -60,6 +60,22 @@ project uses [Semantic Versioning](https://semver.org/).
 - Quality gates for the weekly data release: a regression check against the previous build
   (`scripts/check-data.py`, fails on drops above 5 %), an API contract test that calls every documented example
   (`npm run test:contract`) and a Playwright smoke test of the map (`npm run test:e2e`).
+- The 24 BMC administrative wards as areas (`/api/v1/areas?kind=ward`), with statistics for every listed area
+  (`stats=true`), a ward picker and a side-by-side ward comparison in the Explore panel.
+- PIN code areas derived from addresses (`/api/v1/areas?kind=pincode`, `/api/v1/areas/400050`), PIN codes in
+  search and the postcode of any point in reverse geocoding.
+- Curated layers maintained in `config/`: heritage sites with their status — UNESCO, precinct or monument
+  (`/api/v1/heritage`) — and monsoon waterlogging hotspots (`/api/v1/hotspots`), shown as map overlays; routes warn
+  about hotspots along the way during the monsoon.
+- Marathi and Hindi: names in the vector tiles (`name:mr`, `name:hi`), styles labelled in either language
+  (`?lang=mr|hi`) and a translated interface with a language switch.
+- Spelling-insensitive search: transliteration variants ("Chhatrapati" / "Chatrapati", "Mattunga" / "Matunga",
+  "Zaveri" / "Javeri", accents) find the same places, with the folding shared by the pipeline and the server.
+- Station cards list the lines, operator and opening date, with a "recently opened" badge for new stations.
+- Accessibility: keyboard navigation between panel tabs, skip links, accessible names for icon buttons, focus moved
+  into cards and back, reduced motion honoured, and contrasting casings for line colours that fail WCAG non-text
+  contrast on either theme.
+- The regression check also watches wards, curated layers and indexed spellings.
 
 ### Fixed
 
@@ -69,3 +85,4 @@ project uses [Semantic Versioning](https://semver.org/).
   businesses that merely contain the letters.
 - `/api/v1/health` always reports the database latency, and its routing detail is always an object.
 - The API reference's road, bridge and building examples used an id that did not exist.
+- Addresses and locality search details end with the district, not the BMC ward.
