@@ -36,19 +36,19 @@ export class ExplorePanel implements Panel {
     clear(body);
     body.append(
       h('section', { class: 'section' },
-        h('h3', {}, 'Areas'),
-        h('div', { class: 'chips' }, chip(null, 'Everything'), ...others.map((a) => chip(a.id, a.short_name ?? a.name, a.description ?? a.name))),
+        h('h3', {}, t('explore.areas')),
+        h('div', { class: 'chips' }, chip(null, t('explore.everything')), ...others.map((a) => chip(a.id, a.short_name ?? a.name, a.description ?? a.name))),
         wards.length
           ? h('div', { class: 'ward-picker' },
-            h('div', { class: 'sub ward-head', id: 'ward-label' }, 'BMC wards',
-              h('button', { class: 'link-btn', type: 'button', onclick: () => void this.ctx.inspector.compareWards() }, 'Compare wards')),
+            h('div', { class: 'sub ward-head', id: 'ward-label' }, t('explore.wards'),
+              h('button', { class: 'link-btn', type: 'button', onclick: () => void this.ctx.inspector.compareWards() }, t('explore.compareWards'))),
             h('div', { class: 'chips ward-chips', role: 'group', 'aria-labelledby': 'ward-label' }, ...wards.map((a) => chip(a.id, a.short_name ?? a.name, a.description ? `${a.name} — ${a.description.replace(/^BMC ward [^:]+: /, '')}` : a.name))),
           )
           : null,
       ),
-      h('section', { class: 'section' }, h('h3', {}, 'At a glance'), this.statsEl),
+      h('section', { class: 'section' }, h('h3', {}, t('explore.glance')), this.statsEl),
       h('section', { class: 'section' },
-        h('h3', {}, 'Find in view', h('button', { class: 'link-btn', type: 'button', onclick: () => this.unfocus() }, 'Clear')),
+        h('h3', {}, t('explore.findInView'), h('button', { class: 'link-btn', type: 'button', onclick: () => this.unfocus() }, t('explore.clear'))),
         h('div', { class: 'chips' }, ...QUICK.filter((id) => categories.some((c) => c.id === id)).map((id) => {
           const c = categories.find((x) => x.id === id)!;
           return h('button', { class: 'chip', type: 'button', 'data-cat': id, 'aria-pressed': 'false', onclick: () => this.focus(id) }, categoryBadge(id, 20), c.label);
@@ -80,17 +80,17 @@ export class ExplorePanel implements Panel {
     try {
       const area = this.ctx.currentArea() ?? undefined;
       const s = await this.ctx.api.stats(area);
-      const t = s.totals;
+      const totals = s.totals;
       const p = s.places_by_category;
       const stat = (value: number | undefined, label: string) => h('div', { class: 'stat' }, h('b', {}, value === undefined ? '—' : formatNumber(Math.round(value))), h('span', {}, label));
       clear(this.statsEl);
       this.statsEl.append(
-        stat(t.places, 'places'),
-        stat(t.buildings, 'buildings'),
-        stat(t.streets, 'named roads'),
-        stat(t.bridges, 'bridges'),
-        stat((p.hospital ?? 0) + (p.clinic ?? 0), 'hospitals & clinics'),
-        stat((p.school ?? 0) + (p.college ?? 0) + (p.university ?? 0), 'schools & colleges'),
+        stat(totals.places, t('stat.places')),
+        stat(totals.buildings, t('stat.buildings')),
+        stat(totals.streets, t('stat.roads')),
+        stat(totals.bridges, t('stat.bridges')),
+        stat((p.hospital ?? 0) + (p.clinic ?? 0), t('stat.health')),
+        stat((p.school ?? 0) + (p.college ?? 0) + (p.university ?? 0), t('stat.schools')),
       );
     } catch {
       clear(this.statsEl);

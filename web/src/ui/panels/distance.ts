@@ -1,5 +1,5 @@
 import type { RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
-import { t } from '../../i18n.ts';
+import { stepText, t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h, storageGet, storageSet } from '../dom.ts';
 import { formatDistance, formatDuration } from '../format.ts';
@@ -17,10 +17,10 @@ export interface RoutePoint {
 
 const COLOUR = '#e8590c';
 const MODE_KEY = 'bc-route-mode';
-const MODES: { id: TravelMode; label: string; icon: string; verb: string }[] = [
-  { id: 'car', label: 'Car', icon: 'car', verb: 'drive' },
-  { id: 'two_wheeler', label: 'Two-wheeler', icon: 'scooter', verb: 'ride' },
-  { id: 'foot', label: 'Walk', icon: 'walk', verb: 'walk' },
+const MODES: { id: TravelMode; label: string; icon: string; fastest: string }[] = [
+  { id: 'car', label: t('route.car'), icon: 'car', fastest: t('route.fastestDrive') },
+  { id: 'two_wheeler', label: t('route.twoWheeler'), icon: 'scooter', fastest: t('route.fastestRide') },
+  { id: 'foot', label: t('route.walk'), icon: 'walk', fastest: t('route.fastestWalk') },
 ];
 /** Rotation of the direction arrow for each step modifier (degrees, clockwise). */
 const ARROW: Record<string, number> = { straight: 0, slight_right: 40, right: 90, sharp_right: 135, uturn: 180, sharp_left: -135, left: -90, slight_left: -40 };
@@ -47,7 +47,7 @@ export class DistancePanel implements Panel {
   private available: TravelMode[] = MODES.map((m) => m.id);
   private readonly travelButtons: HTMLButtonElement[] = [];
   private readonly tollToggle = h('input', { type: 'checkbox' }) as HTMLInputElement;
-  private readonly tollRow = h('label', { class: 'switch-row compact' }, this.tollToggle, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, 'Avoid tolls'));
+  private readonly tollRow = h('label', { class: 'switch-row compact' }, this.tollToggle, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, t('route.avoidTolls')));
   private readonly inputs: Record<RouteEndName, HTMLInputElement>;
   private readonly menus: Record<RouteEndName, HTMLUListElement>;
   private readonly pickButtons: Record<RouteEndName, HTMLButtonElement>;
@@ -94,7 +94,7 @@ export class DistancePanel implements Panel {
       h('div', { class: 'route-input' }, this.inputs[end], this.menus[end]),
       this.pickButtons[end],
     );
-    const modes: { id: 'time' | 'distance'; label: string }[] = [{ id: 'time', label: 'Fastest' }, { id: 'distance', label: 'Shortest' }];
+    const modes: { id: 'time' | 'distance'; label: string }[] = [{ id: 'time', label: t('route.fastest') }, { id: 'distance', label: t('route.shortest') }];
     for (const m of modes) {
       this.modeButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.optimize), 'data-mode': m.id, onclick: () => this.setOptimize(m.id) }, m.label));
     }
@@ -109,15 +109,15 @@ export class DistancePanel implements Panel {
     this.applyAvailability();
     body.append(
       h('div', { class: 'route-head' },
-        h('div', { class: 'title' }, 'Distance by road'),
-        h('div', { class: 'sub', style: 'white-space:normal' }, 'Distance, time and turn-by-turn directions between two places by car, two-wheeler or on foot, with the route on the map.'),
+        h('div', { class: 'title' }, t('route.title')),
+        h('div', { class: 'sub', style: 'white-space:normal' }, t('route.subtitle')),
       ),
       h('div', { class: 'segmented travel-modes', role: 'group', 'aria-label': 'Travel by' }, ...this.travelButtons),
       h('div', { class: 'route-form' }, row('from'), row('to')),
       h('div', { class: 'route-tools' },
         h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' }, ...this.modeButtons),
-        h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), 'Swap'),
-        'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), 'Me') : null,
+        h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), t('route.swap')),
+        'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), t('route.me')) : null,
       ),
       this.tollRow,
       this.result,
@@ -320,12 +320,12 @@ export class DistancePanel implements Panel {
     const named = new Map<string, number>();
     for (const r of res.roads) if (r.name) named.set(r.name, (named.get(r.name) ?? 0) + r.distance_m);
     const main = [...named].sort((a, b) => b[1] - a[1]).slice(0, 6);
-    const verb = MODES.find((m) => m.id === res.mode)?.verb ?? 'drive';
+    const fastest = MODES.find((m) => m.id === res.mode)?.fastest ?? t('route.fastestDrive');
     clear(this.result);
     append(this.result, [
       h('div', { class: 'route-summary' },
-        h('div', {}, h('b', { class: 'route-big' }, formatDistance(res.distance_m)), h('span', { class: 'sub' }, res.mode === 'foot' ? 'on foot' : 'by road')),
-        h('div', {}, h('b', { class: 'route-big' }, formatDuration(res.duration_s)), h('span', { class: 'sub' }, res.optimize === 'time' ? `fastest ${verb}` : 'on the shortest route')),
+        h('div', {}, h('b', { class: 'route-big' }, formatDistance(res.distance_m)), h('span', { class: 'sub' }, res.mode === 'foot' ? t('route.onFoot') : t('route.byRoad'))),
+        h('div', {}, h('b', { class: 'route-big' }, formatDuration(res.duration_s)), h('span', { class: 'sub' }, res.optimize === 'time' ? fastest : t('route.onShortest'))),
       ),
       res.toll_m > 0
         ? h('div', { class: 'route-notice' }, icon('toll', 16), h('span', { class: 'grow' }, `Includes ${formatDistance(res.toll_m)} of toll road`),
@@ -333,18 +333,18 @@ export class DistancePanel implements Panel {
         : null,
       res.hotspots.length ? this.hotspotNotice(res) : null,
       h('dl', { class: 'kv' },
-        h('dt', {}, 'Straight line'), h('dd', {}, `${formatDistance(res.straight_m)} · road is ${detour.toFixed(2)}× longer`),
-        h('dt', {}, 'From'), h('dd', { 'data-end': 'from' }, from?.label ?? '', res.from.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (joins ${res.from.snapped.road ?? 'the road'} ${formatDistance(res.from.snapped.offset_m)} away)`) : null),
-        h('dt', {}, 'To'), h('dd', { 'data-end': 'to' }, to?.label ?? '', res.to.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (from ${res.to.snapped.road ?? 'the road'} ${formatDistance(res.to.snapped.offset_m)} away)`) : null),
+        h('dt', {}, t('route.straightLine')), h('dd', {}, `${formatDistance(res.straight_m)} · ${detour.toFixed(2)}×`),
+        h('dt', {}, t('route.from')), h('dd', { 'data-end': 'from' }, from?.label ?? '', res.from.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (joins ${res.from.snapped.road ?? 'the road'} ${formatDistance(res.from.snapped.offset_m)} away)`) : null),
+        h('dt', {}, t('route.to')), h('dd', { 'data-end': 'to' }, to?.label ?? '', res.to.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (from ${res.to.snapped.road ?? 'the road'} ${formatDistance(res.to.snapped.offset_m)} away)`) : null),
       ),
       main.length
-        ? h('div', { class: 'route-roads' }, h('h3', {}, 'Main roads'), h('ol', {}, ...main.map(([name, m]) => h('li', {}, h('span', { class: 'grow' }, name), h('span', { class: 'mono' }, formatDistance(m))))))
+        ? h('div', { class: 'route-roads' }, h('h3', {}, t('route.mainRoads')), h('ol', {}, ...main.map(([name, m]) => h('li', {}, h('span', { class: 'grow' }, name), h('span', { class: 'mono' }, formatDistance(m))))))
         : null,
       res.steps?.length ? this.stepList(res.steps) : null,
       h('div', { class: 'btn-row', style: 'margin-top:10px' },
-        h('button', { class: 'btn', type: 'button', onclick: () => this.ctx.map.fitBounds(res.bbox, 16) }, icon('route', 15), 'Show route'),
-        h('button', { class: 'btn', type: 'button', onclick: () => this.share() }, icon('link', 15), 'Share'),
-        h('button', { class: 'btn', type: 'button', onclick: () => this.reset() }, icon('close', 15), 'Clear'),
+        h('button', { class: 'btn', type: 'button', onclick: () => this.ctx.map.fitBounds(res.bbox, 16) }, icon('route', 15), t('route.show')),
+        h('button', { class: 'btn', type: 'button', onclick: () => this.share() }, icon('link', 15), t('route.share')),
+        h('button', { class: 'btn', type: 'button', onclick: () => this.reset() }, icon('close', 15), t('route.clear')),
       ),
       h('p', { class: 'foot-note' }, res.mode === 'foot'
         ? 'Walking at 4.8 km/h along roads, footpaths, steps and foot over-bridges; one-way rules do not apply. Expressways, sea links and freeways are closed to pedestrians.'
@@ -373,13 +373,13 @@ export class DistancePanel implements Panel {
       return h('li', {},
         h('button', { type: 'button', class: 'route-step', onclick: () => this.ctx.map.flyTo(step.location, 17) },
           h('span', { class: 'route-step-icon', 'aria-hidden': 'true' }, glyph),
-          h('span', { class: 'grow' }, step.instruction),
+          h('span', { class: 'grow' }, stepText(step)),
           step.distance_m > 0 ? h('span', { class: 'mono meta' }, formatDistance(step.distance_m)) : null,
         ),
       );
     }));
     return h('details', { class: 'route-directions', open: steps.length <= 12 },
-      h('summary', {}, `Directions · ${steps.length - 1} step${steps.length === 2 ? '' : 's'}`),
+      h('summary', {}, `${t('route.directions')} · ${steps.length - 1}`),
       list,
     );
   }
