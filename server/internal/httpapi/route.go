@@ -42,8 +42,11 @@ type routeResponse struct {
 	To        routeEnd       `json:"to"`
 	Roads     []routeRoad    `json:"roads"`
 	Steps     []routing.Step `json:"steps,omitempty"`
-	BBox      []float64      `json:"bbox"`
-	Geometry  lineString     `json:"geometry"`
+	// Hotspots are the waterlogging hotspots the route passes; Monsoon says whether they are in season now.
+	Hotspots []routeHotspot `json:"hotspots"`
+	Monsoon  bool           `json:"monsoon"`
+	BBox     []float64      `json:"bbox"`
+	Geometry lineString     `json:"geometry"`
 }
 
 // modeAliases accept everyday names for the travel modes.
@@ -151,6 +154,8 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 	if withSteps {
 		out.Steps = res.Steps
 	}
+	out.Hotspots = s.hotspotsAlong(res.Path)
+	out.Monsoon = s.season().Active
 	bbox := []float64{math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1)}
 	for i, c := range res.Path {
 		out.Geometry.Coordinates[i] = [2]float64{round6(c[0]), round6(c[1])}
@@ -177,7 +182,7 @@ func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
 			"features": []feature{
 				{Type: "Feature", Geometry: line, Properties: map[string]any{"role": "route", "mode": mode, "optimize": opt,
 					"avoid": avoid, "distance_m": out.DistanceM, "duration_s": out.DurationS, "straight_m": out.StraightM,
-					"toll_m": out.TollM, "roads": out.Roads, "steps": out.Steps}},
+					"toll_m": out.TollM, "roads": out.Roads, "steps": out.Steps, "hotspots": out.Hotspots, "monsoon": out.Monsoon}},
 				{Type: "Feature", Geometry: pointGeometry(out.From.Snapped.Lon, out.From.Snapped.Lat), Properties: map[string]any{"role": "from", "road": out.From.Snapped.Road}},
 				{Type: "Feature", Geometry: pointGeometry(out.To.Snapped.Lon, out.To.Snapped.Lat), Properties: map[string]any{"role": "to", "road": out.To.Snapped.Road}},
 			},
