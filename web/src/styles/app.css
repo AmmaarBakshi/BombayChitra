@@ -910,6 +910,12 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   letter-spacing: 0;
 }
 
+.tool.tool-text {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 /* BMC ward picker */
 
 .ward-picker {

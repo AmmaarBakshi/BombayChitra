@@ -4,6 +4,7 @@ import type { AppContext } from './ui/context.ts';
 import { $, h, storageGet, storageSet } from './ui/dom.ts';
 import { formatCoord, formatDate } from './ui/format.ts';
 import { hashParams, parseSelection, updateHash } from './ui/hash.ts';
+import { type Language, language, setLanguage, t } from './i18n.ts';
 import { icon } from './ui/icons.ts';
 import { Inspector } from './ui/inspector.ts';
 import { MeasureTool } from './ui/measure.ts';
@@ -21,6 +22,8 @@ const TAB_KEY = 'bc-tab';
 const PANEL_KEY = 'bc-panel';
 
 export function createApp(): void {
+  const lang = language();
+  document.documentElement.lang = lang;
   const theme = new ThemeManager();
   // The app normally runs on the BombayChitra server itself; VITE_API_BASE points it at another server.
   const apiBase = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
@@ -43,7 +46,7 @@ export function createApp(): void {
     } else if (inspector.isOpen) {
       inspector.close();
     }
-  });
+  }, lang);
 
   const toastEl = $('#toast');
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -111,14 +114,15 @@ export function createApp(): void {
   const panelBtn = $('#tool-panel');
   const reveal = $('#panel-reveal');
   panelBtn.append(icon('sidebar', 19));
-  reveal.append(icon('chevron', 16), h('span', {}, 'Dashboard'));
+  reveal.append(icon('chevron', 16), h('span', {}, t('tool.dashboard')));
+  reveal.title = t('tool.showPanel');
   const setPanelHidden = (hidden: boolean, announce = true) => {
     document.body.classList.toggle('panel-off', hidden);
     panelEl.classList.toggle('panel-hidden', hidden);
     panelEl.toggleAttribute('inert', hidden);
     reveal.hidden = !hidden;
     panelBtn.setAttribute('aria-pressed', String(hidden));
-    panelBtn.title = hidden ? 'Show dashboard (H)' : 'Hide dashboard (H)';
+    panelBtn.title = hidden ? t('tool.showPanel') : t('tool.hidePanel');
     panelBtn.setAttribute('aria-label', panelBtn.title);
     storageSet(PANEL_KEY, hidden ? 'hidden' : 'shown');
     if (announce) ctx.toast(hidden ? 'Dashboard hidden — press H to show it' : 'Dashboard shown');
@@ -145,7 +149,7 @@ export function createApp(): void {
   const themeBtn = $('#tool-theme');
   const themeIcon = () => {
     themeBtn.replaceChildren(icon(theme.current === 'system' ? 'system' : theme.current === 'dark' ? 'moon' : 'sun', 19));
-    themeBtn.title = `Theme: ${theme.current} (click to change)`;
+    themeBtn.title = `${t('tool.theme')}: ${theme.current}`;
     themeBtn.setAttribute('aria-label', themeBtn.title);
   };
   themeIcon();
@@ -174,6 +178,23 @@ export function createApp(): void {
   measure = new MeasureTool(map, measureBtn);
   measureBtn.addEventListener('click', () => measure!.toggle());
   $('.toolbar a').append(icon('docs', 19));
+
+  // Interface language (also the map's label language); switching reloads the app in the new language.
+  const toolTitles: [string, Parameters<typeof t>[0]][] = [['#tool-3d', 'tool.3d'], ['#tool-bridges', 'tool.bridges'], ['#tool-route', 'tool.route'], ['#tool-measure', 'tool.measure'], ['.toolbar a', 'tool.docs']];
+  for (const [sel, key] of toolTitles) {
+    $(sel).title = t(key);
+    $(sel).setAttribute('aria-label', t(key));
+  }
+  const langBtn = $('#tool-lang');
+  const order: Language[] = ['en', 'mr', 'hi'];
+  const next = order[(order.indexOf(lang) + 1) % order.length];
+  langBtn.textContent = t('lang.short');
+  langBtn.title = `${t('lang.switch')}: ${t('lang.name')} → ${t('lang.name', {}, next)}`;
+  langBtn.setAttribute('aria-label', langBtn.title);
+  langBtn.addEventListener('click', () => setLanguage(next));
+  const searchInput = $('#search-input') as HTMLInputElement;
+  searchInput.placeholder = t('search.placeholder');
+  $('label[for="search-input"]').textContent = t('search.label');
 
   // ---------------------------------------------------------------- search, status, gestures
 

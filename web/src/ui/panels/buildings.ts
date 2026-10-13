@@ -1,4 +1,5 @@
 import type { Building } from '../../api/types.ts';
+import { t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { clear, h } from '../dom.ts';
 import { capitalise, formatArea, formatNumber } from '../format.ts';
@@ -14,7 +15,7 @@ const SORTS = [
 
 export class BuildingsPanel implements Panel {
   readonly id = 'buildings';
-  readonly label = 'Buildings';
+  readonly label = t('tab.buildings');
   readonly icon = 'building';
   private sort = 'height';
   private body: HTMLElement | null = null;

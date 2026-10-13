@@ -3,7 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import type { LngLatBoundsLike, MapGeoJSONFeature, MapMouseEvent } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { renderBadge } from './badges.ts';
-import { buildStyle, palettes, type ThemeName } from './style/index.ts';
+import { buildStyle, type Language, palettes, type ThemeName } from './style/index.ts';
 import type { Palette } from './style/palette.ts';
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -93,6 +93,7 @@ export class MapController {
     private readonly base: string,
     theme: ThemeName,
     private readonly onPick: (pick: MapPick | null, e: MapMouseEvent) => void,
+    private readonly lang: Language = 'en',
   ) {
     this.theme = theme;
     this.map = new maplibregl.Map({
@@ -136,7 +137,7 @@ export class MapController {
   /** The complete style for the current theme, including app overlays and the current UI state. */
   private composeStyle(): StyleSpecification {
     const P = palettes[this.theme];
-    const style = buildStyle({ theme: this.theme, base: this.base, app: true });
+    const style = buildStyle({ theme: this.theme, base: this.base, app: true, lang: this.lang });
     style.state = { hiddenCategories: { default: this.hidden }, area: { default: this.area } };
     style.sources[HERITAGE] = { type: 'geojson', data: `${this.base}/api/v1/heritage?format=geojson` };
     style.sources[HOTSPOTS] = { type: 'geojson', data: `${this.base}/api/v1/hotspots?format=geojson` };

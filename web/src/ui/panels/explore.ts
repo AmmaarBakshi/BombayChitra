@@ -1,4 +1,5 @@
 import type { Place } from '../../api/types.ts';
+import { t } from '../../i18n.ts';
 import { categories } from '../../taxonomy.ts';
 import type { AppContext } from '../context.ts';
 import { clear, h } from '../dom.ts';
@@ -11,7 +12,7 @@ const QUICK = ['hospital', 'school', 'college', 'bank', 'atm', 'cafe', 'restaura
 
 export class ExplorePanel implements Panel {
   readonly id = 'explore';
-  readonly label = 'Explore';
+  readonly label = t('tab.explore');
   readonly icon = 'explore';
   private body!: HTMLElement;
   private statsEl = h('div', { class: 'stats' });

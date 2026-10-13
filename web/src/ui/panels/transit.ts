@@ -1,4 +1,5 @@
 import type { TransitLine } from '../../api/types.ts';
+import { t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { clear, h } from '../dom.ts';
 import { formatDistance } from '../format.ts';
@@ -10,7 +11,7 @@ const STATE_LABEL: Record<string, string> = { construction: 'under construction'
 
 export class TransitPanel implements Panel {
   readonly id = 'transit';
-  readonly label = 'Transit';
+  readonly label = t('tab.transit');
   readonly icon = 'train';
   private lines: TransitLine[] | null = null;
 

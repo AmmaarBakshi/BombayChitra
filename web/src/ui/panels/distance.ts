@@ -1,4 +1,5 @@
 import type { RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
+import { t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h, storageGet, storageSet } from '../dom.ts';
 import { formatDistance, formatDuration } from '../format.ts';
@@ -32,7 +33,7 @@ const LABEL: Record<RouteEndName, string> = { from: 'From', to: 'To' };
  */
 export class DistancePanel implements Panel {
   readonly id = 'distance';
-  readonly label = 'Distance';
+  readonly label = t('tab.distance');
   readonly icon = 'route';
 
   /** The end being chosen by clicking the map, if any. */

@@ -1,4 +1,5 @@
 import type { NamedBridge } from '../../api/types.ts';
+import { t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { clear, h } from '../dom.ts';
 import { formatDistance } from '../format.ts';
@@ -18,7 +19,7 @@ const KIND_COLOUR: Record<string, string> = { road: '#7048e8', rail: '#a0522d', 
 
 export class BridgesPanel implements Panel {
   readonly id = 'bridges';
-  readonly label = 'Bridges';
+  readonly label = t('tab.bridges');
   readonly icon = 'bridge';
   private filter = 'road';
   private body: HTMLElement | null = null;

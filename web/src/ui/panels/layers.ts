@@ -1,4 +1,5 @@
 import type { Overlays } from '../../map/controller.ts';
+import { t } from '../../i18n.ts';
 import { categories, groups } from '../../taxonomy.ts';
 import type { AppContext } from '../context.ts';
 import { clear, h, storageGet, storageSet } from '../dom.ts';
@@ -18,7 +19,7 @@ const OVERLAYS: { key: keyof Overlays; label: string; hint: string }[] = [
 
 export class LayersPanel implements Panel {
   readonly id = 'layers';
-  readonly label = 'Layers';
+  readonly label = t('tab.layers');
   readonly icon = 'layers';
   private hidden: Set<string>;
   private saved: Set<string> | null = null;
