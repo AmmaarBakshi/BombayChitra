@@ -250,6 +250,7 @@ public final class Transit extends Layer
     features.line(NAME)
       .setAttr("kind", kind)
       .setAttr("colour", colour)
+      .setAttr("tone", tone(colour))
       .setAttrWithMinzoom("construction", "construction".equals(kind) ? target : null, 9)
       .setAttrWithMinzoom("proposed", "proposed".equals(kind) ? target : null, 10)
       .setAttrWithMinzoom("service", service, 12)
@@ -274,5 +275,23 @@ public final class Transit extends Layer
   @Override
   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) {
     return zoom < 14 ? FeatureMerge.mergeLineStrings(items, 0.5, 0.1, 4) : items;
+  }
+
+  /**
+   * {@code dark} for line colours too dark to stand out on the dark map (indigo, deep purple) and {@code light} for
+   * those too pale for the light map (yellows), from their WCAG relative luminance; null otherwise. Styles give such
+   * lines a contrasting casing.
+   */
+  static String tone(String hex) {
+    if (hex == null || !hex.matches("#[0-9a-f]{6}")) {
+      return null;
+    }
+    double luminance = 0;
+    double[] weights = {0.2126, 0.7152, 0.0722};
+    for (int i = 0; i < 3; i++) {
+      double c = Integer.parseInt(hex.substring(1 + i * 2, 3 + i * 2), 16) / 255.0;
+      luminance += weights[i] * (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    }
+    return luminance < 0.08 ? "dark" : luminance > 0.45 ? "light" : null;
   }
 }
