@@ -86,7 +86,7 @@ export class LayersPanel implements Panel {
     master.indeterminate = visible > 0 && visible < g.categories.length;
     master.addEventListener('change', () => this.setMany(g.categories.map((c) => c.id), master.checked));
     const wrap = h('div', { class: 'group' });
-    const expand = h('button', { class: 'expand', type: 'button', 'aria-label': `Expand ${g.label}`, 'aria-expanded': 'false' }, icon('chevron', 16));
+    const expand = h('button', { class: 'expand', type: 'button', 'aria-label': `Show the ${g.label} categories`, 'aria-expanded': 'false', 'aria-controls': `group-${g.id}` }, icon('chevron', 16));
     expand.addEventListener('click', () => {
       const open = wrap.toggleAttribute('open');
       expand.setAttribute('aria-expanded', String(open));
@@ -96,7 +96,7 @@ export class LayersPanel implements Panel {
         expand,
         h('label', { class: 'check grow' }, master, h('span', { class: 'badge', style: `--badge:${g.colour};width:12px;height:12px` }), h('span', { class: 'grow title' }, g.label), h('span', { class: 'meta count' }, total ? formatNumber(total) : '')),
       ),
-      h('div', { class: 'group-body' }, ...g.categories.map((c) => {
+      h('div', { class: 'group-body', id: `group-${g.id}` }, ...g.categories.map((c) => {
         const input = h('input', { type: 'checkbox', checked: !this.hidden.has(c.id) }) as HTMLInputElement;
         input.addEventListener('change', () => this.setMany([c.id], input.checked));
         const count = this.counts.get(c.id);

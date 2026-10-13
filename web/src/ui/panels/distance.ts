@@ -61,7 +61,8 @@ export class DistancePanel implements Panel {
     const field = (end: RouteEndName) => {
       const input = h('input', { type: 'search', autocomplete: 'off', spellcheck: 'false', placeholder: end === 'from' ? 'Start — search or pick on the map' : 'Destination', 'aria-label': `${LABEL[end]} place` });
       const menu = h('ul', { class: 'search-results route-menu', role: 'listbox', hidden: true });
-      const pick = h('button', { class: 'icon-btn', type: 'button', title: `Choose ${LABEL[end].toLowerCase()} on the map`, 'aria-pressed': 'false', onclick: () => this.startPick(this.picking === end ? null : end) }, icon('crosshair', 17));
+      const pickLabel = `Choose ${LABEL[end].toLowerCase()} on the map`;
+      const pick = h('button', { class: 'icon-btn', type: 'button', title: pickLabel, 'aria-label': pickLabel, 'aria-pressed': 'false', onclick: () => this.startPick(this.picking === end ? null : end) }, icon('crosshair', 17));
       const suggest = debounce(() => void this.suggest(end), 180);
       input.addEventListener('input', () => {
         this.points[end] = null;
@@ -99,7 +100,7 @@ export class DistancePanel implements Panel {
       this.modeButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.optimize), 'data-mode': m.id, onclick: () => this.setOptimize(m.id) }, m.label));
     }
     for (const m of MODES) {
-      this.travelButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.mode), 'data-travel': m.id, title: m.label, onclick: () => this.setMode(m.id) }, icon(m.icon, 16), h('span', {}, m.label)));
+      this.travelButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.mode), 'data-travel': m.id, title: m.label, 'aria-label': m.label, onclick: () => this.setMode(m.id) }, icon(m.icon, 16), h('span', {}, m.label)));
     }
     this.tollToggle.addEventListener('change', () => {
       this.avoidTolls = this.tollToggle.checked;
@@ -116,7 +117,7 @@ export class DistancePanel implements Panel {
       h('div', { class: 'route-form' }, row('from'), row('to')),
       h('div', { class: 'route-tools' },
         h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' }, ...this.modeButtons),
-        h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), t('route.swap')),
+        h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', 'aria-label': 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), t('route.swap')),
         'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), t('route.me')) : null,
       ),
       this.tollRow,

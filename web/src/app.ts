@@ -166,6 +166,7 @@ export function createApp(): void {
     themeBtn.replaceChildren(icon(theme.current === 'system' ? 'system' : theme.current === 'dark' ? 'moon' : 'sun', 19));
     themeBtn.title = `${t('tool.theme')}: ${theme.current}`;
     themeBtn.setAttribute('aria-label', themeBtn.title);
+    themeBtn.setAttribute('aria-live', 'polite');
   };
   themeIcon();
   themeBtn.addEventListener('click', () => {

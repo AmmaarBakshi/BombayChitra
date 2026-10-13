@@ -27,7 +27,7 @@ export class ExplorePanel implements Panel {
     const areas = this.ctx.meta?.areas ?? [];
     const current = this.ctx.currentArea();
     const chip = (id: string | null, label: string, title?: string) =>
-      h('button', { class: 'chip', type: 'button', title, 'aria-pressed': String(current === id), 'data-area': id ?? '', onclick: () => this.ctx.selectArea(id, true) }, label);
+      h('button', { class: 'chip', type: 'button', title, 'aria-label': title && title !== label ? `${label}: ${title}` : label, 'aria-pressed': String(current === id), 'data-area': id ?? '', onclick: () => this.ctx.selectArea(id, true) }, label);
 
     const meta = this.ctx.meta;
     // The 24 BMC wards get a compact grid of their codes (A, F/N, R/C…) below the larger areas.
