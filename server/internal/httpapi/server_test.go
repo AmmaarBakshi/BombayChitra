@@ -331,6 +331,13 @@ func TestAreasByKind(t *testing.T) {
 			t.Errorf("non-ward %v in kind=ward", a["id"])
 		}
 	}
+	_, withStats := get(t, h, "/api/v1/areas?kind=ward&stats=true")
+	for _, it := range withStats["items"].([]any) {
+		a := it.(map[string]any)
+		if stats, _ := a["stats"].(map[string]any); stats["places"] == nil || stats["buildings"] == nil {
+			t.Errorf("%v: stats %v", a["id"], a["stats"])
+		}
+	}
 	_, alias := get(t, h, "/api/v1/areas?type=ward")
 	if alias["count"] != body["count"] {
 		t.Errorf("type=ward returned %v areas, kind=ward %v", alias["count"], body["count"])

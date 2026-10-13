@@ -280,6 +280,10 @@ paths:
           description: 'Only areas of this kind: `region`, `district`, `city`, `zone`, `taluka`, `ward` — or `pincode` for PIN code areas. `type` is accepted as an alias.'
           schema: { type: string, enum: [region, district, city, zone, taluka, ward, pincode] }
           example: ward
+        - name: stats
+          in: query
+          description: Include each area's statistics (as in `/api/v1/stats`), e.g. to compare the wards in one request.
+          schema: { type: boolean, default: false }
       responses:
         '200':
           description: Areas

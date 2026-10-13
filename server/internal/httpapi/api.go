@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -97,11 +98,27 @@ func (s *Server) handleAreas(w http.ResponseWriter, r *http.Request) {
 	if kind == "" {
 		kind = p.str("type") // the name the roadmap and early clients used
 	}
+	withStats := p.boolean("stats")
+	if p.err != nil {
+		s.badRequest(w, r, p.err.Error())
+		return
+	}
 	if kind == "pincode" {
 		pins, err := s.store.PinCodes(r.Context())
 		if err != nil {
 			s.handleErr(w, r, err)
 			return
+		}
+		if withStats {
+			pins = slices.Clone(pins)
+			for i := range pins {
+				full, err := s.store.PinCode(r.Context(), pins[i].ID)
+				if err != nil {
+					s.handleErr(w, r, err)
+					return
+				}
+				pins[i].Stats = full.Stats
+			}
 		}
 		s.writeJSON(w, r, http.StatusOK, map[string]any{"count": len(pins), "items": pins})
 		return
@@ -123,6 +140,18 @@ func (s *Server) handleAreas(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		items = filtered
+	}
+	if withStats {
+		// Statistics for every listed area at once, e.g. to compare the wards.
+		items = slices.Clone(items)
+		for i := range items {
+			stats, err := s.store.Stats(r.Context(), items[i].ID)
+			if err != nil {
+				s.handleErr(w, r, err)
+				return
+			}
+			items[i].Stats = stats
+		}
 	}
 	s.writeJSON(w, r, http.StatusOK, map[string]any{"count": len(items), "items": items})
 }
