@@ -6,6 +6,7 @@ import type { AppContext } from './context.ts';
 import { clear, h } from './dom.ts';
 import { capitalise, formatArea, formatCoord, formatDistance, formatDMS, formatNumber, formatOsmDate, isRecent, parseOsmDate } from './format.ts';
 import { updateHash } from './hash.ts';
+import { t } from '../i18n.ts';
 import { categoryBadge, icon, kindBadge } from './icons.ts';
 
 type Head = { badge: HTMLElement; title: string; kicker?: string };
@@ -131,19 +132,19 @@ export class Inspector {
     const group = cat ? groupById.get(cat.group) : undefined;
     const rows: Node[] = [];
     if (d.heritage) rows.push(this.row('info', 'Heritage', heritageStatus(d.heritage), d.heritage.wikipedia ? h('span', {}, ' · ', wikipediaLink(d.heritage.wikipedia)) : null));
-    if (d.lines?.length) rows.push(this.row('train', 'Lines', this.lineChips(d.lines)));
+    if (d.lines?.length) rows.push(this.row('train', t('card.lines'), this.lineChips(d.lines)));
     if (STATION_CATEGORIES.has(d.category)) rows.push(...this.stationRows(d));
     const opened = d.tags.opening_date ?? d.tags.start_date;
-    if (d.address) rows.push(this.row('pin', 'Address', d.address));
-    if (d.phone) rows.push(this.row('phone', 'Phone', ...d.phone.split(/[;,]/).map((p) => h('a', { href: `tel:${p.trim().replace(/\s/g, '')}` }, p.trim(), ' '))));
-    if (d.website) rows.push(this.row('globe', 'Website', h('a', { href: safeUrl(d.website), target: '_blank', rel: 'noopener' }, prettyUrl(d.website))));
-    if (d.opening_hours) rows.push(this.row('clock', 'Hours', d.opening_hours));
+    if (d.address) rows.push(this.row('pin', t('card.address'), d.address));
+    if (d.phone) rows.push(this.row('phone', t('card.phone'), ...d.phone.split(/[;,]/).map((p) => h('a', { href: `tel:${p.trim().replace(/\s/g, '')}` }, p.trim(), ' '))));
+    if (d.website) rows.push(this.row('globe', t('card.website'), h('a', { href: safeUrl(d.website), target: '_blank', rel: 'noopener' }, prettyUrl(d.website))));
+    if (d.opening_hours) rows.push(this.row('clock', t('card.hours'), d.opening_hours));
     if (d.cuisine) rows.push(this.row('info', 'Cuisine', d.cuisine.split(';').map(capitalise).join(', ')));
     if (d.operator && !STATION_CATEGORIES.has(d.category)) rows.push(this.row('info', 'Operator', d.operator));
     if (d.brand && d.brand !== d.name) rows.push(this.row('info', 'Brand', d.brand));
     if (d.wheelchair) rows.push(this.row('wheelchair', 'Wheelchair', capitalise(d.wheelchair)));
     if (d.area_m2) rows.push(this.row('explore', 'Area', formatArea(d.area_m2)));
-    if (d.areas.length) rows.push(this.row('explore', 'Within', d.areas.map((a) => a.name).join(' · ')));
+    if (d.areas.length) rows.push(this.row('explore', t('card.within'), d.areas.map((a) => a.name).join(' · ')));
     rows.push(this.coordRow(d.lon, d.lat));
     const overture = d.source === 'overture';
     if (overture) {
@@ -623,18 +624,18 @@ export class Inspector {
 
   private coordRow(lon: number, lat: number): HTMLElement {
     const text = formatCoord(lon, lat);
-    return this.row('pin', 'Coordinates',
+    return this.row('pin', t('card.coordinates'),
       h('span', { class: 'mono', title: formatDMS(lon, lat) }, text),
-      h('button', { class: 'link-btn', type: 'button', style: 'margin-left:8px', onclick: () => this.copy(text, 'Coordinates copied') }, 'Copy'),
+      h('button', { class: 'link-btn', type: 'button', style: 'margin-left:8px', onclick: () => this.copy(text, 'Coordinates copied') }, t('card.copy')),
     );
   }
 
   private actions(lon: number, lat: number, osmUrl?: string, name?: string): HTMLElement {
     const dest = `${lat.toFixed(6)},${lon.toFixed(6)}`;
     return h('div', { class: 'btn-row', style: 'margin:12px 0 4px' },
-      h('button', { class: 'btn btn-primary', type: 'button', title: 'Distance and route by road to here', onclick: () => this.ctx.routeTo({ lon, lat, label: name ?? dest }) }, icon('directions', 15), 'Route here'),
-      h('button', { class: 'btn', type: 'button', onclick: () => this.copy(location.href, 'Link copied') }, icon('link', 15), 'Share'),
-      h('button', { class: 'btn', type: 'button', onclick: () => this.nearbyFrom(lon, lat, name) }, icon('search', 15), 'Nearby'),
+      h('button', { class: 'btn btn-primary', type: 'button', title: 'Distance and route by road to here', onclick: () => this.ctx.routeTo({ lon, lat, label: name ?? dest }) }, icon('directions', 15), t('card.routeHere')),
+      h('button', { class: 'btn', type: 'button', onclick: () => this.copy(location.href, 'Link copied') }, icon('link', 15), t('card.share')),
+      h('button', { class: 'btn', type: 'button', onclick: () => this.nearbyFrom(lon, lat, name) }, icon('search', 15), t('card.nearby')),
       osmUrl ? h('a', { class: 'btn', href: osmUrl, target: '_blank', rel: 'noopener', title: 'View or edit on OpenStreetMap' }, icon('external', 15), 'OSM') : null,
     );
   }
