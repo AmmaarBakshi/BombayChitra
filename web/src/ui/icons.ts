@@ -43,6 +43,7 @@ const UI: Record<string, string> = {
   arrow: '<path d="M12 20V5M6 11l6-6 6 6"/>',
   flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   toll: '<path d="M4 20V8l8-4 8 4v12M4 12h16M9 20v-4h6v4"/>',
+  drop: '<path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/>',
 };
 
 export function icon(name: keyof typeof UI | string, size = 18): SVGElement {

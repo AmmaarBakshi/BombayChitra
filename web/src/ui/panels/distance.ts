@@ -310,6 +310,7 @@ export class DistancePanel implements Panel {
       features: [
         { type: 'Feature', geometry: res.geometry, properties: { colour: COLOUR, width: 6, dashed: res.mode === 'foot' } },
         ...this.endFeatures(),
+        ...res.hotspots.map((spot) => ({ type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [spot.lon, spot.lat] }, properties: { role: 'stop', colour: '#1c7ed6', name: spot.name } })),
       ],
     });
     this.ctx.map.fitBounds(res.bbox, 16);
@@ -329,6 +330,7 @@ export class DistancePanel implements Panel {
         ? h('div', { class: 'route-notice' }, icon('toll', 16), h('span', { class: 'grow' }, `Includes ${formatDistance(res.toll_m)} of toll road`),
           h('button', { class: 'link-btn', type: 'button', onclick: () => { this.tollToggle.checked = true; this.tollToggle.dispatchEvent(new Event('change')); } }, 'Avoid tolls'))
         : null,
+      res.hotspots.length ? this.hotspotNotice(res) : null,
       h('dl', { class: 'kv' },
         h('dt', {}, 'Straight line'), h('dd', {}, `${formatDistance(res.straight_m)} · road is ${detour.toFixed(2)}× longer`),
         h('dt', {}, 'From'), h('dd', { 'data-end': 'from' }, from?.label ?? '', res.from.snapped.offset_m > 30 ? h('span', { class: 'sub' }, ` (joins ${res.from.snapped.road ?? 'the road'} ${formatDistance(res.from.snapped.offset_m)} away)`) : null),
@@ -347,6 +349,19 @@ export class DistancePanel implements Panel {
         ? 'Walking at 4.8 km/h along roads, footpaths, steps and foot over-bridges; one-way rules do not apply. Expressways, sea links and freeways are closed to pedestrians.'
         : `Estimated from road types and one-way rules, without live traffic; peak-hour journeys take longer. Turn restrictions are not considered.${res.mode === 'two_wheeler' ? ' Two-wheelers are not allowed on expressways, sea links and freeways.' : ''}`),
     ]);
+  }
+
+  /** Waterlogging hotspots on the route: a warning in the monsoon, a note the rest of the year. */
+  private hotspotNotice(res: RouteResult): HTMLElement {
+    const names = res.hotspots.map((s) => s.name);
+    const list = names.length > 3 ? `${names.slice(0, 3).join(', ')} and ${names.length - 3} more` : names.join(', ').replace(/, ([^,]*)$/, ' and $1');
+    const text = res.monsoon
+      ? `Passes ${names.length === 1 ? 'a waterlogging hotspot' : `${names.length} waterlogging hotspots`}: ${list}. Expect flooding in heavy rain.`
+      : `Passes ${names.length === 1 ? 'a spot' : `${names.length} spots`} that flood in the monsoon: ${list}.`;
+    return h('div', { class: `route-notice${res.monsoon ? ' warn' : ''}`, role: res.monsoon ? 'alert' : undefined }, icon('drop', 16),
+      h('span', { class: 'grow' }, text),
+      h('button', { class: 'link-btn', type: 'button', onclick: () => this.ctx.map.flyTo([res.hotspots[0].lon, res.hotspots[0].lat], 16) }, 'Show'),
+    );
   }
 
   /** Turn-by-turn directions; choosing a step shows where it happens. */

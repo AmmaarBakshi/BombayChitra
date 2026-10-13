@@ -467,6 +467,12 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   font-size: 13px;
 }
 
+.route-notice.warn {
+  background: rgba(28, 126, 214, 0.12);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 #1c7ed6;
+}
+
 .route-directions {
   margin-top: 12px;
 }
