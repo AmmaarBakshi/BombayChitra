@@ -150,6 +150,26 @@ curl "$B/api/v1/places?area=400050&category=school"        # schools addressed w
 
 `/api/v1/reverse` returns the PIN (`postcode`) of any point, and searching for a six-digit PIN finds its area.
 
+### Heritage and the monsoon
+
+```bash
+curl "$B/api/v1/heritage?status=unesco"                    # the three World Heritage Sites
+curl "$B/api/v1/heritage?format=geojson"                    # all curated heritage sites, for a map layer
+curl "$B/api/v1/hotspots"                                   # waterlogging hotspots and whether it is the monsoon
+```
+
+A place that represents a heritage site carries it in its details as `heritage` (status, year of inscription,
+description, Wikipedia article). Every route lists the waterlogging `hotspots` it passes and says whether it is
+`monsoon` season (June to September, India Standard Time); warn your users when it is.
+
+### Search
+
+Search is forgiving of how Indian names are spelled in Latin script: queries and names are compared with accents
+dropped, aspiration (`bh`, `dh`, `kh`…) ignored, `chh`/`ch`, `ph`/`f`, `w`/`v`, `z`/`j`, `ee`/`i` and `oo`/`u`
+treated alike and doubled letters single, and without spaces — "bandup", "gatkopar", "vorli" and "vileparle"
+find Bhandup, Ghatkopar, Worli and Vile Parle. Station codes and former names count as names ("CST", "VT",
+"Victoria Terminus"), and a six-digit PIN finds its area.
+
 ### Places along a route or in view
 
 Use `bbox` with the visible map bounds and a `category` or `group` filter. For a radius, use `/nearby`, which

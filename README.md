@@ -41,8 +41,12 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
   universities, banks, ATMs, grounds and maidans, sports clubs and gymkhanas, cafés, restaurants, hotels, temples,
   mosques, churches, gurudwaras, agiaries, police, fire stations, post offices, malls, markets, offices and more.
 - **Areas** — Mumbai City, Mumbai Suburban, MaKaBo, Thane District, Thane, Navi Mumbai, Mira-Bhayandar,
-  Kalyan-Dombivli, Vasai-Virar, Panvel, Panvel Taluka (Kharghar, Kalamboli, Taloja) and Uran (Ulwe, airport) from
-  official boundaries, for filtering and statistics.
+  Kalyan-Dombivli, Vasai-Virar, Panvel, Panvel Taluka (Kharghar, Kalamboli, Taloja), Uran (Ulwe, airport) and the
+  **24 BMC wards** from official boundaries, for filtering, statistics and a side-by-side ward comparison; **PIN
+  code areas** derived from 112,000 addressed places.
+- **Mumbai layers** — UNESCO World Heritage Sites, heritage precincts and listed monuments; **monsoon waterlogging
+  hotspots** (Hindmata, Milan Subway, King's Circle…) with warnings on routes that pass them from June to
+  September; station details and a "recently opened" badge for new metro stations.
 - **English, Marathi and Hindi** — the interface and the map's labels, and search that forgives spelling
   ("bandup", "vileparle", "chatrapati" find Bhandup, Vile Parle and Chhatrapati).
 - **Light and dark themes**, a dashboard you can hide (`H`) for a full-screen map, unified search with autocomplete,
