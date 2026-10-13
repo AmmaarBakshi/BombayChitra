@@ -216,6 +216,16 @@ public final class Schema {
       wikipedia   TEXT
     ) WITHOUT ROWID;
 
+    CREATE TABLE hotspots (
+      id          TEXT PRIMARY KEY,
+      kind        TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      lon         REAL NOT NULL,
+      lat         REAL NOT NULL,
+      radius_m    REAL NOT NULL,
+      description TEXT
+    ) WITHOUT ROWID;
+
     CREATE VIRTUAL TABLE search USING fts5(
       name, alt, detail,
       kind UNINDEXED, ref UNINDEXED, category UNINDEXED, lon UNINDEXED, lat UNINDEXED, weight UNINDEXED,

@@ -125,6 +125,7 @@ public final class DatabaseWriter {
       writeBridges(db, areas, localities);
       writeBuildings(db, areas, localities);
       writeHeritage(db);
+      writeHotspots(db);
       RoadGraph.write(db, sink.graphWays, routingMeta);
       flushSearch();
       flushMembers();
@@ -875,6 +876,24 @@ public final class DatabaseWriter {
       insert.executeBatch();
     }
     LOGGER.info("Heritage sites: {}", curated.heritage().size());
+  }
+
+  private void writeHotspots(Connection db) throws SQLException {
+    try (var insert = db.prepareStatement("INSERT INTO hotspots VALUES (?,?,?,?,?,?,?)")) {
+      for (var spot : curated.hotspots()) {
+        insert.setString(1, spot.id());
+        insert.setString(2, "waterlogging");
+        insert.setString(3, spot.name());
+        insert.setDouble(4, Tags.round6(spot.lon()));
+        insert.setDouble(5, Tags.round6(spot.lat()));
+        insert.setDouble(6, spot.radius());
+        insert.setString(7, spot.description());
+        insert.addBatch();
+      }
+      insert.executeBatch();
+    }
+    extraMeta.put("waterlogging_season", curated.season().from() + "-" + curated.season().to());
+    LOGGER.info("Waterlogging hotspots: {}", curated.hotspots().size());
   }
 
   // ---------------------------------------------------------------- stats & meta
