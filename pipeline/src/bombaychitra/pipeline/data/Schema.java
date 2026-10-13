@@ -204,6 +204,18 @@ public final class Schema {
       geometry   TEXT NOT NULL
     );
 
+    CREATE TABLE heritage_sites (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      status      TEXT NOT NULL,
+      year        INTEGER,
+      place_id    INTEGER,
+      lon         REAL NOT NULL,
+      lat         REAL NOT NULL,
+      description TEXT,
+      wikipedia   TEXT
+    ) WITHOUT ROWID;
+
     CREATE VIRTUAL TABLE search USING fts5(
       name, alt, detail,
       kind UNINDEXED, ref UNINDEXED, category UNINDEXED, lon UNINDEXED, lat UNINDEXED, weight UNINDEXED,

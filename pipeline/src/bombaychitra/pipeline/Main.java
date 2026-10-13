@@ -50,6 +50,7 @@ public final class Main {
 
     RegionConfig region = RegionConfig.load(configDir.resolve("region.json"));
     Taxonomy taxonomy = Taxonomy.load(configDir.resolve("categories.json"));
+    Curated curated = Curated.load(configDir);
 
     Path build = dataDir.resolve("build");
     Path osm = dataDir.resolve("sources").resolve(region.source().file());
@@ -101,7 +102,7 @@ public final class Main {
       LOGGER.warn("Could not read OSM header timestamp: {}", e.getMessage());
     }
     meta.putAll(overtureMeta);
-    new DatabaseWriter(region, taxonomy, sink, meta).write(database);
+    new DatabaseWriter(region, taxonomy, curated, sink, meta).write(database);
     sink.clear();
   }
 

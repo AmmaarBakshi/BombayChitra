@@ -1,5 +1,6 @@
 package bombaychitra.pipeline.data;
 
+import bombaychitra.pipeline.Curated;
 import bombaychitra.pipeline.RegionConfig;
 import bombaychitra.pipeline.Taxonomy;
 import bombaychitra.pipeline.geo.LineSpine;
@@ -72,6 +73,7 @@ public final class DatabaseWriter {
 
   private final RegionConfig region;
   private final Taxonomy taxonomy;
+  private final Curated curated;
   private final DataSink sink;
   private final Map<String, String> extraMeta;
   private final Map<String, String> routingMeta = new LinkedHashMap<>();
@@ -81,9 +83,11 @@ public final class DatabaseWriter {
   private int searchPending;
   private int memberPending;
 
-  public DatabaseWriter(RegionConfig region, Taxonomy taxonomy, DataSink sink, Map<String, String> extraMeta) {
+  public DatabaseWriter(RegionConfig region, Taxonomy taxonomy, Curated curated, DataSink sink,
+    Map<String, String> extraMeta) {
     this.region = region;
     this.taxonomy = taxonomy;
+    this.curated = curated;
     this.sink = sink;
     this.extraMeta = extraMeta;
   }
@@ -120,6 +124,7 @@ public final class DatabaseWriter {
       writeStreets(db, areas, localities);
       writeBridges(db, areas, localities);
       writeBuildings(db, areas, localities);
+      writeHeritage(db);
       RoadGraph.write(db, sink.graphWays, routingMeta);
       flushSearch();
       flushMembers();
@@ -832,6 +837,44 @@ public final class DatabaseWriter {
       rtree.executeBatch();
     }
     LOGGER.info("Buildings: {} detailed records", buildings.size());
+  }
+
+  // ---------------------------------------------------------------- curated data
+
+  private void writeHeritage(Connection db) throws SQLException {
+    Set<Long> placeIds = new HashSet<>();
+    sink.places.forEach(p -> placeIds.add(p.id()));
+    try (var insert = db.prepareStatement("INSERT INTO heritage_sites VALUES (?,?,?,?,?,?,?,?,?)")) {
+      for (var site : curated.heritage()) {
+        Long place = site.place();
+        if (place != null && !placeIds.contains(place)) {
+          // The OpenStreetMap feature was deleted or re-mapped: keep the site at its coordinates.
+          LOGGER.warn("Heritage site '{}' refers to place {}, which is not in this build", site.id(), place);
+          place = null;
+        }
+        int i = 1;
+        insert.setString(i++, site.id());
+        insert.setString(i++, site.name());
+        insert.setString(i++, site.status());
+        if (site.year() == null) {
+          insert.setNull(i++, Types.INTEGER);
+        } else {
+          insert.setInt(i++, site.year());
+        }
+        if (place == null) {
+          insert.setNull(i++, Types.INTEGER);
+        } else {
+          insert.setLong(i++, place);
+        }
+        insert.setDouble(i++, Tags.round6(site.lon()));
+        insert.setDouble(i++, Tags.round6(site.lat()));
+        insert.setString(i++, site.description());
+        insert.setString(i, site.wikipedia());
+        insert.addBatch();
+      }
+      insert.executeBatch();
+    }
+    LOGGER.info("Heritage sites: {}", curated.heritage().size());
   }
 
   // ---------------------------------------------------------------- stats & meta
