@@ -138,6 +138,8 @@ export interface Reverse {
   label: string;
   road?: RoadMatch;
   locality?: Locality;
+  /** The PIN code area the point is in. */
+  postcode?: string;
   areas: AreaRef[];
   nearby: Place[];
 }

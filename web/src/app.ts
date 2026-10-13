@@ -231,6 +231,7 @@ export function createApp(): void {
       case 'route': return void inspector.route(sel.id);
       case 'building': return void inspector.buildingById(sel.id, false);
       case 'pin': return void inspector.reverse([sel.lon, sel.lat]);
+      case 'pincode': return void inspector.pinCode(sel.pincode);
     }
   });
 }

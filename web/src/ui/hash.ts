@@ -5,7 +5,8 @@ export type LatLon = [number, number];
 
 export type Selection =
   | { kind: 'place' | 'street' | 'bridge' | 'route' | 'building'; id: number }
-  | { kind: 'pin'; lat: number; lon: number };
+  | { kind: 'pin'; lat: number; lon: number }
+  | { kind: 'pincode'; pincode: string };
 
 const SELECTION_KINDS = new Set(['place', 'street', 'bridge', 'route', 'building']);
 
@@ -41,6 +42,7 @@ export function parseSelection(value: string | null): Selection | null {
     const point = parseLatLon(rest);
     return point ? { kind: 'pin', lat: point[0], lon: point[1] } : null;
   }
+  if (kind === 'pincode') return /^[1-9]\d{5}$/.test(rest) ? { kind: 'pincode', pincode: rest } : null;
   if (!SELECTION_KINDS.has(kind) || !/^\d+$/.test(rest)) return null;
   return { kind: kind as 'place', id: Number(rest) };
 }

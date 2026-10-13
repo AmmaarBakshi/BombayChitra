@@ -96,6 +96,7 @@ export class Inspector {
       case 'line':
         return this.route(Number(r.id));
       case 'area':
+        if (r.category === 'pincode') return this.pinCode(String(r.id));
         this.close();
         this.ctx.selectArea(String(r.id), true);
         return;
@@ -416,6 +417,41 @@ export class Inspector {
     return h('span', {}, ...lines.map((l) => h('button', { class: `line-chip${l.state ? ' planned' : ''}`, type: 'button', style: `--line:${l.colour ?? '#868e96'}`, title: l.state ? `${l.label} (${STATE_LABELS[l.state]?.toLowerCase() ?? l.state})` : l.label, onclick: () => this.lineByKey(l.key) }, l.ref ?? l.label)));
   }
 
+  // ---------------------------------------------------------------- PIN codes
+
+  /** A PIN code area: its approximate outline (from addressed places), localities and what is in it. */
+  async pinCode(pin: string): Promise<void> {
+    const signal = this.begin();
+    this.loading();
+    try {
+      const a = await this.ctx.api.area(pin, signal);
+      if (signal.aborted) return;
+      if (a.geometry) this.select({ type: 'Feature', geometry: a.geometry, properties: { colour: '#e8590c', width: 3 } });
+      this.ctx.map.fitBounds(a.bbox, 15);
+      setSelectionHash(`pincode:${pin}`);
+      const stats = a.stats ?? {};
+      const top = Object.entries(stats)
+        .filter(([k]) => k.startsWith('places:'))
+        .map(([k, v]) => [k.slice(7), v] as [string, number])
+        .sort((x, y) => y[1] - x[1])
+        .slice(0, 6);
+      this.render({ badge: kindBadge('locality', '#e8590c', 40), title: `PIN ${pin}`, kicker: ['PIN code', a.description].filter(Boolean).join(' · ') }, [
+        h('dl', { class: 'kv' },
+          h('dt', {}, 'Places'), h('dd', {}, formatNumber(stats.places ?? 0)),
+          h('dt', {}, 'Area'), h('dd', {}, `≈ ${a.area_km2.toLocaleString('en-IN')} km²`),
+          ...top.map(([cat, n]) => [h('dt', {}, categoryById.get(cat)?.label ?? capitalise(cat)), h('dd', {}, formatNumber(n))]),
+        ),
+        h('p', { class: 'sub', style: 'white-space:normal;margin:6px 0' }, 'The outline is drawn around the places whose address has this PIN; postal delivery boundaries are not published as open data.'),
+        h('div', { class: 'btn-row', style: 'margin:10px 0 4px' },
+          h('button', { class: 'btn btn-primary', type: 'button', onclick: () => this.ctx.selectArea(pin, false) }, icon('explore', 15), 'Use as area'),
+          h('button', { class: 'btn', type: 'button', onclick: () => this.copy(location.href, 'Link copied') }, icon('link', 15), 'Share'),
+        ),
+      ]);
+    } catch (err) {
+      this.failed(err);
+    }
+  }
+
   // ---------------------------------------------------------------- localities & pins
 
   private async locality(name: string, kind: string, at: LonLat): Promise<void> {
@@ -452,6 +488,7 @@ export class Inspector {
       this.render({ badge: kindBadge('locality', '#e8590c', 40), title: opts.title ?? (r.label.split(',')[0] || 'Dropped pin'), kicker: r.label }, [
         r.road ? this.row('route', 'Nearest road', h('span', {}, h('b', {}, r.road.name ?? r.road.ref ?? 'Unnamed road'), ` · ${ROAD_LABELS[r.road.kind] ?? r.road.kind} · ${formatDistance(r.road.distance_m)} away`)) : null,
         r.locality ? this.row('pin', 'Locality', `${r.locality.name} (${r.locality.kind})`) : null,
+        r.postcode ? this.row('pin', 'PIN code', h('button', { class: 'link-btn', type: 'button', onclick: () => this.pinCode(r.postcode!) }, r.postcode)) : null,
         r.areas.length ? this.row('explore', 'Within', r.areas.map((a) => a.name).join(' · ')) : null,
         this.coordRow(at[0], at[1]),
         this.actions(at[0], at[1]),
