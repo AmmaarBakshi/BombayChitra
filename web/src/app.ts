@@ -93,7 +93,11 @@ export function createApp(): void {
   const bodies = new Map<string, HTMLElement>();
   const show = (id: string) => {
     const panel = panels.find((p) => p.id === id) ?? panels[0];
-    tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === panel.id)));
+    // Roving tabindex: only the selected tab is in the Tab order; arrow keys move between tabs.
+    tabs.querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-selected', String(b.dataset.tab === panel.id));
+      b.tabIndex = b.dataset.tab === panel.id ? 0 : -1;
+    });
     $('#tool-route').setAttribute('aria-pressed', String(panel.id === 'distance'));
     for (const [pid, el] of bodies) el.hidden = pid !== panel.id;
     if (!rendered.has(panel.id)) {
@@ -103,11 +107,22 @@ export function createApp(): void {
     storageSet(TAB_KEY, panel.id);
   };
   for (const p of panels) {
-    const el = h('div', { role: 'tabpanel', id: `tab-${p.id}`, hidden: true });
+    const el = h('div', { role: 'tabpanel', id: `tab-${p.id}`, 'aria-labelledby': `tabbtn-${p.id}`, tabindex: 0, hidden: true });
     bodies.set(p.id, el);
     body.append(el);
-    tabs.append(h('button', { type: 'button', role: 'tab', 'data-tab': p.id, 'aria-controls': `tab-${p.id}`, 'aria-selected': 'false', onclick: () => show(p.id) }, icon(p.icon, 18), p.label));
+    tabs.append(h('button', { type: 'button', role: 'tab', id: `tabbtn-${p.id}`, 'data-tab': p.id, 'aria-controls': `tab-${p.id}`, 'aria-selected': 'false', tabindex: -1, onclick: () => show(p.id) }, icon(p.icon, 18), p.label));
   }
+  tabs.addEventListener('keydown', (e) => {
+    const buttons = [...tabs.querySelectorAll<HTMLButtonElement>('button[role="tab"]')];
+    const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (i < 0) return;
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: buttons.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const target = buttons[(next + buttons.length) % buttons.length];
+    target.focus();
+    show(target.dataset.tab!);
+  });
 
   // ---------------------------------------------------------------- dashboard hider
 
