@@ -1,0 +1,158 @@
+{
+  "notes": "Curated heritage sites shown by the heritage layer. OpenStreetMap maps hundreds of historic features in the region (historic=*) but rarely their listing, so World Heritage Sites, heritage precincts and protected monuments are listed here with the OpenStreetMap feature that represents each (place id = osm_id x 10 + type). status: unesco (UNESCO World Heritage Site, with the year of inscription), precinct (heritage precinct) or monument (listed heritage structure or protected monument). Add a site with a source for its status.",
+  "sites": [
+    {
+      "id": "csmt",
+      "name": "Chhatrapati Shivaji Maharaj Terminus",
+      "status": "unesco",
+      "year": 2004,
+      "place": 1074415162,
+      "lon": 72.835519,
+      "lat": 18.939856,
+      "description": "Victorian Gothic railway terminus by F. W. Stevens, completed in 1888; formerly Victoria Terminus.",
+      "wikipedia": "en:Chhatrapati Shivaji Terminus"
+    },
+    {
+      "id": "elephanta",
+      "name": "Elephanta Caves",
+      "status": "unesco",
+      "year": 1987,
+      "place": 15641693472,
+      "lon": 72.93148,
+      "lat": 18.9629,
+      "description": "Rock-cut cave temples dedicated to Shiva on Elephanta Island in Mumbai Harbour.",
+      "wikipedia": "en:Elephanta Caves"
+    },
+    {
+      "id": "victorian-art-deco",
+      "name": "Victorian Gothic and Art Deco Ensembles of Mumbai",
+      "status": "unesco",
+      "year": 2018,
+      "place": 423521202,
+      "lon": 72.828936,
+      "lat": 18.929594,
+      "description": "The Victorian Gothic public buildings and the Art Deco apartments facing each other across the Oval Maidan, with Marine Drive's Art Deco seafront.",
+      "wikipedia": "en:Victorian Gothic and Art Deco Ensembles of Mumbai"
+    },
+    {
+      "id": "fort-precinct",
+      "name": "Fort Precinct",
+      "status": "precinct",
+      "place": 407431822,
+      "lon": 72.835024,
+      "lat": 18.932002,
+      "description": "The old walled city of Bombay around Horniman Circle: banks, offices and institutions of the 19th and early 20th century.",
+      "wikipedia": "en:Fort (Mumbai precinct)"
+    },
+    {
+      "id": "kala-ghoda",
+      "name": "Kala Ghoda",
+      "status": "precinct",
+      "place": 26300281591,
+      "lon": 72.832599,
+      "lat": 18.928458,
+      "description": "Art district of museums, galleries and heritage buildings south of Fort.",
+      "wikipedia": "en:Kala Ghoda"
+    },
+    {
+      "id": "ballard-estate",
+      "name": "Ballard Estate",
+      "status": "precinct",
+      "place": 16404613111,
+      "lon": 72.839132,
+      "lat": 18.936651,
+      "description": "Business district laid out on reclaimed land in the early 20th century, with uniform Edwardian neo-classical buildings.",
+      "wikipedia": "en:Ballard Estate"
+    },
+    {
+      "id": "marine-drive",
+      "name": "Marine Drive",
+      "status": "precinct",
+      "place": 45835834981,
+      "lon": 72.820738,
+      "lat": 18.928365,
+      "description": "The seafront promenade along Back Bay, lined with Art Deco buildings.",
+      "wikipedia": "en:Marine Drive, Mumbai"
+    },
+    {
+      "id": "banganga",
+      "name": "Banganga Tank",
+      "status": "precinct",
+      "place": 387182042,
+      "lon": 72.793643,
+      "lat": 18.945491,
+      "description": "Ancient water tank surrounded by temples in Walkeshwar, Malabar Hill.",
+      "wikipedia": "en:Banganga Tank"
+    },
+    {
+      "id": "dadar-parsi-colony",
+      "name": "Dadar Parsi Colony",
+      "status": "precinct",
+      "place": 9566891792,
+      "lon": 72.852229,
+      "lat": 19.018805,
+      "description": "Planned residential enclave of the 1920s, with Art Deco villas around gardens and an agiary.",
+      "wikipedia": "en:Dadar Parsi Colony"
+    },
+    {
+      "id": "gateway-of-india",
+      "name": "Gateway of India",
+      "status": "monument",
+      "place": 288456342,
+      "lon": 72.834566,
+      "lat": 18.921966,
+      "description": "Indo-Saracenic arch on the Apollo Bunder waterfront, completed in 1924.",
+      "wikipedia": "en:Gateway of India"
+    },
+    {
+      "id": "kanheri",
+      "name": "Kanheri Caves",
+      "status": "monument",
+      "place": 3694607762,
+      "lon": 72.906515,
+      "lat": 19.206605,
+      "description": "Buddhist cave complex in Sanjay Gandhi National Park, carved from the 1st century BCE.",
+      "wikipedia": "en:Kanheri Caves"
+    },
+    {
+      "id": "bandra-fort",
+      "name": "Bandra Fort",
+      "status": "monument",
+      "place": 3466126881,
+      "lon": 72.818608,
+      "lat": 19.042062,
+      "description": "Portuguese watchtower fort (Castella de Aguada) of 1640 at Land's End, Bandra.",
+      "wikipedia": "en:Castella de Aguada"
+    },
+    {
+      "id": "worli-fort",
+      "name": "Worli Fort",
+      "status": "monument",
+      "place": 100366911701,
+      "lon": 72.816839,
+      "lat": 19.023757,
+      "description": "British fort of around 1675 overlooking Mahim Bay.",
+      "wikipedia": "en:Worli Fort"
+    },
+    {
+      "id": "sewri-fort",
+      "name": "Sewri Fort",
+      "status": "monument",
+      "place": 6262493012,
+      "lon": 72.860174,
+      "lat": 19.000532,
+      "description": "British fort of 1680 on a hillock above the Sewri mudflats.",
+      "wikipedia": "en:Sewri Fort"
+    },
+    {
+      "id": "mahim-fort",
+      "name": "Mahim Fort",
+      "status": "monument",
+      "place": 5377663231,
+      "lon": 72.838127,
+      "lat": 19.042011,
+      "description": "Fort on Mahim Bay, facing Bandra Fort across the creek.",
+      "wikipedia": "en:Mahim Fort"
+    }
+  ]
+}
