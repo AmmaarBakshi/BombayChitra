@@ -1,0 +1,28 @@
+{
+  "notes": "Spots reported as waterlogged in heavy rain nearly every monsoon (June to September), from the BMC's pre-monsoon flood-prone lists and news reports; the BMC publishes the current list each May. Positions are the OpenStreetMap road, junction or landmark the spot is named after. radius_m is how close a route must pass to be warned. Add spots only with a source.",
+  "season": { "from": 6, "to": 9 },
+  "hotspots": [
+    { "id": "hindmata", "name": "Hindmata", "lon": 72.84193, "lat": 19.009138, "radius_m": 250,
+      "description": "Low-lying junction under the Hindmata flyover in Dadar East, one of the city's best-known flooding spots." },
+    { "id": "milan-subway", "name": "Milan Subway", "lon": 72.84261, "lat": 19.090478, "radius_m": 150,
+      "description": "Road underpass below the Western Railway between Santacruz and Vile Parle; closed to traffic when flooded." },
+    { "id": "kings-circle", "name": "King's Circle", "lon": 72.854892, "lat": 19.027183, "radius_m": 250,
+      "description": "Low-lying circle at Matunga, below the King's Circle flyover." },
+    { "id": "gandhi-market", "name": "Gandhi Market", "lon": 72.858937, "lat": 19.03133, "radius_m": 250,
+      "description": "Market road between King's Circle and Sion." },
+    { "id": "sion-circle", "name": "Sion Circle", "lon": 72.863456, "lat": 19.04267, "radius_m": 250,
+      "description": "Junction and subways by Sion station." },
+    { "id": "kurla-lbs", "name": "LBS Marg, Kurla", "lon": 72.878992, "lat": 19.077455, "radius_m": 300,
+      "description": "LBS Marg near Kalpana Cinema, Kurla West." },
+    { "id": "malad-subway", "name": "Malad Subway", "lon": 72.84861, "lat": 19.189272, "radius_m": 150,
+      "description": "Road underpass by Malad station." },
+    { "id": "chunabhatti", "name": "Chunabhatti", "lon": 72.867414, "lat": 19.052089, "radius_m": 250,
+      "description": "Low-lying stretch by Chunabhatti station on the Harbour line." },
+    { "id": "nair-hospital", "name": "Nair Hospital, Mumbai Central", "lon": 72.821919, "lat": 18.974216, "radius_m": 250,
+      "description": "Mumbai Central junction outside BYL Nair Hospital." },
+    { "id": "dadar-tt", "name": "Dadar TT", "lon": 72.846562, "lat": 19.016279, "radius_m": 250,
+      "description": "Junction under the Dadar TT flyover." },
+    { "id": "parel", "name": "Parel", "lon": 72.837661, "lat": 19.009482, "radius_m": 250,
+      "description": "Roads around Parel station and Parel TT." }
+  ]
+}
