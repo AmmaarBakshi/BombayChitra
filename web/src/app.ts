@@ -178,6 +178,7 @@ export function createApp(): void {
   const toggleBtn = (sel: string, iconName: string, key: 'buildings3d' | 'bridges') => {
     const btn = $(sel);
     btn.append(icon(iconName, 19));
+    btn.setAttribute('aria-pressed', String(map.getOverlays()[key])); // overlays may be restored from the last visit
     btn.addEventListener('click', () => layers.setOverlay(key, !map.getOverlays()[key]));
     layers.onOverlayChange((k, on) => k === key && btn.setAttribute('aria-pressed', String(on)));
   };

@@ -8,6 +8,9 @@ import { categoryBadge, icon } from '../icons.ts';
 import type { Panel } from './panel.ts';
 
 const HIDDEN_KEY = 'bc-hidden-categories';
+const OVERLAYS_KEY = 'bc-overlays';
+/** Overlays remembered between visits (3D needs a tilt, so it always starts off). */
+const REMEMBERED: (keyof Overlays)[] = ['bridges', 'railColours', 'boundaries', 'heritage', 'hotspots'];
 const OVERLAYS: { key: keyof Overlays; label: string; hint: string }[] = [
   { key: 'buildings3d', label: '3D buildings', hint: 'Extrude buildings by height and floors' },
   { key: 'bridges', label: 'Bridge explorer', hint: 'Highlight every bridge, flyover and viaduct' },
@@ -36,6 +39,12 @@ export class LayersPanel implements Panel {
     }
     this.hidden = new Set(initial.filter((id) => categories.some((c) => c.id === id)));
     this.ctx.map.setHiddenCategories([...this.hidden]);
+    try {
+      const saved = JSON.parse(storageGet(OVERLAYS_KEY) ?? '{}') as Partial<Record<keyof Overlays, boolean>>;
+      for (const key of REMEMBERED) if (typeof saved[key] === 'boolean') this.ctx.map.setOverlay(key, saved[key]);
+    } catch {
+      /* ignore a corrupt preference */
+    }
     void this.ctx.api.categories().then((res) => {
       for (const g of res.groups) for (const c of g.categories) this.counts.set(c.id, c.count);
       if (this.body) this.render(this.body);
@@ -49,6 +58,8 @@ export class LayersPanel implements Panel {
   setOverlay(key: keyof Overlays, on: boolean): void {
     this.ctx.map.setOverlay(key, on);
     this.overlayListeners.forEach((fn) => fn(key, on));
+    const overlays = this.ctx.map.getOverlays();
+    storageSet(OVERLAYS_KEY, JSON.stringify(Object.fromEntries(REMEMBERED.map((k) => [k, overlays[k]]))));
     if (this.body) this.render(this.body);
   }
 
