@@ -58,6 +58,7 @@ class CheckDataTest(unittest.TestCase):
         self.assertAlmostEqual(stats["transit:line3_km"], 32.9)
         self.assertEqual(stats["routing:vertices"], 170000)
         self.assertNotIn("rows:buildings", stats)  # missing tables are skipped, not errors
+        self.assertNotIn("curated:heritage_sites", stats)
 
     def test_small_changes_pass(self):
         make_db(self.new, hospitals=970)  # -3 %

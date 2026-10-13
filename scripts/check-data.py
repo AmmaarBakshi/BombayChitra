@@ -64,6 +64,13 @@ def collect(db: sqlite3.Connection) -> dict[str, float]:
     # Line 3 (Aqua Line) is fully underground and mapped in detail: a good canary for transit data.
     put("transit:line3_km", scalar(db, "SELECT MAX(length_m) / 1000 FROM transit_lines WHERE line_key = 'Mumbai Metro:3'"))
     put("areas", scalar(db, "SELECT COUNT(*) FROM areas"))
+    put("areas:wards", scalar(db, "SELECT COUNT(*) FROM areas WHERE kind = 'ward'"))
+    # Curated tables: a site or hotspot whose OpenStreetMap feature vanished is reported by the pipeline; a missing
+    # table means the config files were not read at all.
+    put("curated:heritage_sites", scalar(db, "SELECT COUNT(*) FROM heritage_sites"))
+    put("curated:heritage_linked", scalar(db, "SELECT COUNT(*) FROM heritage_sites WHERE place_id IS NOT NULL"))
+    put("curated:hotspots", scalar(db, "SELECT COUNT(*) FROM hotspots"))
+    put("search:spellings", scalar(db, "SELECT COUNT(*) FROM search WHERE norm IS NOT NULL"))
     for key in ("routing_vertices", "routing_segments", "routing_edges"):
         put(f"routing:{key.removeprefix('routing_')}", scalar(db, "SELECT value FROM meta WHERE key = ?", key))
     return stats
