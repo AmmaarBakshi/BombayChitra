@@ -376,7 +376,8 @@ export function buildLayers(P: Palette, opts: LayerOptions): Layer[] {
       filter: ['all', metroKinds, ['!', isTunnel]],
       minzoom: 11,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': P.transitCasing, 'line-width': zoomExp(1.5, [11, 3], [14, 5.5], [18, 10]) },
+      // Lines too dark for the dark map, or too pale for the light one, get a contrasting casing.
+      paint: { 'line-color': ['match', ['get', 'tone'], theme === 'dark' ? 'dark' : 'light', P.transitToneCasing, P.transitCasing], 'line-width': zoomExp(1.5, [11, 3], [14, 5.5], [18, 10]) },
     },
     {
       id: 'metro',

@@ -24,6 +24,8 @@ export interface Palette {
   railDash: string;
   railService: string;
   transitCasing: string;
+  /** Casing for line colours with a `tone` that would vanish on this map (see contrast.ts). */
+  transitToneCasing: string;
   aeroway: string;
   apron: string;
   platform: string;
@@ -115,6 +117,7 @@ export const light: Palette = {
   railDash: '#ffffff',
   railService: '#bdb6ac',
   transitCasing: '#ffffff',
+  transitToneCasing: '#6b5f45',
   aeroway: '#d4d1df',
   apron: '#e2e0ea',
   platform: '#d9d3cc',
@@ -213,6 +216,7 @@ export const dark: Palette = {
   railDash: '#11151b',
   railService: '#3a404b',
   transitCasing: '#0b0e12',
+  transitToneCasing: '#aab4c3',
   aeroway: '#2c2e3e',
   apron: '#1d1f2a',
   platform: '#2a2f38',
