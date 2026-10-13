@@ -9,10 +9,24 @@ generated from a single TypeScript definition, so every layer exists in both and
 |---|---|
 | `/styles/light.json` | Light theme |
 | `/styles/dark.json` | Dark theme |
+| `/styles/light.json?lang=mr`, `/styles/dark-mr.json` | Labels in Marathi |
+| `/styles/light.json?lang=hi`, `/styles/dark-hi.json` | Labels in Hindi |
 
 The server writes its own public origin into the tile, TileJSON and glyph URLs, so the styles can be loaded by any
 client — see [Integrations](integrations.md). They use only standard style-spec features and work in MapLibre GL JS,
 MapLibre Native (Android/iOS), Flutter, React Native and QGIS.
+
+### Label languages
+
+The Marathi and Hindi variants label places, points of interest, roads and water with `name:mr` / `name:hi` where
+OpenStreetMap has them and fall back to the mapped name (mostly English) elsewhere, so every feature stays labelled.
+Coverage grows as mappers add names: suburbs, stations and major roads mostly have them.
+
+MapLibre draws text from pre-rendered glyphs without complex script shaping, so some Devanagari conjuncts and
+vowel signs appear in their basic forms on the map; the app's panels and cards, which the browser renders, are
+unaffected.
+
+The web app's language button (EN → मरा → हिं) switches both the map labels and the interface.
 
 ### The web app's variant
 

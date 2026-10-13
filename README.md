@@ -43,6 +43,8 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
 - **Areas** — Mumbai City, Mumbai Suburban, MaKaBo, Thane District, Thane, Navi Mumbai, Mira-Bhayandar,
   Kalyan-Dombivli, Vasai-Virar, Panvel, Panvel Taluka (Kharghar, Kalamboli, Taloja) and Uran (Ulwe, airport) from
   official boundaries, for filtering and statistics.
+- **English, Marathi and Hindi** — the interface and the map's labels, and search that forgives spelling
+  ("bandup", "vileparle", "chatrapati" find Bhandup, Vile Parle and Chhatrapati).
 - **Light and dark themes**, a dashboard you can hide (`H`) for a full-screen map, unified search with autocomplete,
   shareable links, a measuring tool and a mobile layout.
 - **Use it anywhere** — REST API with an OpenAPI 3.1 spec, MapLibre styles for web, Android, iOS, Flutter and

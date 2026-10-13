@@ -112,6 +112,7 @@ from Overture Maps have feature ids ending in `4`; OpenStreetMap features win la
 | `group` | Group id: `transport`, `health`, `education`, `finance`, `food`, `lodging`, `sports`, `leisure`, `shopping`, `civic`, `worship`, `business`, `buildings` |
 | `rank` | Importance 1 (stations, hospitals) – 5 (small shops) |
 | `name` | Name (English where tagged) |
+| `name:mr`, `name:hi` | Marathi and Hindi names, when tagged and different from `name` (also on `places`, `roads` and water labels) |
 
 Below z15, each 24 px grid cell keeps at most 8 POIs, ordered by rank, to keep tiles small; z15 tiles contain
 everything.
