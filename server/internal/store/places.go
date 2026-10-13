@@ -60,11 +60,11 @@ func (s *Store) Places(ctx context.Context, q PlaceQuery) ([]Place, error) {
 		args = append(args, bbox.MinLon, bbox.MaxLon, bbox.MinLat, bbox.MaxLat)
 	}
 	if q.Text != "" {
-		match := MatchExpression(q.Text)
+		match := s.matchExpression(q.Text)
 		if match == "" {
 			return []Place{}, nil
 		}
-		from += ` JOIN (SELECT ref, bm25(search, 10.0, 4.0, 1.0) AS score FROM search
+		from += ` JOIN (SELECT ref, ` + s.rank() + ` AS score FROM search
 		                WHERE search MATCH ? AND kind = 'place') s ON s.ref = p.id`
 		args = append([]any{match}, args...)
 		order = "s.score, p.id"

@@ -38,8 +38,15 @@ func MatchExpression(text string) string {
 	return strings.Join(parts, " ")
 }
 
+// normalise lower-cases text, drops accents (as the search index does) and keeps words separated by single spaces.
 func normalise(s string) string {
-	return strings.Join(strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+	s = strings.Map(func(r rune) rune {
+		if p, ok := plainLetters[r]; ok {
+			return p
+		}
+		return r
+	}, strings.ToLower(s))
+	return strings.Join(strings.FieldsFunc(s, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	}), " ")
 }
@@ -47,18 +54,18 @@ func normalise(s string) string {
 // Search queries the unified index (areas, localities, transit lines, places, streets, bridges) and ranks results by
 // text relevance, importance, name match quality and — when near is given — proximity.
 func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds []string, limit int) ([]SearchResult, error) {
-	match := MatchExpression(text)
+	match := s.matchExpression(text)
 	if match == "" {
 		return []SearchResult{}, nil
 	}
-	sqlText := `SELECT kind, ref, name, alt, detail, category, lon, lat, weight, bm25(search, 10.0, 4.0, 1.0)
+	sqlText := `SELECT kind, ref, name, alt, detail, category, lon, lat, weight, ` + s.rank() + `
 		FROM search WHERE search MATCH ?`
 	args := []any{match}
 	if len(kinds) > 0 {
 		sqlText += " AND kind IN (" + placeholders(len(kinds)) + ")"
 		args = append(args, anySlice(kinds)...)
 	}
-	sqlText += " ORDER BY bm25(search, 10.0, 4.0, 1.0) LIMIT 400"
+	sqlText += " ORDER BY " + s.rank() + " LIMIT 400"
 	rows, err := s.db.QueryContext(ctx, sqlText, args...)
 	if err != nil {
 		return nil, err
@@ -78,7 +85,11 @@ func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds 
 		r.Detail, r.Category = str(detail), str(category)
 		r.ID = normaliseRef(ref)
 		score := -bm25 * (1 + 0.15*-weight)
-		score *= nameBoost(r.Kind, normalise(r.Name), alt.String, query)
+		boost := nameBoost(r.Kind, normalise(r.Name), alt.String, query)
+		if boost == 1 && s.spelling {
+			boost = spellingBoost(r.Name, text)
+		}
+		score *= boost
 		if near != nil {
 			d := round(geo.Haversine(*near, geo.Point{Lon: r.Lon, Lat: r.Lat}), 0)
 			r.DistanceM = &d

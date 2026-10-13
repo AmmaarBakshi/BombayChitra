@@ -41,11 +41,11 @@ func (s *Store) Streets(ctx context.Context, q StreetQuery) ([]Street, error) {
 	var args []any
 	order := "s.length_m DESC"
 	if q.Text != "" {
-		match := MatchExpression(q.Text)
+		match := s.matchExpression(q.Text)
 		if match == "" {
 			return []Street{}, nil
 		}
-		from += ` JOIN (SELECT ref, bm25(search, 10.0, 4.0, 1.0) AS score FROM search
+		from += ` JOIN (SELECT ref, ` + s.rank() + ` AS score FROM search
 		                WHERE search MATCH ? AND kind = 'street') f ON f.ref = s.id`
 		args = append(args, match)
 		order = "f.score"
