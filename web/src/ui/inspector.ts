@@ -1,5 +1,5 @@
 import { ApiError } from '../api/client.ts';
-import type { Area, LineRef, PlaceDetail, SearchResult, TransitRoute } from '../api/types.ts';
+import type { Area, HeritageSite, LineRef, PlaceDetail, SearchResult, TransitRoute } from '../api/types.ts';
 import type { MapPick } from '../map/controller.ts';
 import { categoryById, groupById } from '../taxonomy.ts';
 import type { AppContext } from './context.ts';
@@ -53,6 +53,11 @@ export class Inspector {
     const p = f.properties as Record<string, string | number | undefined>;
     const id = typeof f.id === 'number' ? f.id : undefined;
     switch (pick.layer) {
+      case 'heritage-sites':
+        if (p.place_id) return this.place(Number(p.place_id));
+        return this.heritageSite(p, pick.lngLat);
+      case 'hotspot-icon':
+        return this.hotspot(p, pick.lngLat);
       case 'poi':
         if (id) return this.place(id);
         break;
@@ -125,6 +130,7 @@ export class Inspector {
     const cat = categoryById.get(d.category);
     const group = cat ? groupById.get(cat.group) : undefined;
     const rows: Node[] = [];
+    if (d.heritage) rows.push(this.row('info', 'Heritage', heritageStatus(d.heritage), d.heritage.wikipedia ? h('span', {}, ' · ', wikipediaLink(d.heritage.wikipedia)) : null));
     if (d.lines?.length) rows.push(this.row('train', 'Lines', this.lineChips(d.lines)));
     if (d.address) rows.push(this.row('pin', 'Address', d.address));
     if (d.phone) rows.push(this.row('phone', 'Phone', ...d.phone.split(/[;,]/).map((p) => h('a', { href: `tel:${p.trim().replace(/\s/g, '')}` }, p.trim(), ' '))));
@@ -148,6 +154,7 @@ export class Inspector {
       { badge: categoryBadge(d.category, 40), title: d.name ?? d.category_label, kicker: [d.category_label, d.locality].filter(Boolean).join(' · ') },
       [
         d.name_local ? h('div', { class: 'sub', lang: 'mr', style: 'margin:-2px 0 6px' }, d.name_local) : null,
+        d.heritage?.description ? h('p', { class: 'sub', style: 'white-space:normal;margin:0 0 8px' }, d.heritage.description) : null,
         ...rows,
         this.actions(d.lon, d.lat, d.osm_url || undefined, d.name),
         this.tagTable(d.tags, overture ? 'Source attributes' : undefined),
@@ -417,6 +424,34 @@ export class Inspector {
     return h('span', {}, ...lines.map((l) => h('button', { class: `line-chip${l.state ? ' planned' : ''}`, type: 'button', style: `--line:${l.colour ?? '#868e96'}`, title: l.state ? `${l.label} (${STATE_LABELS[l.state]?.toLowerCase() ?? l.state})` : l.label, onclick: () => this.lineByKey(l.key) }, l.ref ?? l.label)));
   }
 
+  // ---------------------------------------------------------------- curated layers
+
+  /** A heritage site without a representing place (its feature was removed from OpenStreetMap). */
+  private heritageSite(p: Record<string, string | number | undefined>, at: LonLat): void {
+    const site = { status: String(p.status), year: p.year === undefined ? undefined : Number(p.year) } as HeritageSite;
+    this.select({ type: 'Feature', geometry: { type: 'Point', coordinates: at }, properties: {} });
+    this.render({ badge: kindBadge('building', '#c9a227', 40), title: String(p.name ?? 'Heritage site'), kicker: heritageStatus(site) }, [
+      p.description ? h('p', { class: 'sub', style: 'white-space:normal' }, String(p.description)) : null,
+      p.wikipedia ? this.row('globe', 'Wikipedia', wikipediaLink(String(p.wikipedia))) : null,
+      this.coordRow(at[0], at[1]),
+      this.actions(at[0], at[1], undefined, String(p.name ?? '')),
+    ]);
+  }
+
+  /** A monsoon waterlogging hotspot. */
+  private hotspot(p: Record<string, string | number | undefined>, at: LonLat): void {
+    this.select({ type: 'Feature', geometry: { type: 'Point', coordinates: at }, properties: {} });
+    this.render({ badge: kindBadge('locality', '#1c7ed6', 40), title: String(p.name ?? 'Waterlogging hotspot'), kicker: 'Monsoon waterlogging hotspot' }, [
+      p.description ? h('p', { class: 'sub', style: 'white-space:normal' }, String(p.description)) : null,
+      h('dl', { class: 'kv' },
+        h('dt', {}, 'When'), h('dd', {}, 'Floods in heavy rain, June to September'),
+        h('dt', {}, 'Warning radius'), h('dd', {}, formatDistance(Number(p.radius_m ?? 0))),
+      ),
+      h('p', { class: 'foot-note' }, 'Routes passing within the radius warn about it during the monsoon. The BMC publishes the full list of flood-prone spots every May.'),
+      this.coordRow(at[0], at[1]),
+    ]);
+  }
+
   // ---------------------------------------------------------------- ward comparison
 
   /** The 24 BMC wards side by side: places, hospitals, schools, buildings and bridges, sortable by any column. */
@@ -662,6 +697,20 @@ export class Inspector {
 /** Stores the open card in the URL hash (alongside MapLibre's `map=` param) so links reopen it. */
 export function setSelectionHash(value: string | null): void {
   updateHash({ sel: value });
+}
+
+const HERITAGE_LABELS: Record<string, string> = { unesco: 'UNESCO World Heritage Site', precinct: 'Heritage precinct', monument: 'Listed monument' };
+
+function heritageStatus(site: Pick<HeritageSite, 'status' | 'year'>): string {
+  const label = HERITAGE_LABELS[site.status] ?? 'Heritage site';
+  return site.status === 'unesco' && site.year ? `${label} (${site.year})` : label;
+}
+
+/** A link to a Wikipedia article given as `lang:Title`. */
+function wikipediaLink(ref: string): HTMLElement {
+  const [lang, ...title] = ref.split(':');
+  const url = `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.join(':').replace(/ /g, '_'))}`;
+  return h('a', { href: url, target: '_blank', rel: 'noopener' }, 'Wikipedia');
 }
 
 function safeUrl(url: string): string {
