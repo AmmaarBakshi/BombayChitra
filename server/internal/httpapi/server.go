@@ -90,6 +90,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/transit/routes/{id}", s.handleTransitRoute)
 	mux.HandleFunc("GET /api/v1/transit/stations", s.handleStations)
 	mux.HandleFunc("GET /api/v1/route", s.handleRoute)
+	mux.HandleFunc("GET /api/v1/heritage", s.handleHeritage)
+	mux.HandleFunc("GET /api/v1/hotspots", s.handleHotspots)
 	mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) { s.notFound(w, r) })
 
 	mux.HandleFunc("GET /tiles/bombaychitra.json", s.handleTileJSON)
