@@ -112,8 +112,13 @@ func (s *Store) load(ctx context.Context) error {
 // Meta returns the raw key/value metadata table.
 func (s *Store) Meta() map[string]string { return s.meta }
 
-// Version identifies the dataset build; used for cache validators.
-func (s *Store) Version() string { return s.meta["built_at"] }
+// Version identifies the dataset build; used for cache validators. A nil store (no dataset) has no version.
+func (s *Store) Version() string {
+	if s == nil {
+		return ""
+	}
+	return s.meta["built_at"]
+}
 
 // MetaJSON decodes a JSON-valued metadata entry (e.g. bounds, center).
 func (s *Store) MetaJSON(key string, dst any) error {

@@ -446,3 +446,34 @@ func TestRouteModes(t *testing.T) {
 		}
 	}
 }
+
+func TestStyleLanguages(t *testing.T) {
+	web := fstest.MapFS{
+		"styles/light.json":    {Data: []byte(`{"name":"BombayChitra Light","glyphs":"{{BASE}}/fonts"}`)},
+		"styles/light-mr.json": {Data: []byte(`{"name":"BombayChitra Light (mr)","glyphs":"{{BASE}}/fonts"}`)},
+	}
+	h := New(config.Config{}, nil, nil, web).Handler()
+	cases := map[string]string{
+		"/styles/light.json":         "BombayChitra Light",
+		"/styles/light.json?lang=en": "BombayChitra Light",
+		"/styles/light.json?lang=mr": "BombayChitra Light (mr)",
+		"/styles/light-mr.json":      "BombayChitra Light (mr)",
+	}
+	for url, want := range cases {
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		req.Host = "maps.example.com"
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"`+want+`"`) || !strings.Contains(rec.Body.String(), "http://maps.example.com/fonts") {
+			t.Errorf("GET %s: %d %s", url, rec.Code, rec.Body.String())
+		}
+	}
+	for _, url := range []string{"/styles/light.json?lang=fr", "/styles/light.json?lang=hi"} {
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code == http.StatusOK {
+			t.Errorf("GET %s: %d, want an error", url, rec.Code)
+		}
+	}
+}

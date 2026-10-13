@@ -100,6 +100,17 @@ func (s *Server) handleStyle(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	// ?lang=mr|hi picks the variant labelled in Marathi or Hindi (light.json → light-mr.json).
+	switch lang := r.URL.Query().Get("lang"); lang {
+	case "", "en":
+	case "mr", "hi":
+		if !strings.Contains(name, "-") {
+			name = strings.TrimSuffix(name, ".json") + "-" + lang + ".json"
+		}
+	default:
+		s.badRequest(w, r, "lang must be en, mr or hi")
+		return
+	}
 	base := s.baseURL(r)
 	key := base + "|" + name
 	if cached, ok := s.styles.Load(key); ok {
