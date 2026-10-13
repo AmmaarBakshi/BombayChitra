@@ -4,7 +4,7 @@ import type { MapPick } from '../map/controller.ts';
 import { categoryById, groupById } from '../taxonomy.ts';
 import type { AppContext } from './context.ts';
 import { clear, h } from './dom.ts';
-import { capitalise, formatArea, formatCoord, formatDistance, formatDMS, formatNumber } from './format.ts';
+import { capitalise, formatArea, formatCoord, formatDistance, formatDMS, formatNumber, formatOsmDate, isRecent, parseOsmDate } from './format.ts';
 import { updateHash } from './hash.ts';
 import { categoryBadge, icon, kindBadge } from './icons.ts';
 
@@ -132,12 +132,14 @@ export class Inspector {
     const rows: Node[] = [];
     if (d.heritage) rows.push(this.row('info', 'Heritage', heritageStatus(d.heritage), d.heritage.wikipedia ? h('span', {}, ' · ', wikipediaLink(d.heritage.wikipedia)) : null));
     if (d.lines?.length) rows.push(this.row('train', 'Lines', this.lineChips(d.lines)));
+    if (STATION_CATEGORIES.has(d.category)) rows.push(...this.stationRows(d));
+    const opened = d.tags.opening_date ?? d.tags.start_date;
     if (d.address) rows.push(this.row('pin', 'Address', d.address));
     if (d.phone) rows.push(this.row('phone', 'Phone', ...d.phone.split(/[;,]/).map((p) => h('a', { href: `tel:${p.trim().replace(/\s/g, '')}` }, p.trim(), ' '))));
     if (d.website) rows.push(this.row('globe', 'Website', h('a', { href: safeUrl(d.website), target: '_blank', rel: 'noopener' }, prettyUrl(d.website))));
     if (d.opening_hours) rows.push(this.row('clock', 'Hours', d.opening_hours));
     if (d.cuisine) rows.push(this.row('info', 'Cuisine', d.cuisine.split(';').map(capitalise).join(', ')));
-    if (d.operator) rows.push(this.row('info', 'Operator', d.operator));
+    if (d.operator && !STATION_CATEGORIES.has(d.category)) rows.push(this.row('info', 'Operator', d.operator));
     if (d.brand && d.brand !== d.name) rows.push(this.row('info', 'Brand', d.brand));
     if (d.wheelchair) rows.push(this.row('wheelchair', 'Wheelchair', capitalise(d.wheelchair)));
     if (d.area_m2) rows.push(this.row('explore', 'Area', formatArea(d.area_m2)));
@@ -153,6 +155,7 @@ export class Inspector {
     this.render(
       { badge: categoryBadge(d.category, 40), title: d.name ?? d.category_label, kicker: [d.category_label, d.locality].filter(Boolean).join(' · ') },
       [
+        isRecent(opened) ? h('div', { class: 'pill new', title: `Opened ${formatOsmDate(opened!)}` }, `New · opened ${formatOsmDate(opened!)}`) : null,
         d.name_local ? h('div', { class: 'sub', lang: 'mr', style: 'margin:-2px 0 6px' }, d.name_local) : null,
         d.heritage?.description ? h('p', { class: 'sub', style: 'white-space:normal;margin:0 0 8px' }, d.heritage.description) : null,
         ...rows,
@@ -418,6 +421,25 @@ export class Inspector {
       stops.length ? stopList : h('p', { class: 'sub' }, 'Stop sequence not mapped for this route.'),
       this.actions((r.bbox[0] + r.bbox[2]) / 2, (r.bbox[1] + r.bbox[3]) / 2, r.osm_url),
     ]);
+  }
+
+  /** What OpenStreetMap knows about a station: code, platforms, opening, operator, Wi-Fi and height above the sea. */
+  private stationRows(d: PlaceDetail): HTMLElement[] {
+    const t = d.tags;
+    const facts: string[] = [];
+    if (t.ref && /^[A-Z]{1,6}$/.test(t.ref)) facts.push(`Code ${t.ref}`);
+    if (t.platforms && /^\d+$/.test(t.platforms)) facts.push(`${t.platforms} platform${t.platforms === '1' ? '' : 's'}`);
+    const opened = t.opening_date ?? t.start_date;
+    const openedOn = parseOsmDate(opened);
+    if (opened && openedOn) facts.push(`${openedOn > new Date() ? 'Opening' : 'Opened'} ${formatOsmDate(opened)}`);
+    const rows: HTMLElement[] = [];
+    if (facts.length) rows.push(this.row('train', 'Station', facts.join(' · ')));
+    const operator = OPERATORS[t.operator ?? ''] ?? t.operator;
+    if (operator) rows.push(this.row('info', 'Operator', operator));
+    const amenities = [t.internet_access === 'wlan' || t.internet_access === 'yes' ? 'Wi-Fi' : null, t.toilets === 'yes' ? 'Toilets' : null, t.air_conditioning === 'yes' ? 'Air-conditioned' : null].filter(Boolean);
+    if (amenities.length) rows.push(this.row('info', 'Facilities', amenities.join(' · ')));
+    if (t.ele && Number.isFinite(Number(t.ele))) rows.push(this.row('info', 'Elevation', `${Number(t.ele).toFixed(1)} m above sea level`));
+    return rows;
   }
 
   private lineChips(lines: LineRef[]): Node {
@@ -698,6 +720,10 @@ export class Inspector {
 export function setSelectionHash(value: string | null): void {
   updateHash({ sel: value });
 }
+
+const STATION_CATEGORIES = new Set(['railway_station', 'metro_station', 'monorail_station']);
+/** Operator codes used on station tags. */
+const OPERATORS: Record<string, string> = { CR: 'Central Railway', WR: 'Western Railway', MMRDA: 'Mumbai Metropolitan Region Development Authority', MMRCL: 'Mumbai Metro Rail Corporation', MMOPL: 'Mumbai Metro One', CIDCO: 'CIDCO' };
 
 const HERITAGE_LABELS: Record<string, string> = { unesco: 'UNESCO World Heritage Site', precinct: 'Heritage precinct', monument: 'Listed monument' };
 

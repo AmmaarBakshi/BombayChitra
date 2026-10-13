@@ -937,6 +937,20 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   justify-content: space-between;
 }
 
+.pill {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.pill.new {
+  background: rgba(43, 138, 62, 0.14);
+  color: var(--ok);
+}
+
 /* comparison tables */
 
 .table-scroll {
