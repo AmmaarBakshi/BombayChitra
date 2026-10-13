@@ -67,6 +67,8 @@ public final class Places extends Layer {
     feature
       .setAttr("kind", kind)
       .setAttr("name", name)
+      .setAttr("name:mr", Tags.nameIn(f, "mr", name))
+      .setAttr("name:hi", Tags.nameIn(f, "hi", name))
       .setAttr("rank", spec.rank())
       .setAttrWithMinzoom("population", population, 8)
       .setMinZoom(Math.min(minzoom, maxzoom()))

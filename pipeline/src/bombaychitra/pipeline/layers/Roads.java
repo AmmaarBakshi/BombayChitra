@@ -116,6 +116,8 @@ public final class Roads extends Layer implements ForwardingProfile.LayerPostPro
       .setAttrWithMinzoom("highway", highway, 13)
       .setAttrWithMinzoom("construction", construction, 12)
       .setAttrWithMinzoom("name", name, MAJOR.contains(kind) ? 11 : 13)
+      .setAttrWithMinzoom("name:mr", Tags.nameIn(f, "mr", name), MAJOR.contains(kind) ? 11 : 13)
+      .setAttrWithMinzoom("name:hi", Tags.nameIn(f, "hi", name), MAJOR.contains(kind) ? 11 : 13)
       .setAttrWithMinzoom("ref", ref, 9)
       .setAttrWithMinzoom("brunnel", brunnel, 11)
       .setAttrWithMinzoom("layer", layer(f), 11)

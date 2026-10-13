@@ -59,6 +59,8 @@ public final class Pois extends Layer {
         .setAttr("group", category.group())
         .setAttr("rank", category.rank())
         .setAttr("name", name)
+        .setAttr("name:mr", Tags.nameIn(f, "mr", name))
+        .setAttr("name:hi", Tags.nameIn(f, "hi", name))
         .setMinZoom(minzoom)
         .setSortKey(category.rank() * 10 + (name == null ? 5 : 0))
         .setPointLabelGridSizeAndLimit(maxzoom() - 1, 24, 8)

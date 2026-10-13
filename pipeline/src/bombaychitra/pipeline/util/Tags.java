@@ -51,6 +51,15 @@ public final class Tags {
     return en != null ? en : clean(tags.getString("name"));
   }
 
+  /**
+   * The name in another language ({@code name:mr} for Marathi, {@code name:hi} for Hindi) when it is tagged and differs
+   * from the display name, for maps labelled in that language.
+   */
+  public static String nameIn(WithTags tags, String lang, String displayName) {
+    String value = clean(tags.getString("name:" + lang));
+    return value == null || value.equals(displayName) ? null : value;
+  }
+
   public static String clean(String value) {
     if (value == null) {
       return null;

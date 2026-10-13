@@ -111,6 +111,8 @@ public final class OverturePlaces extends Layer implements ForwardingProfile.Fin
         .setAttr("group", category.group())
         .setAttr("rank", category.rank())
         .setAttr("name", name)
+        .setAttr("name:mr", localName(f, "mr", name))
+        .setAttr("name:hi", localName(f, "hi", name))
         .setMinZoom(Math.max(8, Math.min(category.minzoom(), maxzoom())))
         // OpenStreetMap features win label collisions.
         .setSortKey(category.rank() * 10 + 6)
@@ -122,6 +124,12 @@ public final class OverturePlaces extends Layer implements ForwardingProfile.Fin
     } catch (GeometryException e) {
       e.log("overture place");
     }
+  }
+
+  /** The place's common name in a language, when it differs from its primary name. */
+  private static String localName(SourceFeature f, String lang, String name) {
+    String value = Tags.clean(f.getStruct("names").get("common").get(lang).asString());
+    return value == null || value.equals(name) ? null : value;
   }
 
   /** Overture categories from the most specific to the most general. */

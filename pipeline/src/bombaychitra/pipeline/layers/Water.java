@@ -81,6 +81,8 @@ public final class Water extends Layer implements ForwardingProfile.FinishHandle
           .setAttr("kind", "water")
           .setAttr("subkind", kind)
           .setAttr("name", name)
+          .setAttr("name:mr", Tags.nameIn(f, "mr", name))
+          .setAttr("name:hi", Tags.nameIn(f, "hi", name))
           .setAttr("rank", 6)
           .setMinZoom(Math.min(minzoom, maxzoom()));
       } catch (GeometryException e) {

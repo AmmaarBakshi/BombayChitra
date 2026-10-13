@@ -63,6 +63,16 @@ class TagsTest {
   }
 
   @Test
+  void namesInOtherLanguages() {
+    var dadar = tags("name", "Dadar", "name:mr", "दादर", "name:hi", "दादर");
+    assertEquals("दादर", Tags.nameIn(dadar, "mr", "Dadar"));
+    assertEquals("दादर", Tags.nameIn(dadar, "hi", "Dadar"));
+    assertNull(Tags.nameIn(dadar, "gu", "Dadar"));
+    // Not repeated when the display name is already in that language.
+    assertNull(Tags.nameIn(tags("name", "दादर", "name:mr", "दादर"), "mr", "दादर"));
+  }
+
+  @Test
   void yesAndNo() {
     assertTrue(Tags.isYes(tags("bridge", "viaduct"), "bridge"));
     assertFalse(Tags.isYes(tags("bridge", "no"), "bridge"));
