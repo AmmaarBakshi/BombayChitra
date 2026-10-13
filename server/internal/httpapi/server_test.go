@@ -344,6 +344,36 @@ func TestAreasByKind(t *testing.T) {
 	}
 }
 
+func TestPinCodeAreas(t *testing.T) {
+	h := testServer(t)
+	rec, body := get(t, h, "/api/v1/areas?kind=pincode")
+	if items, _ := body["items"].([]any); rec.Code != http.StatusOK || len(items) < 100 {
+		t.Fatalf("PIN code areas: %d, %d items", rec.Code, len(items))
+	}
+	_, area := get(t, h, "/api/v1/areas/400050")
+	if area["kind"] != "pincode" || area["geometry"] == nil || area["stats"] == nil {
+		t.Errorf("PIN 400050: %v", area)
+	}
+	if rec, fc := get(t, h, "/api/v1/areas/400050?format=geojson"); rec.Code != http.StatusOK || fc["type"] != "Feature" {
+		t.Errorf("PIN 400050 as GeoJSON: %d %v", rec.Code, fc["type"])
+	}
+	_, stats := get(t, h, "/api/v1/stats?area=400050")
+	if totals, _ := stats["totals"].(map[string]any); totals["places"] == nil {
+		t.Errorf("stats for 400050: %v", stats)
+	}
+	for _, url := range []string{"/api/v1/places?area=400050&category=hospital", "/api/v1/nearby?area=400050&lat=19.055&lon=72.835&radius=2000"} {
+		if rec, _ := get(t, h, url); rec.Code != http.StatusOK {
+			t.Errorf("GET %s: %d", url, rec.Code)
+		}
+	}
+	if rec, _ := get(t, h, "/api/v1/areas/999999"); rec.Code != http.StatusNotFound {
+		t.Errorf("unknown PIN: %d, want 404", rec.Code)
+	}
+	if rec, _ := get(t, h, "/api/v1/places?area=999999"); rec.Code != http.StatusBadRequest {
+		t.Errorf("places in an unknown PIN: %d, want 400", rec.Code)
+	}
+}
+
 func TestMetaListsRoutingModes(t *testing.T) {
 	h := testServer(t)
 	_, body := get(t, h, "/api/v1/meta")
