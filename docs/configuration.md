@@ -127,6 +127,46 @@ Institutions in India are often mapped only as a building (`building=school`, `b
 **Order matters:** categories are tried from top to bottom and the first match wins. Put specific categories before
 general ones — `metro_station` before `railway_station`, and catch-alls such as `shop` last in their group.
 
+## Curated data
+
+Some things that matter in Mumbai are not in OpenStreetMap. Two optional files add them; the pipeline validates
+them and writes them to the database. Add an entry only with a source for it.
+
+### `config/heritage.json`
+
+Heritage sites shown by the map's heritage overlay and on place cards:
+
+```json
+{ "sites": [
+  { "id": "csmt", "name": "Chhatrapati Shivaji Maharaj Terminus", "status": "unesco", "year": 2004,
+    "place": 1074415162, "lon": 72.835519, "lat": 18.939856,
+    "description": "Victorian Gothic railway terminus…", "wikipedia": "en:Chhatrapati Shivaji Terminus" }
+] }
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Unique, lower-case, URL-safe |
+| `status` | `unesco` (World Heritage Site; needs `year` of inscription), `precinct` or `monument` |
+| `place` | Id (`osm_id × 10 + type`) of the place representing the site; its card shows the heritage status. A place missing from a build is reported and the site kept at its coordinates |
+| `lon`, `lat` | Position of the marker |
+| `description`, `wikipedia` | Shown on the card; `wikipedia` is `lang:Title` |
+
+### `config/waterlogging.json`
+
+Spots that flood in heavy rain, for the monsoon overlay and route warnings:
+
+```json
+{ "season": { "from": 6, "to": 9 },
+  "hotspots": [
+    { "id": "hindmata", "name": "Hindmata", "lon": 72.84193, "lat": 19.009138, "radius_m": 250,
+      "description": "Low-lying junction under the Hindmata flyover…" }
+  ] }
+```
+
+`season` is the months (inclusive) when the spots flood — June to September. A route passing within `radius_m` of
+a spot lists it, and the app warns about it during the season.
+
 ## Mapping another city
 
 1. Pick an extract that covers the city (e.g. from [Geofabrik](https://download.geofabrik.de/)) and set

@@ -70,6 +70,21 @@ OpenStreetMap boundaries — so hospitals, schools, buildings or bridges can be 
 | `ward-hw` | H/W | Bandra West, Khar West, Santacruz West | `ward-s` | S | Bhandup, Powai, Kanjurmarg |
 | `ward-ke` | K/E | Andheri East, Vile Parle East, airport | `ward-t` | T | Mulund |
 
+### Heritage and monsoon waterlogging
+
+Two curated layers add what OpenStreetMap does not hold (see [Configuration](configuration.md#curated-data)):
+
+- **Heritage sites** — the three UNESCO World Heritage Sites (Chhatrapati Shivaji Maharaj Terminus, 2004; the
+  Elephanta Caves, 1987; the Victorian Gothic and Art Deco Ensembles of Mumbai, 2018), heritage precincts (Fort,
+  Kala Ghoda, Ballard Estate, Marine Drive, Banganga, Dadar Parsi Colony) and listed monuments such as the Gateway
+  of India, the Kanheri Caves and the forts of Bandra, Worli, Sewri and Mahim. The hundreds of other forts,
+  monuments, memorials and ruins in OpenStreetMap are places in the *Heritage & forts* and *Statues & memorials*
+  categories.
+- **Waterlogging hotspots** — spots that flood in heavy rain nearly every monsoon (Hindmata, Milan Subway, King's
+  Circle, Gandhi Market, Sion Circle, LBS Marg at Kurla, Malad subway, Chunabhatti, Mumbai Central at Nair Hospital,
+  Dadar TT and Parel). Routes passing them say so, with a warning from June to September. The BMC publishes the full
+  list of flood-prone spots every May; this is a short list of the best-known ones, not a replacement for it.
+
 ### PIN codes
 
 OpenStreetMap has no postal boundaries for the region, but about 112,000 places carry a PIN in their address. The

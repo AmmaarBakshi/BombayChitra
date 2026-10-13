@@ -33,7 +33,9 @@ also query it directly.
 | `named_bridges` | 1k | Named bridges: span (`length_m`), all decks (`total_length_m`), segment count |
 | `buildings` | 76k | Buildings with name/height/levels/address/type: floors, height, footprint area, address |
 | `transit_lines` | 54 | Routes: line key and label, mode, network, colour, status, from/to, length, ordered `stops` (JSON) and geometry |
-| `search` | FTS5 | Unified full-text index over areas, localities, lines, places, streets and named bridges |
+| `heritage_sites` | 15 | Curated heritage sites (`config/heritage.json`): status (`unesco`, `precinct`, `monument`), year of inscription, representing `place_id`, position, description, Wikipedia article |
+| `hotspots` | 11 | Monsoon waterlogging hotspots (`config/waterlogging.json`): position, warning `radius_m`, description; the season is `meta.waterlogging_season` |
+| `search` | FTS5 | Unified full-text index over areas, localities, lines, places, streets and named bridges; `norm` holds spelling-folded names (see below) |
 
 In `transit_lines`, `id` and `osm_type` identify the OSM source: a route relation, or, for a line assembled from
 track (see [Configuration](configuration.md#transit-lines-without-route-relations)), its longest way. A line has one
@@ -72,9 +74,20 @@ Full-text search with prefix matching (what the search box does):
 SELECT kind, ref, name, detail
 FROM search
 WHERE search MATCH '"lilavati" "hosp"*'
-ORDER BY bm25(search, 10.0, 4.0, 1.0) * (1 - 0.15 * weight)  -- weight < 0 boosts important entries
+ORDER BY bm25(search, 10.0, 4.0, 1.0, 2.0) * (1 - 0.15 * weight)  -- weight < 0 boosts important entries
 LIMIT 10;
 ```
+
+The `norm` column makes search forgiving of how names are transliterated (`meta.search_spelling = 1`): each Latin
+name is stored with accents dropped, `chh` as `ch`, `ph` as `f`, aspiration dropped (`kh gh th dh bh jh`), `ee` as
+`i`, `oo` as `u`, `w` as `v`, `z` as `j` and doubled letters single, plus the name's words joined. Fold a query the
+same way and match it against `norm` to find "Bhandup" from "bandup" or "Vile Parle" from "vileparle":
+
+```sql
+SELECT name, detail FROM search WHERE search MATCH 'norm : "bandup"*' LIMIT 5;
+```
+
+The rules are specified by `testdata/search-spelling.tsv`.
 
 The ten longest named road bridges:
 
