@@ -119,6 +119,11 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Headings focused by script (cards opening) need no ring: the card itself shows where focus went. */
+h2[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* Skip links: hidden until focused from the keyboard */
 .skip-link {
   position: fixed;

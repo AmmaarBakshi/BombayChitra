@@ -23,6 +23,8 @@ const BRIDGE_LABELS: Record<string, string> = { road: 'Road bridge / flyover', r
 export class Inspector {
   private ctx!: AppContext;
   private abort: AbortController | null = null;
+  /** Where focus was before a card opened from the keyboard, to return it on close. */
+  private returnFocus: HTMLElement | null = null;
 
   constructor(private readonly el: HTMLElement) {
     document.addEventListener('keydown', (e) => {
@@ -40,8 +42,11 @@ export class Inspector {
 
   close(): void {
     this.abort?.abort();
+    const hadFocus = this.el.contains(document.activeElement);
     this.el.hidden = true;
     clear(this.el);
+    if (hadFocus && this.returnFocus?.isConnected) this.returnFocus.focus();
+    this.returnFocus = null;
     this.ctx.map.setSelection(null);
     this.ctx.map.setPin(null);
     setSelectionHash(null);
@@ -663,8 +668,12 @@ export class Inspector {
   }
 
   private render(head: Head, body: (Node | null)[], accent?: string): void {
+    // A card opened from the keyboard (search, lists) takes focus, so screen readers announce it; Escape returns.
+    const fromKeyboard = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      && !this.el.contains(document.activeElement) && document.activeElement.matches(':focus-visible, input, [role="option"]');
+    if (fromKeyboard) this.returnFocus = document.activeElement as HTMLElement;
     clear(this.el);
-    const title = h('h2', { id: 'insp-title' }, head.title);
+    const title = h('h2', { id: 'insp-title', tabindex: -1 }, head.title);
     this.el.setAttribute('aria-labelledby', 'insp-title');
     this.el.append(
       h('header', { class: 'insp-head', style: accent ? `border-top:3px solid ${accent}` : '' },
@@ -675,6 +684,7 @@ export class Inspector {
       h('div', { class: 'insp-body' }, ...body.filter((n): n is Node => n !== null)),
     );
     this.el.hidden = false;
+    if (fromKeyboard || this.returnFocus) title.focus({ preventScroll: true });
   }
 
   private loading(): void {
