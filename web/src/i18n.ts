@@ -1,0 +1,373 @@
+// Interface strings in English, Marathi and Hindi. The language also labels the map (name:mr / name:hi from the
+// tiles). Strings missing from a language fall back to English, so new features can ship before their translation.
+import type { RouteStep } from './api/types.ts';
+import type { Language } from './map/style/index.ts';
+
+export type { Language };
+
+const KEY = 'bc-lang';
+
+const en = {
+  'lang.name': 'English',
+  'lang.short': 'EN',
+  'lang.switch': 'Language',
+  'search.placeholder': 'Search places, roads, stations, areas…',
+  'search.label': 'Search',
+  'tab.explore': 'Explore',
+  'tab.layers': 'Layers',
+  'tab.transit': 'Transit',
+  'tab.bridges': 'Bridges',
+  'tab.buildings': 'Buildings',
+  'tab.distance': 'Distance',
+  'tool.hidePanel': 'Hide dashboard (H)',
+  'tool.showPanel': 'Show dashboard (H)',
+  'tool.dashboard': 'Dashboard',
+  'tool.theme': 'Theme',
+  'tool.3d': '3D buildings',
+  'tool.bridges': 'Bridge explorer',
+  'tool.route': 'Distance by road',
+  'tool.measure': 'Measure straight-line distance',
+  'tool.docs': 'Documentation',
+  'explore.areas': 'Areas',
+  'explore.everything': 'Everything',
+  'explore.wards': 'BMC wards',
+  'explore.compareWards': 'Compare wards',
+  'explore.glance': 'At a glance',
+  'explore.findInView': 'Find in view',
+  'explore.clear': 'Clear',
+  'stat.places': 'places',
+  'stat.buildings': 'buildings',
+  'stat.roads': 'named roads',
+  'stat.bridges': 'bridges',
+  'stat.health': 'hospitals & clinics',
+  'stat.schools': 'schools & colleges',
+  'route.title': 'Distance by road',
+  'route.subtitle': 'Distance, time and turn-by-turn directions between two places by car, two-wheeler or on foot, with the route on the map.',
+  'route.car': 'Car',
+  'route.twoWheeler': 'Two-wheeler',
+  'route.walk': 'Walk',
+  'route.fastest': 'Fastest',
+  'route.shortest': 'Shortest',
+  'route.swap': 'Swap',
+  'route.me': 'Me',
+  'route.avoidTolls': 'Avoid tolls',
+  'route.from': 'From',
+  'route.to': 'To',
+  'route.byRoad': 'by road',
+  'route.onFoot': 'on foot',
+  'route.fastestDrive': 'fastest drive',
+  'route.fastestRide': 'fastest ride',
+  'route.fastestWalk': 'fastest walk',
+  'route.onShortest': 'on the shortest route',
+  'route.straightLine': 'Straight line',
+  'route.mainRoads': 'Main roads',
+  'route.directions': 'Directions',
+  'route.show': 'Show route',
+  'route.share': 'Share',
+  'route.clear': 'Clear',
+  'card.routeHere': 'Route here',
+  'card.share': 'Share',
+  'card.nearby': 'Nearby',
+  'card.coordinates': 'Coordinates',
+  'card.copy': 'Copy',
+  'card.within': 'Within',
+  'card.address': 'Address',
+  'card.phone': 'Phone',
+  'card.website': 'Website',
+  'card.hours': 'Hours',
+  'card.lines': 'Lines',
+  'step.depart': 'Head {dir}',
+  'step.arrive': 'Arrive at your destination',
+  'step.continue': 'Continue',
+  'step.roundabout': 'Enter the roundabout',
+  'step.exitRoundabout': 'Exit the roundabout',
+  'step.rampLeft': 'Take the ramp on the left',
+  'step.rampRight': 'Take the ramp on the right',
+  'step.onto': '{action} onto {name}',
+  'turn.straight': 'Continue straight',
+  'turn.slight_left': 'Turn slight left',
+  'turn.left': 'Turn left',
+  'turn.sharp_left': 'Turn sharp left',
+  'turn.slight_right': 'Turn slight right',
+  'turn.right': 'Turn right',
+  'turn.sharp_right': 'Turn sharp right',
+  'turn.uturn': 'Make a U-turn',
+  'dir.north': 'north',
+  'dir.north-east': 'north-east',
+  'dir.east': 'east',
+  'dir.south-east': 'south-east',
+  'dir.south': 'south',
+  'dir.south-west': 'south-west',
+  'dir.west': 'west',
+  'dir.north-west': 'north-west',
+};
+
+export type Key = keyof typeof en;
+
+const mr: Partial<Record<Key, string>> = {
+  'lang.name': 'मराठी',
+  'lang.short': 'मरा',
+  'lang.switch': 'भाषा',
+  'search.placeholder': 'ठिकाणे, रस्ते, स्थानके, परिसर शोधा…',
+  'search.label': 'शोधा',
+  'tab.explore': 'शोधा',
+  'tab.layers': 'स्तर',
+  'tab.transit': 'वाहतूक',
+  'tab.bridges': 'पूल',
+  'tab.buildings': 'इमारती',
+  'tab.distance': 'अंतर',
+  'tool.hidePanel': 'डॅशबोर्ड लपवा (H)',
+  'tool.showPanel': 'डॅशबोर्ड दाखवा (H)',
+  'tool.dashboard': 'डॅशबोर्ड',
+  'tool.theme': 'थीम',
+  'tool.3d': '3D इमारती',
+  'tool.bridges': 'पूल शोधक',
+  'tool.route': 'रस्त्याने अंतर',
+  'tool.measure': 'सरळ रेषेतील अंतर मोजा',
+  'tool.docs': 'माहितीपुस्तिका',
+  'explore.areas': 'परिसर',
+  'explore.everything': 'सर्व',
+  'explore.wards': 'बीएमसी वॉर्ड',
+  'explore.compareWards': 'वॉर्डांची तुलना',
+  'explore.glance': 'एका दृष्टीक्षेपात',
+  'explore.findInView': 'नकाशावर शोधा',
+  'explore.clear': 'काढा',
+  'stat.places': 'ठिकाणे',
+  'stat.buildings': 'इमारती',
+  'stat.roads': 'नाव असलेले रस्ते',
+  'stat.bridges': 'पूल',
+  'stat.health': 'रुग्णालये व दवाखाने',
+  'stat.schools': 'शाळा व महाविद्यालये',
+  'route.title': 'रस्त्याने अंतर',
+  'route.subtitle': 'कार, दुचाकी किंवा पायी — दोन ठिकाणांमधील अंतर, वेळ आणि वळणानुसार दिशा, नकाशावरील मार्गासह.',
+  'route.car': 'कार',
+  'route.twoWheeler': 'दुचाकी',
+  'route.walk': 'पायी',
+  'route.fastest': 'सर्वात जलद',
+  'route.shortest': 'सर्वात कमी अंतर',
+  'route.swap': 'अदलाबदल',
+  'route.me': 'मी',
+  'route.avoidTolls': 'टोल टाळा',
+  'route.from': 'पासून',
+  'route.to': 'पर्यंत',
+  'route.byRoad': 'रस्त्याने',
+  'route.onFoot': 'पायी',
+  'route.fastestDrive': 'सर्वात जलद प्रवास',
+  'route.fastestRide': 'सर्वात जलद प्रवास',
+  'route.fastestWalk': 'सर्वात जलद चालणे',
+  'route.onShortest': 'सर्वात कमी अंतराच्या मार्गाने',
+  'route.straightLine': 'सरळ रेषा',
+  'route.mainRoads': 'मुख्य रस्ते',
+  'route.directions': 'दिशा',
+  'route.show': 'मार्ग दाखवा',
+  'route.share': 'शेअर करा',
+  'route.clear': 'काढा',
+  'card.routeHere': 'येथे जाण्याचा मार्ग',
+  'card.share': 'शेअर करा',
+  'card.nearby': 'जवळपास',
+  'card.coordinates': 'निर्देशांक',
+  'card.copy': 'कॉपी',
+  'card.within': 'परिसर',
+  'card.address': 'पत्ता',
+  'card.phone': 'फोन',
+  'card.website': 'वेबसाइट',
+  'card.hours': 'वेळ',
+  'card.lines': 'मार्गिका',
+  'step.depart': '{dir} दिशेने जा',
+  'step.arrive': 'आपण पोहोचलात',
+  'step.continue': 'पुढे जा',
+  'step.roundabout': 'गोल चक्रात प्रवेश करा',
+  'step.exitRoundabout': 'गोल चक्रातून बाहेर पडा',
+  'step.rampLeft': 'डावीकडील रॅम्प घ्या',
+  'step.rampRight': 'उजवीकडील रॅम्प घ्या',
+  'step.onto': '{action} — {name}',
+  'turn.straight': 'सरळ पुढे जा',
+  'turn.slight_left': 'किंचित डावीकडे वळा',
+  'turn.left': 'डावीकडे वळा',
+  'turn.sharp_left': 'तीव्र डावीकडे वळा',
+  'turn.slight_right': 'किंचित उजवीकडे वळा',
+  'turn.right': 'उजवीकडे वळा',
+  'turn.sharp_right': 'तीव्र उजवीकडे वळा',
+  'turn.uturn': 'यू-टर्न घ्या',
+  'dir.north': 'उत्तर',
+  'dir.north-east': 'ईशान्य',
+  'dir.east': 'पूर्व',
+  'dir.south-east': 'आग्नेय',
+  'dir.south': 'दक्षिण',
+  'dir.south-west': 'नैऋत्य',
+  'dir.west': 'पश्चिम',
+  'dir.north-west': 'वायव्य',
+};
+
+const hi: Partial<Record<Key, string>> = {
+  'lang.name': 'हिन्दी',
+  'lang.short': 'हिं',
+  'lang.switch': 'भाषा',
+  'search.placeholder': 'जगहें, सड़कें, स्टेशन, इलाके खोजें…',
+  'search.label': 'खोजें',
+  'tab.explore': 'खोजें',
+  'tab.layers': 'परतें',
+  'tab.transit': 'परिवहन',
+  'tab.bridges': 'पुल',
+  'tab.buildings': 'इमारतें',
+  'tab.distance': 'दूरी',
+  'tool.hidePanel': 'डैशबोर्ड छिपाएँ (H)',
+  'tool.showPanel': 'डैशबोर्ड दिखाएँ (H)',
+  'tool.dashboard': 'डैशबोर्ड',
+  'tool.theme': 'थीम',
+  'tool.3d': '3D इमारतें',
+  'tool.bridges': 'पुल खोजक',
+  'tool.route': 'सड़क से दूरी',
+  'tool.measure': 'सीधी रेखा में दूरी मापें',
+  'tool.docs': 'दस्तावेज़',
+  'explore.areas': 'इलाके',
+  'explore.everything': 'सब',
+  'explore.wards': 'बीएमसी वार्ड',
+  'explore.compareWards': 'वार्डों की तुलना',
+  'explore.glance': 'एक नज़र में',
+  'explore.findInView': 'नक्शे पर खोजें',
+  'explore.clear': 'हटाएँ',
+  'stat.places': 'जगहें',
+  'stat.buildings': 'इमारतें',
+  'stat.roads': 'नाम वाली सड़कें',
+  'stat.bridges': 'पुल',
+  'stat.health': 'अस्पताल और क्लिनिक',
+  'stat.schools': 'स्कूल और कॉलेज',
+  'route.title': 'सड़क से दूरी',
+  'route.subtitle': 'कार, दोपहिया या पैदल — दो जगहों के बीच दूरी, समय और मोड़-दर-मोड़ दिशा, नक्शे पर रास्ते के साथ।',
+  'route.car': 'कार',
+  'route.twoWheeler': 'दोपहिया',
+  'route.walk': 'पैदल',
+  'route.fastest': 'सबसे तेज़',
+  'route.shortest': 'सबसे छोटा',
+  'route.swap': 'अदला-बदली',
+  'route.me': 'मैं',
+  'route.avoidTolls': 'टोल से बचें',
+  'route.from': 'से',
+  'route.to': 'तक',
+  'route.byRoad': 'सड़क से',
+  'route.onFoot': 'पैदल',
+  'route.fastestDrive': 'सबसे तेज़ यात्रा',
+  'route.fastestRide': 'सबसे तेज़ यात्रा',
+  'route.fastestWalk': 'सबसे तेज़ पैदल रास्ता',
+  'route.onShortest': 'सबसे छोटे रास्ते से',
+  'route.straightLine': 'सीधी रेखा',
+  'route.mainRoads': 'मुख्य सड़कें',
+  'route.directions': 'दिशा-निर्देश',
+  'route.show': 'रास्ता दिखाएँ',
+  'route.share': 'शेयर करें',
+  'route.clear': 'हटाएँ',
+  'card.routeHere': 'यहाँ तक रास्ता',
+  'card.share': 'शेयर करें',
+  'card.nearby': 'आस-पास',
+  'card.coordinates': 'निर्देशांक',
+  'card.copy': 'कॉपी',
+  'card.within': 'इलाका',
+  'card.address': 'पता',
+  'card.phone': 'फ़ोन',
+  'card.website': 'वेबसाइट',
+  'card.hours': 'समय',
+  'card.lines': 'लाइनें',
+  'step.depart': '{dir} की ओर चलें',
+  'step.arrive': 'आप पहुँच गए हैं',
+  'step.continue': 'आगे बढ़ें',
+  'step.roundabout': 'गोल चक्कर में जाएँ',
+  'step.exitRoundabout': 'गोल चक्कर से निकलें',
+  'step.rampLeft': 'बाईं ओर का रैंप लें',
+  'step.rampRight': 'दाईं ओर का रैंप लें',
+  'step.onto': '{action} — {name}',
+  'turn.straight': 'सीधे चलते रहें',
+  'turn.slight_left': 'हल्का बाएँ मुड़ें',
+  'turn.left': 'बाएँ मुड़ें',
+  'turn.sharp_left': 'तेज़ बाएँ मुड़ें',
+  'turn.slight_right': 'हल्का दाएँ मुड़ें',
+  'turn.right': 'दाएँ मुड़ें',
+  'turn.sharp_right': 'तेज़ दाएँ मुड़ें',
+  'turn.uturn': 'यू-टर्न लें',
+  'dir.north': 'उत्तर',
+  'dir.north-east': 'उत्तर-पूर्व',
+  'dir.east': 'पूर्व',
+  'dir.south-east': 'दक्षिण-पूर्व',
+  'dir.south': 'दक्षिण',
+  'dir.south-west': 'दक्षिण-पश्चिम',
+  'dir.west': 'पश्चिम',
+  'dir.north-west': 'उत्तर-पश्चिम',
+};
+
+export const STRINGS: Record<Language, Partial<Record<Key, string>>> = { en, mr, hi };
+
+/** The language saved by the switch, else the browser's if it is Marathi or Hindi, else English. */
+export function detectLanguage(saved: string | null = readSaved(), browser: readonly string[] = typeof navigator === 'undefined' ? [] : navigator.languages): Language {
+  if (saved === 'en' || saved === 'mr' || saved === 'hi') return saved;
+  for (const tag of browser) {
+    const base = tag.toLowerCase().split('-')[0];
+    if (base === 'mr' || base === 'hi') return base;
+    if (base === 'en') return 'en';
+  }
+  return 'en';
+}
+
+function readSaved(): string | null {
+  try {
+    return localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+}
+
+let current: Language = typeof window === 'undefined' ? 'en' : detectLanguage();
+
+export function language(): Language {
+  return current;
+}
+
+/** Switches language; the app reloads so every panel and the map labels change together. */
+export function setLanguage(lang: Language, reload = true): void {
+  current = lang;
+  try {
+    localStorage.setItem(KEY, lang);
+  } catch {
+    /* not remembered in private mode */
+  }
+  if (reload) location.reload();
+}
+
+/** A translated string with {placeholders} filled in. */
+export function t(key: Key, vars: Record<string, string | number> = {}, lang: Language = current): string {
+  const text = STRINGS[lang][key] ?? en[key];
+  return text.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? ''));
+}
+
+/**
+ * A turn-by-turn instruction in the current language. English uses the server's ready-made text; Marathi and Hindi
+ * are built from the step's type, modifier and road name.
+ */
+export function stepText(step: RouteStep, lang: Language = current): string {
+  if (lang === 'en') return step.instruction;
+  let action: string;
+  switch (step.type) {
+    case 'depart': {
+      const dir = cardinal(step.bearing);
+      action = t('step.depart', { dir: t(`dir.${dir}` as Key, {}, lang) }, lang);
+      break;
+    }
+    case 'arrive':
+      return t('step.arrive', {}, lang);
+    case 'roundabout':
+      return t('step.roundabout', {}, lang);
+    case 'exit_roundabout':
+      action = t('step.exitRoundabout', {}, lang);
+      break;
+    case 'ramp':
+      action = t(step.modifier?.includes('left') ? 'step.rampLeft' : 'step.rampRight', {}, lang);
+      break;
+    default:
+      action = t(`turn.${step.modifier ?? 'straight'}` as Key, {}, lang);
+  }
+  return step.name ? t('step.onto', { action, name: step.name }, lang) : action;
+}
+
+function cardinal(bearing: number): string {
+  const names = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+  return names[Math.round((((bearing % 360) + 360) % 360) / 45) % 8];
+}
