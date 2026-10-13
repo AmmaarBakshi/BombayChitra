@@ -25,8 +25,35 @@ class CuratedTest {
   }
 
   @Test
+  void shippedHotspotsAreValid() throws Exception {
+    var curated = Curated.load(Path.of("config"));
+    var region = RegionConfig.load(Path.of("config", "region.json"));
+    assertTrue(curated.hotspots().size() >= 10);
+    assertEquals(new Curated.Season(6, 9), curated.season(), "the monsoon");
+    for (var spot : curated.hotspots()) {
+      assertTrue(region.contains(spot.lon(), spot.lat()), spot.id() + " is outside the region");
+      assertTrue(spot.radius() >= 100 && spot.radius() <= 500, spot.id() + " radius");
+    }
+  }
+
+  @Test
   void missingFilesAreFine(@TempDir Path dir) throws Exception {
-    assertEquals(List.of(), Curated.load(dir).heritage());
+    var curated = Curated.load(dir);
+    assertEquals(List.of(), curated.heritage());
+    assertEquals(List.of(), curated.hotspots());
+    assertEquals(new Curated.Season(6, 9), curated.season());
+  }
+
+  @Test
+  void invalidHotspotsAreRejected(@TempDir Path dir) throws Exception {
+    for (String file : new String[]{
+      "{ \"season\": { \"from\": 0, \"to\": 9 }, \"hotspots\": [] }",
+      "{ \"hotspots\": [ { \"id\": \"a\", \"name\": \"A\", \"lon\": 72.8, \"lat\": 19.0, \"radius_m\": 5000 } ] }",
+      "{ \"hotspots\": [ { \"id\": \"a\", \"name\": \"A\", \"lon\": 0, \"lat\": 0 } ] }",
+    }) {
+      Files.writeString(dir.resolve("waterlogging.json"), file);
+      assertThrows(IllegalArgumentException.class, () -> Curated.load(dir), file);
+    }
   }
 
   @Test
