@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capitalise, distance, formatArea, formatCoord, formatDistance, formatDMS, formatDuration, formatNumber } from '../src/ui/format.ts';
+import { capitalise, distance, formatArea, formatCoord, formatDistance, formatDMS, formatDuration, formatNumber, formatOsmDate, isRecent, parseOsmDate } from '../src/ui/format.ts';
 
 describe('formatDistance', () => {
   it('uses metres below a kilometre', () => {
@@ -66,5 +66,32 @@ describe('capitalise', () => {
   it('capitalises and replaces underscores', () => {
     expect(capitalise('light_rail')).toBe('Light rail');
     expect(capitalise('')).toBe('');
+  });
+});
+
+describe('OpenStreetMap dates', () => {
+  it('parses years, months and days', () => {
+    expect(parseOsmDate('1853-04-18')?.toISOString()).toBe('1853-04-18T00:00:00.000Z');
+    expect(parseOsmDate('2025-10')?.toISOString()).toBe('2025-10-01T00:00:00.000Z');
+    expect(parseOsmDate('~1868')?.getUTCFullYear()).toBe(1868);
+    expect(parseOsmDate('early 1900s')).toBeNull();
+    expect(parseOsmDate(undefined)).toBeNull();
+  });
+
+  it('formats at the tagged precision', () => {
+    expect(formatOsmDate('1868')).toBe('1868');
+    expect(formatOsmDate('2025-10')).toBe('Oct 2025');
+    expect(formatOsmDate('2025-10-08')).toBe('8 Oct 2025');
+    expect(formatOsmDate('sometime')).toBe('sometime');
+  });
+
+  it('flags openings in the last two years', () => {
+    const now = new Date('2026-10-13T00:00:00Z');
+    expect(isRecent('2025-10-08', now)).toBe(true);
+    expect(isRecent('2024-11', now)).toBe(true);
+    expect(isRecent('2024-10-01', now)).toBe(false);
+    expect(isRecent('1853', now)).toBe(false);
+    expect(isRecent('2027-03', now)).toBe(false); // not open yet
+    expect(isRecent(undefined, now)).toBe(false);
   });
 });

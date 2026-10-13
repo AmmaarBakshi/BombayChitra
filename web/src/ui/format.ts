@@ -43,6 +43,34 @@ export function formatDate(iso?: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** Parses an OpenStreetMap date (`2025`, `2025-10`, `2025-10-08`, optionally `~2025`) to its first day, or null. */
+export function parseOsmDate(value: string | undefined): Date | null {
+  const m = /^~?\s*(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(value?.trim() ?? '');
+  if (!m) return null;
+  const date = new Date(Date.UTC(Number(m[1]), m[2] ? Number(m[2]) - 1 : 0, m[3] ? Number(m[3]) : 1));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Formats an OpenStreetMap date at the precision it was tagged with: "1853", "Oct 2025", "8 Oct 2025". */
+export function formatOsmDate(value: string): string {
+  const date = parseOsmDate(value);
+  if (!date) return value;
+  const parts = value.replace(/^~\s*/, '').split('-').length;
+  const opts: Intl.DateTimeFormatOptions = parts === 1 ? { year: 'numeric' } : parts === 2 ? { month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short', year: 'numeric' };
+  return date.toLocaleDateString('en-IN', { ...opts, timeZone: 'UTC' });
+}
+
+/**
+ * Whether something with this opening date opened within `days` before `now` — the "recently opened" badge for new
+ * metro stations, the airport and the like. Future dates are not recent (they are planned openings).
+ */
+export function isRecent(value: string | undefined, now = new Date(), days = 730): boolean {
+  const date = parseOsmDate(value);
+  if (!date) return false;
+  const age = (now.getTime() - date.getTime()) / 86_400_000;
+  return age >= 0 && age <= days;
+}
+
 export function capitalise(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : s;
 }
