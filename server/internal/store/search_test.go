@@ -44,6 +44,12 @@ func TestNameBoost(t *testing.T) {
 	}
 }
 
+func TestNormaliseDropsAccents(t *testing.T) {
+	if got := normalise("Thāne  (West)"); got != "thane west" {
+		t.Errorf("normalise = %q", got)
+	}
+}
+
 func TestDedupeKeepsDistinctPlaces(t *testing.T) {
 	results := []SearchResult{
 		{Kind: "place", Name: "Lilavati Hospital", Lon: 72.8263, Lat: 19.0510},
