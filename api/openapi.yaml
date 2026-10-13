@@ -54,6 +54,8 @@ tags:
     description: Metro, monorail and suburban railway lines, routes and stations.
   - name: Routing
     description: Distance, time, route and turn-by-turn directions between two points by car, two-wheeler or on foot.
+  - name: Mumbai layers
+    description: Curated layers OpenStreetMap does not hold — heritage sites and monsoon waterlogging hotspots.
   - name: Tiles
     description: Vector tiles and map styles for any MapLibre-compatible client.
 
@@ -788,6 +790,10 @@ paths:
         Times use typical speeds per road class without live traffic, so peak-hour journeys take longer; turn
         restrictions are not modelled. With `format=geojson` returns a FeatureCollection of the route line (with the
         summary and steps as properties) and its two ends.
+
+        `hotspots` lists the monsoon waterlogging hotspots the route passes (see `/api/v1/hotspots`), with the
+        route's closest approach, and `monsoon` says whether it is the season (June to September, India Standard
+        Time) — warn about them when it is.
       parameters:
         - name: from
           in: query
@@ -838,12 +844,64 @@ paths:
                   - { type: depart, name: Madhavdas Amarshi Marg, distance_m: 74, duration_s: 10, location: [72.846216, 19.119641], bearing: 312, instruction: Head north-west on Madhavdas Amarshi Marg }
                   - { type: turn, modifier: left, name: Swami Vivekanand Road, distance_m: 436, duration_s: 45, location: [72.845589, 19.119921], bearing: 200, instruction: Turn left onto Swami Vivekanand Road }
                   - { type: arrive, distance_m: 0, duration_s: 0, location: [72.867986, 19.066015], bearing: 0, instruction: Arrive at your destination }
+                hotspots: []
+                monsoon: false
                 bbox: [72.843633, 19.066015, 72.872476, 19.119921]
                 geometry: { type: LineString, coordinates: [[72.846216, 19.119641], [72.846201, 19.119673]] }
         '400': { description: 'Missing or invalid `from`, `to`, `mode`, `optimize` or `avoid`' }
         '422': { description: 'No usable road or path within 1.5 km of a point (`no_road`), or the points are not connected for the mode (`no_route`)' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { description: 'The dataset has no routing graph (`routing_unavailable`), or was built before travel modes and only routes cars (`mode_unavailable`)' }
+
+  /api/v1/heritage:
+    get:
+      tags: [Mumbai layers]
+      operationId: listHeritage
+      summary: Heritage sites
+      description: |
+        Curated heritage sites (`config/heritage.json`): the UNESCO World Heritage Sites (Chhatrapati Shivaji
+        Maharaj Terminus, the Elephanta Caves, the Victorian Gothic and Art Deco Ensembles), heritage precincts (Fort,
+        Kala Ghoda, Ballard Estate, Marine Drive, Banganga, Dadar Parsi Colony) and listed monuments. `place_id` is
+        the place that represents each site; that place's details include the site as `heritage`. The hundreds of
+        other forts, monuments and ruins mapped in OpenStreetMap are places in the `heritage` and `memorial`
+        categories.
+      parameters:
+        - name: status
+          in: query
+          description: '`unesco` (World Heritage Site), `precinct` or `monument`.'
+          schema: { type: string, enum: [unesco, precinct, monument] }
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Heritage sites
+          content:
+            application/json:
+              example:
+                count: 1
+                items:
+                  - { id: csmt, status: unesco, name: Chhatrapati Shivaji Maharaj Terminus, year: 2004, place_id: 1074415162, lon: 72.835519, lat: 18.939856, description: 'Victorian Gothic railway terminus by F. W. Stevens, completed in 1888; formerly Victoria Terminus.', wikipedia: 'en:Chhatrapati Shivaji Terminus' }
+
+  /api/v1/hotspots:
+    get:
+      tags: [Mumbai layers]
+      operationId: listHotspots
+      summary: Waterlogging hotspots
+      description: |
+        Spots reported as waterlogged in heavy rain nearly every monsoon (`config/waterlogging.json`), with the radius
+        within which a route counts as passing them, and the season (months, inclusive) with whether it is on today in
+        India Standard Time. The BMC publishes its full list of flood-prone spots each May.
+      parameters:
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Hotspots
+          content:
+            application/json:
+              example:
+                season: { from: 6, to: 9, active: false }
+                count: 1
+                items:
+                  - { id: hindmata, kind: waterlogging, name: Hindmata, lon: 72.84193, lat: 19.009138, radius_m: 250, description: "Low-lying junction under the Hindmata flyover in Dadar East, one of the city's best-known flooding spots." }
 
   /tiles/bombaychitra.json:
     get:
