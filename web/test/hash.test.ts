@@ -27,6 +27,12 @@ describe('parseSelection', () => {
     expect(parseSelection('building:12')).toEqual({ kind: 'building', id: 12 });
   });
 
+  it('parses PIN code areas', () => {
+    expect(parseSelection('pincode:400050')).toEqual({ kind: 'pincode', pincode: '400050' });
+    expect(parseSelection('pincode:040005')).toBeNull();
+    expect(parseSelection('pincode:4000501')).toBeNull();
+  });
+
   it('parses dropped pins', () => {
     expect(parseSelection('pin:19.054500,72.840500')).toEqual({ kind: 'pin', lat: 19.0545, lon: 72.8405 });
   });
