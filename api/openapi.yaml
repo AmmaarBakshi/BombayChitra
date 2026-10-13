@@ -113,7 +113,7 @@ components:
     area:
       name: area
       in: query
-      description: Restrict to a configured area id (see `/api/v1/areas`), e.g. `makabo`, `navi-mumbai`, `thane`.
+      description: Restrict to a configured area id (see `/api/v1/areas`), e.g. `makabo`, `navi-mumbai`, `ward-kw`. Place queries also accept a PIN code (`400050`).
       schema: { type: string }
     limit:
       name: limit
@@ -265,27 +265,42 @@ paths:
     get:
       tags: [Dataset]
       operationId: listAreas
-      summary: Configured areas
-      description: Named areas such as Mumbai City, Mumbai Suburban, MaKaBo (Malad–Kandivali–Borivali), Thane District and Navi Mumbai, with bounding boxes and centres.
+      summary: Areas
+      description: |
+        Named areas such as Mumbai City, Mumbai Suburban, MaKaBo (Malad–Kandivali–Borivali), Thane District, Navi
+        Mumbai and the 24 BMC wards (A Ward … T Ward), with bounding boxes and centres. Filter by `kind`.
+
+        `kind=pincode` lists PIN code areas instead. OpenStreetMap has no postal boundaries for the region, so each
+        PIN with at least eight addressed places gets an area derived from them: the median position, an outline
+        around the places (outliers dropped), its size and the localities it covers. They are approximate — where the
+        addressed places are, not the postal department's delivery boundary.
+      parameters:
+        - name: kind
+          in: query
+          description: 'Only areas of this kind: `region`, `district`, `city`, `zone`, `taluka`, `ward` — or `pincode` for PIN code areas. `type` is accepted as an alias.'
+          schema: { type: string, enum: [region, district, city, zone, taluka, ward, pincode] }
+          example: ward
       responses:
         '200':
           description: Areas
           content:
             application/json:
               example:
+                count: 1
                 items:
-                  - { id: makabo, name: MaKaBo, short_name: MaKaBo, kind: zone, area_km2: 115.4, bbox: [72.81, 19.15, 72.9, 19.26], center: [72.85, 19.21], osm_relations: [7885384, 7885376, 7885385] }
+                  - { id: ward-kw, name: K/W Ward, short_name: K/W, kind: ward, description: 'BMC ward K/W: Andheri West, Vile Parle West, Juhu, Versova and Jogeshwari West.', area_km2: 23.9, bbox: [72.79, 19.09, 72.86, 19.15], center: [72.83, 19.12], osm_relations: [7885383] }
 
   /api/v1/areas/{id}:
     get:
       tags: [Dataset]
       operationId: getArea
       summary: Area detail
-      description: One area with its boundary geometry (simplified to ~20 m) and statistics.
+      description: One area with its boundary geometry (simplified to ~20 m) and statistics. A six-digit id is a PIN code area, with its derived outline.
       parameters:
         - name: id
           in: path
           required: true
+          description: Area id (`makabo`, `ward-a`, `navi-mumbai`…) or a PIN code (`400050`).
           schema: { type: string }
           example: makabo
         - $ref: '#/components/parameters/format'
@@ -302,7 +317,7 @@ paths:
       parameters:
         - name: area
           in: query
-          description: Area id; omit for the whole dataset.
+          description: Area id or PIN code; omit for the whole dataset.
           schema: { type: string }
           example: navi-mumbai
       responses:
@@ -356,7 +371,7 @@ paths:
       tags: [Search]
       operationId: reverse
       summary: Reverse geocode
-      description: Describes a coordinate — the nearest named road (with the snapped point and distance), the nearest locality, the areas that contain it, the closest named places and a one-line label.
+      description: Describes a coordinate — the nearest named road (with the snapped point and distance), the nearest locality, its PIN code, the areas that contain it (including its BMC ward), the closest named places and a one-line label.
       parameters:
         - { $ref: '#/components/parameters/lat', required: true }
         - { $ref: '#/components/parameters/lon', required: true }
@@ -370,7 +385,8 @@ paths:
                 label: Swami Vivekananda Road, Bandra West, Mumbai Suburban
                 road: { id: 12345672, street_id: 5821, name: Swami Vivekananda Road, kind: primary, distance_m: 18.4, snapped: [72.84061, 19.05462] }
                 locality: { id: 2456789011, name: Bandra West, kind: suburb, lon: 72.8361, lat: 19.0596, distance_m: 640 }
-                areas: [{ id: mmr, name: Mumbai Metropolitan Region }, { id: mumbai-suburban, name: Mumbai Suburban }]
+                postcode: '400050'
+                areas: [{ id: mmr, name: Mumbai Metropolitan Region, kind: region }, { id: mumbai-suburban, name: Mumbai Suburban, kind: district }, { id: ward-hw, name: H/W Ward, kind: ward }]
                 nearby: []
 
   /api/v1/places:
@@ -483,7 +499,7 @@ paths:
                 address: A-791, Bandra Reclamation, Bandra(W), Mumbai
                 postcode: '400050'
                 website: https://www.lilavatihospital.com/
-                areas: [{ id: mmr, name: Mumbai Metropolitan Region }, { id: mumbai-suburban, name: Mumbai Suburban }]
+                areas: [{ id: mmr, name: Mumbai Metropolitan Region, kind: region }, { id: mumbai-suburban, name: Mumbai Suburban, kind: district }, { id: ward-hw, name: H/W Ward, kind: ward }]
                 source: openstreetmap
                 osm_url: https://www.openstreetmap.org/way/31144296
                 tags: { amenity: hospital, name: Lilavati Hospital }
