@@ -227,7 +227,7 @@ public final class Schema {
     ) WITHOUT ROWID;
 
     CREATE VIRTUAL TABLE search USING fts5(
-      name, alt, detail,
+      name, alt, detail, norm,
       kind UNINDEXED, ref UNINDEXED, category UNINDEXED, lon UNINDEXED, lat UNINDEXED, weight UNINDEXED,
       tokenize = 'unicode61 remove_diacritics 2',
       prefix = '1 2 3'

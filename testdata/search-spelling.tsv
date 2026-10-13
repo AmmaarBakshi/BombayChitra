@@ -1,0 +1,22 @@
+# Spelling folding for search (see pipeline/.../util/Spelling.java and server/internal/store/spelling.go).
+# input<TAB>folded words, space-separated (empty when nothing is in Latin script)
+Chhatrapati Shivaji Maharaj Terminus	chatrapati shivaji maharaj terminus
+Chatrapati	chatrapati
+Bhandup West	bandup vest
+Worli Sea Face	vorli sea face
+Mattunga	matunga
+Ghatkopar	gatkopar
+Phadke Road	fadke road
+Zaveri Bazaar	javeri bajar
+Mahim Causeway	mahim causevay
+Sion-Trombay Road	sion trombay road
+Kandivali (East)	kandivali east
+Café Madras	cafe madras
+Śivājī Pārk	sivaji park
+दादर	
+Dadar दादर	dadar
+Road No. 24	road no 24
+Juhu Tara Road	juhu tara road
+Kalbadevi	kalbadevi
+Teen Batti	tin bati
+Andheri	anderi

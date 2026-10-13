@@ -6,6 +6,7 @@ import bombaychitra.pipeline.Taxonomy;
 import bombaychitra.pipeline.geo.LineSpine;
 import bombaychitra.pipeline.util.Geo;
 import bombaychitra.pipeline.util.GeoJson;
+import bombaychitra.pipeline.util.Spelling;
 import bombaychitra.pipeline.util.Tags;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -111,7 +112,7 @@ public final class DatabaseWriter {
       db.setAutoCommit(false);
       script(db, Schema.DDL);
       searchInsert = db.prepareStatement(
-        "INSERT INTO search(name, alt, detail, kind, ref, category, lon, lat, weight) VALUES (?,?,?,?,?,?,?,?,?)");
+        "INSERT INTO search(name, alt, detail, norm, kind, ref, category, lon, lat, weight) VALUES (?,?,?,?,?,?,?,?,?,?)");
       memberInsert = db.prepareStatement(
         "INSERT OR IGNORE INTO area_members(area_id, kind, member_id) VALUES (?,?,?)");
 
@@ -979,6 +980,7 @@ public final class DatabaseWriter {
   private void writeMeta(Connection db) throws SQLException {
     Map<String, String> meta = new LinkedHashMap<>();
     meta.put("schema_version", String.valueOf(Schema.VERSION));
+    meta.put("search_spelling", "1");
     meta.put("region_id", region.id());
     meta.put("region_name", region.name());
     meta.put("description", region.description());
@@ -1023,16 +1025,31 @@ public final class DatabaseWriter {
     searchInsert.setString(1, name);
     searchInsert.setString(2, alt);
     searchInsert.setString(3, detail);
-    searchInsert.setString(4, kind);
-    searchInsert.setObject(5, ref);
-    searchInsert.setString(6, category);
-    searchInsert.setDouble(7, Tags.round6(lon));
-    searchInsert.setDouble(8, Tags.round6(lat));
-    searchInsert.setDouble(9, weight);
+    searchInsert.setString(4, spellings(name, alt));
+    searchInsert.setString(5, kind);
+    searchInsert.setObject(6, ref);
+    searchInsert.setString(7, category);
+    searchInsert.setDouble(8, Tags.round6(lon));
+    searchInsert.setDouble(9, Tags.round6(lat));
+    searchInsert.setDouble(10, weight);
     searchInsert.addBatch();
     if (++searchPending % BATCH == 0) {
       flushSearch();
     }
+  }
+
+  /**
+   * The norm column: the name with its spelling variations folded away, the name's words joined ("vileparle"), and the
+   * folded words of its other names (see {@link Spelling}).
+   */
+  private static String spellings(String name, String alt) {
+    var words = new LinkedHashSet<String>();
+    String folded = Spelling.index(name);
+    if (folded != null) {
+      words.addAll(List.of(folded.split(" ")));
+    }
+    words.addAll(Spelling.words(alt));
+    return words.isEmpty() ? null : String.join(" ", words);
   }
 
   private void flushSearch() throws SQLException {
