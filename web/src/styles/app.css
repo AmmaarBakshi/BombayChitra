@@ -926,6 +926,50 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   font-variant-numeric: tabular-nums;
 }
 
+.ward-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* comparison tables */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare th,
+.compare td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.compare th:first-child {
+  text-align: left;
+}
+
+.compare thead .link-btn[aria-pressed='true'] {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.compare tbody tr {
+  cursor: pointer;
+}
+
+.compare tbody tr:hover,
+.compare tbody tr:focus-visible {
+  background: var(--surface-2);
+}
+
 /* segmented control */
 
 .segmented {

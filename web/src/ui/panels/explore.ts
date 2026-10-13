@@ -39,7 +39,8 @@ export class ExplorePanel implements Panel {
         h('div', { class: 'chips' }, chip(null, 'Everything'), ...others.map((a) => chip(a.id, a.short_name ?? a.name, a.description ?? a.name))),
         wards.length
           ? h('div', { class: 'ward-picker' },
-            h('div', { class: 'sub', id: 'ward-label' }, 'BMC wards'),
+            h('div', { class: 'sub ward-head', id: 'ward-label' }, 'BMC wards',
+              h('button', { class: 'link-btn', type: 'button', onclick: () => void this.ctx.inspector.compareWards() }, 'Compare wards')),
             h('div', { class: 'chips ward-chips', role: 'group', 'aria-labelledby': 'ward-label' }, ...wards.map((a) => chip(a.id, a.short_name ?? a.name, a.description ? `${a.name} — ${a.description.replace(/^BMC ward [^:]+: /, '')}` : a.name))),
           )
           : null,

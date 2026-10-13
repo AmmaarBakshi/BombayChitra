@@ -86,8 +86,9 @@ export class BombayChitraClient {
     return this.get<{ groups: CategoryGroup[] }>('/categories', {}, signal);
   }
 
-  areas(signal?: AbortSignal) {
-    return this.get<{ items: Area[] }>('/areas', {}, signal);
+  /** Areas, optionally of one kind (`ward`, `pincode`…) and with each area's statistics. */
+  areas(opts: { kind?: string; stats?: boolean } = {}, signal?: AbortSignal) {
+    return this.get<ListResponse<Area>>('/areas', { kind: opts.kind, stats: opts.stats || undefined }, signal);
   }
 
   area(id: string, signal?: AbortSignal) {

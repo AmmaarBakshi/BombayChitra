@@ -1,5 +1,5 @@
 import { ApiError } from '../api/client.ts';
-import type { LineRef, PlaceDetail, SearchResult, TransitRoute } from '../api/types.ts';
+import type { Area, LineRef, PlaceDetail, SearchResult, TransitRoute } from '../api/types.ts';
 import type { MapPick } from '../map/controller.ts';
 import { categoryById, groupById } from '../taxonomy.ts';
 import type { AppContext } from './context.ts';
@@ -415,6 +415,53 @@ export class Inspector {
 
   private lineChips(lines: LineRef[]): Node {
     return h('span', {}, ...lines.map((l) => h('button', { class: `line-chip${l.state ? ' planned' : ''}`, type: 'button', style: `--line:${l.colour ?? '#868e96'}`, title: l.state ? `${l.label} (${STATE_LABELS[l.state]?.toLowerCase() ?? l.state})` : l.label, onclick: () => this.lineByKey(l.key) }, l.ref ?? l.label)));
+  }
+
+  // ---------------------------------------------------------------- ward comparison
+
+  /** The 24 BMC wards side by side: places, hospitals, schools, buildings and bridges, sortable by any column. */
+  async compareWards(): Promise<void> {
+    const signal = this.begin();
+    this.loading();
+    let wards: Area[];
+    try {
+      wards = (await this.ctx.api.areas({ kind: 'ward', stats: true }, signal)).items;
+    } catch (err) {
+      return this.failed(err);
+    }
+    if (signal.aborted) return;
+    this.select(null);
+    const sum = (a: Area, ...cats: string[]) => cats.reduce((n, c) => n + (a.stats?.[`places:${c}`] ?? 0), 0);
+    const columns: { label: string; title: string; value: (a: Area) => number }[] = [
+      { label: 'Places', title: 'Places of every kind', value: (a) => a.stats?.places ?? 0 },
+      { label: 'Health', title: 'Hospitals and clinics', value: (a) => sum(a, 'hospital', 'clinic') },
+      { label: 'Schools', title: 'Schools, colleges and universities', value: (a) => sum(a, 'school', 'college', 'university') },
+      { label: 'Buildings', title: 'Building footprints', value: (a) => a.stats?.buildings ?? 0 },
+      { label: 'km²', title: 'Area in square kilometres', value: (a) => a.area_km2 },
+    ];
+    let sortBy = 0;
+    const tbody = h('tbody', {});
+    const fill = () => {
+      clear(tbody);
+      const sorted = [...wards].sort((a, b) => columns[sortBy].value(b) - columns[sortBy].value(a));
+      for (const a of sorted) {
+        tbody.append(h('tr', { tabindex: 0, onclick: () => this.ctx.selectArea(a.id, true), onkeydown: (e: Event) => (e as KeyboardEvent).key === 'Enter' && this.ctx.selectArea(a.id, true) },
+          h('th', { scope: 'row', title: a.description ?? a.name }, a.short_name ?? a.name),
+          ...columns.map((c) => h('td', {}, formatNumber(Math.round(c.value(a))))),
+        ));
+      }
+    };
+    const head = h('tr', {}, h('th', { scope: 'col' }, 'Ward'), ...columns.map((c, i) => h('th', { scope: 'col' },
+      h('button', { class: 'link-btn', type: 'button', title: `${c.title} — sort`, 'aria-pressed': String(i === sortBy), onclick: (e: Event) => {
+        sortBy = i;
+        (e.currentTarget as HTMLElement).closest('tr')!.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+        fill();
+      } }, c.label))));
+    fill();
+    this.render({ badge: kindBadge('locality', 'var(--accent)', 40), title: 'BMC wards compared', kicker: '24 wards of the Brihanmumbai Municipal Corporation' }, [
+      h('div', { class: 'table-scroll' }, h('table', { class: 'compare' }, h('thead', {}, head), tbody)),
+      h('p', { class: 'foot-note' }, 'Counts are what OpenStreetMap and Overture Maps have mapped, not official registers. Choose a ward to show it on the map.'),
+    ]);
   }
 
   // ---------------------------------------------------------------- PIN codes
