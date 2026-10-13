@@ -19,11 +19,13 @@ export interface Overlays {
   bridges: boolean;
   railColours: boolean;
   boundaries: boolean;
+  heritage: boolean;
+  hotspots: boolean;
 }
 
 /** Layers that respond to clicks, in priority order (first match wins). */
 const INTERACTIVE = [
-  'poi', 'place-major', 'place-minor', 'water-label', 'bridges-line', 'metro-bridge', 'metro', 'metro-tunnel', 'metro-construction',
+  'heritage-sites', 'hotspot-icon', 'poi', 'place-major', 'place-minor', 'water-label', 'bridges-line', 'metro-bridge', 'metro', 'metro-tunnel', 'metro-construction',
   'metro-proposed', 'rail-lines', 'rail', 'road-bridge', 'road', 'road-tunnel', 'path-bridge', 'road-path', 'road-construction',
   'buildings-3d', 'buildings-2d', 'aeroway-runway', 'landuse-leisure', 'landuse-urban', 'landuse-natural',
   'landuse-protected', 'water',
@@ -36,15 +38,31 @@ const OVERLAY_LAYERS: Record<keyof Overlays, string[]> = {
   bridges: ['bridges-glow', 'bridges-line', 'bridges-outline', 'bridges-label'],
   railColours: ['rail-lines'],
   boundaries: ['boundary-ward', 'boundary-municipal', 'boundary-district'],
+  heritage: ['heritage-sites', 'heritage-labels'],
+  hotspots: ['hotspot-area', 'hotspot-icon', 'hotspot-labels'],
 };
+
+/** Colours of curated heritage sites by status. */
+export const HERITAGE_COLOURS: Record<string, string> = { unesco: '#c9a227', precinct: '#9c36b5', monument: '#a0522d' };
+export const HOTSPOT_COLOUR = '#1c7ed6';
 
 const SEL = 'selection';
 const MEASURE = 'measure';
+const HERITAGE = 'heritage';
+const HOTSPOTS = 'hotspots';
+/** Metres per pixel at zoom 0 at Mumbai's latitude (19° N), for drawing hotspots at their true radius. */
+const MPP_Z0 = 148_000;
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
-/** App-only layers drawn above the basemap: the current selection and the measuring tool. */
+/** App-only layers drawn above the basemap: curated Mumbai layers, the current selection and the measuring tool. */
 function overlayLayers(P: Palette): LayerSpecification[] {
+  const radius = ['interpolate', ['exponential', 2], ['zoom'], 10, ['/', ['*', ['get', 'radius_m'], 1024], MPP_Z0], 20, ['/', ['*', ['get', 'radius_m'], 1048576], MPP_Z0]] as unknown as number;
   return [
+    { id: 'hotspot-area', type: 'circle', source: HOTSPOTS, minzoom: 10, paint: { 'circle-radius': radius, 'circle-color': HOTSPOT_COLOUR, 'circle-opacity': 0.16, 'circle-stroke-color': HOTSPOT_COLOUR, 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6 } },
+    { id: 'hotspot-icon', type: 'circle', source: HOTSPOTS, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5, 14, 6], 'circle-color': HOTSPOT_COLOUR, 'circle-stroke-color': P.halo, 'circle-stroke-width': 2 } },
+    { id: 'hotspot-labels', type: 'symbol', source: HOTSPOTS, minzoom: 12, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': 11.5, 'text-anchor': 'top', 'text-offset': [0, 0.8], 'text-optional': true }, paint: { 'text-color': HOTSPOT_COLOUR, 'text-halo-color': P.halo, 'text-halo-width': 1.6 } },
+    { id: 'heritage-sites', type: 'circle', source: HERITAGE, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'status'], 'unesco', 6, 4], 15, ['match', ['get', 'status'], 'unesco', 11, 8]], 'circle-color': ['match', ['get', 'status'], 'unesco', HERITAGE_COLOURS.unesco, 'precinct', HERITAGE_COLOURS.precinct, HERITAGE_COLOURS.monument], 'circle-stroke-color': P.halo, 'circle-stroke-width': 2.5 } },
+    { id: 'heritage-labels', type: 'symbol', source: HERITAGE, minzoom: 11, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': 12, 'text-anchor': 'top', 'text-offset': [0, 1], 'text-max-width': 9, 'text-optional': true }, paint: { 'text-color': P.text, 'text-halo-color': P.halo, 'text-halo-width': 1.8 } },
     { id: 'sel-fill', type: 'fill', source: SEL, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': P.selection, 'fill-opacity': 0.12 } },
     { id: 'sel-casing', type: 'line', source: SEL, filter: ['!=', ['geometry-type'], 'Point'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': P.halo, 'line-width': ['+', ['coalesce', ['get', 'width'], 5], 4], 'line-opacity': 0.9 } },
     { id: 'sel-line', type: 'line', source: SEL, filter: ['all', ['!=', ['geometry-type'], 'Point'], ['!', ['to-boolean', ['get', 'dashed']]]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['coalesce', ['get', 'colour'], P.selection], 'line-width': ['coalesce', ['get', 'width'], 5] } },
@@ -64,7 +82,7 @@ export class MapController {
   private ready = false;
   private hidden: string[] = [];
   private area = '';
-  private overlays: Overlays = { buildings3d: false, bridges: false, railColours: true, boundaries: true };
+  private overlays: Overlays = { buildings3d: false, bridges: false, railColours: true, boundaries: true, heritage: false, hotspots: false };
   private selection: GeoJSON.FeatureCollection = EMPTY;
   private measure: GeoJSON.FeatureCollection = EMPTY;
   private pinMarker: maplibregl.Marker | null = null;
@@ -120,6 +138,8 @@ export class MapController {
     const P = palettes[this.theme];
     const style = buildStyle({ theme: this.theme, base: this.base, app: true });
     style.state = { hiddenCategories: { default: this.hidden }, area: { default: this.area } };
+    style.sources[HERITAGE] = { type: 'geojson', data: `${this.base}/api/v1/heritage?format=geojson` };
+    style.sources[HOTSPOTS] = { type: 'geojson', data: `${this.base}/api/v1/hotspots?format=geojson` };
     style.sources[SEL] = { type: 'geojson', data: this.selection };
     style.sources[MEASURE] = { type: 'geojson', data: this.measure };
     style.layers.push(...overlayLayers(P));

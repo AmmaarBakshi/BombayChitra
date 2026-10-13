@@ -75,6 +75,32 @@ export interface LineRef {
   state?: string;
 }
 
+/** A curated heritage site (config/heritage.json). */
+export interface HeritageSite {
+  id: string;
+  status: 'unesco' | 'precinct' | 'monument';
+  name: string;
+  /** Year of UNESCO inscription. */
+  year?: number;
+  place_id?: number;
+  lon: number;
+  lat: number;
+  description?: string;
+  /** Wikipedia article as `lang:Title`. */
+  wikipedia?: string;
+}
+
+/** A spot that floods in heavy rain (config/waterlogging.json). */
+export interface Hotspot {
+  id: string;
+  kind: 'waterlogging';
+  name: string;
+  lon: number;
+  lat: number;
+  radius_m: number;
+  description?: string;
+}
+
 export interface PlaceDetail extends Place {
   category_label: string;
   name_local?: string;
@@ -93,6 +119,8 @@ export interface PlaceDetail extends Place {
   area_m2?: number;
   areas: AreaRef[];
   lines?: LineRef[];
+  /** Set when the place represents a curated heritage site. */
+  heritage?: HeritageSite;
   /** `overture` for places added from Overture Maps; their `osm_url` is empty. */
   source: 'openstreetmap' | 'overture';
   osm_url: string;
@@ -294,6 +322,10 @@ export interface RouteResult {
   /** Roads in travel order; unnamed stretches have no name. */
   roads: { name?: string; distance_m: number }[];
   steps?: RouteStep[];
+  /** Waterlogging hotspots the route passes, with its closest approach. */
+  hotspots: (Hotspot & { distance_m: number })[];
+  /** Whether it is monsoon season now, when the hotspots flood. */
+  monsoon: boolean;
   bbox: BBox;
   geometry: GeoJSON.LineString;
 }

@@ -12,6 +12,8 @@ const OVERLAYS: { key: keyof Overlays; label: string; hint: string }[] = [
   { key: 'bridges', label: 'Bridge explorer', hint: 'Highlight every bridge, flyover and viaduct' },
   { key: 'railColours', label: 'Suburban line colours', hint: 'Western, Central, Harbour and other lines' },
   { key: 'boundaries', label: 'Boundaries', hint: 'Districts, municipal corporations and wards' },
+  { key: 'heritage', label: 'Heritage sites', hint: 'World Heritage Sites, heritage precincts and listed monuments' },
+  { key: 'hotspots', label: 'Monsoon waterlogging', hint: 'Spots that flood in heavy rain, June to September' },
 ];
 
 export class LayersPanel implements Panel {
