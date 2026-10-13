@@ -577,7 +577,8 @@ public final class DatabaseWriter {
         insert.addBatch();
         List<String> in = areas.at(l.lon(), l.lat());
         in.forEach(a -> member(a, "locality", l.id()));
-        String detail = capitalise(l.kind()) + (in.isEmpty() ? "" : " · " + areaName(in.getLast()));
+        String district = in.reversed().stream().filter(id -> !"ward".equals(areaKind(id))).findFirst().orElse(null);
+        String detail = capitalise(l.kind()) + (district == null ? "" : " · " + areaName(district));
         Map<String, Object> tags = parse(l.tagsJson());
         search(l.name(), joinNonNull(str(tags, "name:mr"), str(tags, "name:hi"), str(tags, "alt_name"),
           str(tags, "old_name")), detail, "locality", l.id(), l.kind(), l.lon(), l.lat(),
@@ -1076,6 +1077,10 @@ public final class DatabaseWriter {
 
   private String areaName(String id) {
     return region.areas().stream().filter(a -> a.id().equals(id)).map(RegionConfig.Area::name).findFirst().orElse(id);
+  }
+
+  private String areaKind(String id) {
+    return region.areas().stream().filter(a -> a.id().equals(id)).map(RegionConfig.Area::kind).findFirst().orElse(null);
   }
 
   private static void script(Connection db, String sql) throws SQLException {
