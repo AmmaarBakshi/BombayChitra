@@ -49,6 +49,38 @@ Areas are built from OpenStreetMap administrative boundaries, so they match offi
 Every place, street and bridge in the database is tagged with the areas that contain it, so you can filter any API
 query with `area=makabo` and so on.
 
+### BMC wards
+
+The Brihanmumbai Municipal Corporation's 24 administrative wards are areas too (`kind: ward`), from their
+OpenStreetMap boundaries — so hospitals, schools, buildings or bridges can be counted ward by ward
+(`/api/v1/stats?area=ward-kw`) and the map can highlight one:
+
+| Id | Ward | Covers | Id | Ward | Covers |
+|---|---|---|---|---|---|
+| `ward-a` | A | Colaba, Fort, Churchgate | `ward-kw` | K/W | Andheri West, Juhu, Versova |
+| `ward-b` | B | Dongri, Masjid Bunder | `ward-l` | L | Kurla, Chandivali, Saki Naka |
+| `ward-c` | C | Kalbadevi, Marine Lines | `ward-me` | M/E | Govandi, Mankhurd, Trombay |
+| `ward-d` | D | Malabar Hill, Grant Road, Tardeo | `ward-mw` | M/W | Chembur, Tilak Nagar |
+| `ward-e` | E | Byculla, Mazgaon | `ward-n` | N | Ghatkopar, Vikhroli |
+| `ward-fn` | F/N | Matunga, Sion, Wadala | `ward-pn` | P/N | Malad |
+| `ward-fs` | F/S | Parel, Sewri, Lalbaug | `ward-ps` | P/S | Goregaon, Aarey |
+| `ward-gn` | G/N | Dadar, Mahim, Dharavi | `ward-rc` | R/C | Borivali, Gorai |
+| `ward-gs` | G/S | Worli, Prabhadevi, Lower Parel | `ward-rn` | R/N | Dahisar |
+| `ward-he` | H/E | Bandra East, Santacruz East, BKC | `ward-rs` | R/S | Kandivali, Charkop |
+| `ward-hw` | H/W | Bandra West, Khar West, Santacruz West | `ward-s` | S | Bhandup, Powai, Kanjurmarg |
+| `ward-ke` | K/E | Andheri East, Vile Parle East, airport | `ward-t` | T | Mulund |
+
+### PIN codes
+
+OpenStreetMap has no postal boundaries for the region, but about 112,000 places carry a PIN in their address. The
+server turns every PIN with at least eight such places into an area (`/api/v1/areas?kind=pincode`): its median
+position, an outline around its places (outliers — such as a branch carrying its head office's PIN — dropped), its
+size, the localities it covers and place counts by category. PIN areas can be used as `area=400050` in place queries
+and statistics, are found by search, and reverse geocoding reports the PIN a point falls in.
+
+They are approximations of where the addressed places are, not the postal department's delivery boundaries, which
+are not published as open data; neighbouring outlines can overlap a little.
+
 ### What is mapped (current build)
 
 | Content | Count |

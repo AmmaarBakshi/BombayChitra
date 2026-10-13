@@ -137,6 +137,19 @@ Notes:
 - Routes are computed with A* on a graph of about 200,000 junctions in a few milliseconds; the graph is loaded on
   the first request and each mode's costs are prepared on its first use. Route requests cost five rate-limit tokens.
 
+### Wards and PIN codes
+
+```bash
+curl "$B/api/v1/areas?kind=ward"                           # the 24 BMC wards
+curl "$B/api/v1/stats?area=ward-kw"                        # what is in K/W ward (Andheri West, Juhu)
+curl "$B/api/v1/places?area=ward-a&category=hospital"      # hospitals in A ward
+curl "$B/api/v1/areas?kind=pincode"                        # PIN code areas, derived from addresses
+curl "$B/api/v1/areas/400050?format=geojson"               # one PIN's outline and statistics
+curl "$B/api/v1/places?area=400050&category=school"        # schools addressed with PIN 400050
+```
+
+`/api/v1/reverse` returns the PIN (`postcode`) of any point, and searching for a six-digit PIN finds its area.
+
 ### Places along a route or in view
 
 Use `bbox` with the visible map bounds and a `category` or `group` filter. For a radius, use `/nearby`, which
