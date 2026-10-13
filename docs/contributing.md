@@ -70,6 +70,24 @@ endpoint's documented example, or breaks its schema — so change `api/openapi.y
 | Add an API endpoint | `server/internal/store` + `server/internal/httpapi` + `api/openapi.yaml` |
 | Add an example in a new language | `examples/<language>/` + `examples/README.md` |
 
+## Translations
+
+The interface is available in English, Marathi and Hindi (`web/src/i18n.ts`). To improve a translation, edit the
+`mr` or `hi` dictionary; to add a string, add it to `en` first — the unit tests fail until every language has it,
+so a new feature is translated before it ships. Map labels come from OpenStreetMap's `name:mr` and `name:hi` tags:
+adding those on openstreetmap.org improves the Marathi and Hindi maps for everyone.
+
+## Accessibility
+
+The app should work with a keyboard and a screen reader, on both themes:
+
+- Every control is reachable with Tab; the panel tabs use arrow keys; skip links jump to search and the map.
+- Icon-only buttons need an `aria-label` (and usually the same `title`).
+- Cards opened from the keyboard take focus on their heading, and Escape returns it.
+- Map motion respects `prefers-reduced-motion`.
+- Colours: text meets WCAG AA (4.5:1) and graphics such as transit lines 3:1 against the map — `web/src/map/style/
+  contrast.ts` has the helpers and `test/contrast.test.ts` checks every line colour on both themes.
+
 ## Releasing
 
 Releases follow [Semantic Versioning](https://semver.org/); the API is versioned separately in its path (`/api/v1`).
