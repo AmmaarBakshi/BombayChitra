@@ -46,6 +46,9 @@ const OVERLAY_LAYERS: Record<keyof Overlays, string[]> = {
 export const HERITAGE_COLOURS: Record<string, string> = { unesco: '#c9a227', precinct: '#9c36b5', monument: '#a0522d' };
 export const HOTSPOT_COLOUR = '#1c7ed6';
 
+/** Whether the user asked for less motion: camera moves then jump instead of flying. */
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const SEL = 'selection';
 const MEASURE = 'measure';
 const HERITAGE = 'heritage';
@@ -106,7 +109,7 @@ export class MapController {
       maxBounds: [[71.9, 18.2], [74.6, 20.4]],
       hash: 'map',
       attributionControl: { compact: true },
-      fadeDuration: 150,
+      fadeDuration: reducedMotion() ? 0 : 150,
       maxPitch: 75,
     });
     this.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
@@ -192,8 +195,9 @@ export class MapController {
     this.overlays[key] = on;
     this.applyOverlays();
     if (key === 'buildings3d') {
-      if (on && this.map.getPitch() < 30) this.map.easeTo({ pitch: 55, zoom: Math.max(this.map.getZoom(), 15.5), duration: 900 });
-      if (!on && this.map.getPitch() > 0) this.map.easeTo({ pitch: 0, duration: 600 });
+      const duration = (ms: number) => (reducedMotion() ? 0 : ms);
+      if (on && this.map.getPitch() < 30) this.map.easeTo({ pitch: 55, zoom: Math.max(this.map.getZoom(), 15.5), duration: duration(900) });
+      if (!on && this.map.getPitch() > 0) this.map.easeTo({ pitch: 0, duration: duration(600) });
     }
   }
 
@@ -252,11 +256,13 @@ export class MapController {
   // ---------------------------------------------------------------- camera & picking
 
   fitBounds(bbox: [number, number, number, number], maxZoom = 16): void {
-    this.map.fitBounds(bbox as LngLatBoundsLike, { padding: this.padding(), maxZoom, duration: 900 });
+    this.map.fitBounds(bbox as LngLatBoundsLike, { padding: this.padding(), maxZoom, duration: reducedMotion() ? 0 : 900 });
   }
 
   flyTo(lngLat: [number, number], zoom = 16.5): void {
-    this.map.flyTo({ center: lngLat, zoom: Math.max(zoom, this.map.getZoom()), padding: this.padding(), duration: 1000, essential: true });
+    const options = { center: lngLat, zoom: Math.max(zoom, this.map.getZoom()), padding: this.padding() };
+    if (reducedMotion()) this.map.jumpTo(options);
+    else this.map.flyTo({ ...options, duration: 1000, essential: true });
   }
 
   /** Keeps fitted content clear of the side panel and the inspector. */
