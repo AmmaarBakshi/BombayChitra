@@ -243,6 +243,7 @@ type Reverse struct {
 	Label    string     `json:"label"`
 	Road     *RoadMatch `json:"road,omitempty"`
 	Locality *Locality  `json:"locality,omitempty"`
+	Postcode string     `json:"postcode,omitempty"` // the PIN code area the point is in
 	Areas    []AreaRef  `json:"areas"`
 	Nearby   []Place    `json:"nearby"`
 }

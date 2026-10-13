@@ -232,6 +232,52 @@ func (s *Store) PinCode(ctx context.Context, pin string) (*Area, error) {
 	return &a, nil
 }
 
+// PinCodeAt returns the PIN of the smallest PIN code area whose outline contains p ("" outside all of them).
+// Outlines of neighbouring PINs overlap a little, being convex; the smallest is the most specific.
+func (s *Store) PinCodeAt(ctx context.Context, p geo.Point) (string, error) {
+	idx, err := s.loadPins(ctx)
+	if err != nil {
+		return "", err
+	}
+	best, bestArea := "", math.Inf(1)
+	for pin, a := range idx.byPin {
+		b := a.area.BBox
+		if p.Lon < b[0] || p.Lon > b[2] || p.Lat < b[1] || p.Lat > b[3] || a.area.AreaKm2 >= bestArea {
+			continue
+		}
+		if inRing(a.ring, p) {
+			best, bestArea = pin, a.area.AreaKm2
+		}
+	}
+	return best, nil
+}
+
+// inRing is a ray-casting point-in-polygon test for a closed ring.
+func inRing(ring []geo.Point, p geo.Point) bool {
+	in := false
+	for i, j := 0, len(ring)-1; i < len(ring); j, i = i, i+1 {
+		a, b := ring[i], ring[j]
+		if (a.Lat > p.Lat) != (b.Lat > p.Lat) && p.Lon < (b.Lon-a.Lon)*(p.Lat-a.Lat)/(b.Lat-a.Lat)+a.Lon {
+			in = !in
+		}
+	}
+	return in
+}
+
+// pinSearchResult is the search hit for a query that is a PIN with an area.
+func (s *Store) pinSearchResult(ctx context.Context, query string) *SearchResult {
+	if !IsPinCode(query) || !s.PinCodeExists(ctx, query) {
+		return nil
+	}
+	a := s.pins.byPin[query].area
+	detail := "PIN code"
+	if a.Description != "" {
+		detail += " · " + a.Description
+	}
+	return &SearchResult{Kind: "area", ID: a.ID, Name: a.Name, Detail: detail, Category: "pincode",
+		Lon: a.Center[0], Lat: a.Center[1], BBox: a.BBox}
+}
+
 func ringGeoJSON(ring []geo.Point) json.RawMessage {
 	var b strings.Builder
 	b.WriteString(`{"type":"Polygon","coordinates":[[`)

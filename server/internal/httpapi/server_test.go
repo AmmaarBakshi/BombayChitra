@@ -366,6 +366,13 @@ func TestPinCodeAreas(t *testing.T) {
 			t.Errorf("GET %s: %d", url, rec.Code)
 		}
 	}
+	_, found := get(t, h, "/api/v1/search?q=400050")
+	if items, _ := found["items"].([]any); len(items) == 0 || items[0].(map[string]any)["id"] != "400050" {
+		t.Errorf("search for a PIN: %v", found["items"])
+	}
+	if _, rev := get(t, h, "/api/v1/reverse?lat=19.0545&lon=72.8405"); rev["postcode"] != "400050" {
+		t.Errorf("reverse in Bandra West: postcode %v, want 400050", rev["postcode"])
+	}
 	if rec, _ := get(t, h, "/api/v1/areas/999999"); rec.Code != http.StatusNotFound {
 		t.Errorf("unknown PIN: %d, want 404", rec.Code)
 	}

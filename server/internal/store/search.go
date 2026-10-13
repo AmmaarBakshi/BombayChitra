@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -90,6 +91,9 @@ func (s *Store) Search(ctx context.Context, text string, near *geo.Point, kinds 
 		return nil, err
 	}
 	sort.SliceStable(results, func(i, j int) bool { return results[i].score > results[j].score })
+	if pin := s.pinSearchResult(ctx, strings.ReplaceAll(query, " ", "")); pin != nil && (len(kinds) == 0 || slices.Contains(kinds, "area")) {
+		results = append([]SearchResult{*pin}, results...)
+	}
 	results = dedupe(results, limit)
 	if err := s.attachBBoxes(ctx, results); err != nil {
 		return nil, err

@@ -25,6 +25,9 @@ func (s *Store) Reverse(ctx context.Context, p geo.Point) (*Reverse, error) {
 	if out.Locality, err = s.nearestLocality(ctx, p); err != nil {
 		return nil, err
 	}
+	if out.Postcode, err = s.PinCodeAt(ctx, p); err != nil {
+		return nil, err
+	}
 	nearby, err := s.Places(ctx, PlaceQuery{Near: &p, RadiusM: 150, NamedOnly: true, Limit: 5})
 	if err != nil {
 		return nil, err
