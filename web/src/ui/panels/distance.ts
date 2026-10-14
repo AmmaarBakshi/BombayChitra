@@ -26,6 +26,9 @@ const MODES: { id: Travel; label: string; icon: string; fastest: string }[] = [
   { id: 'foot', label: t('route.walk'), icon: 'walk', fastest: t('route.fastestWalk') },
   { id: 'transit', label: t('route.transit'), icon: 'train', fastest: t('journey.byTransit') },
 ];
+/** Colours for lines without one of their own, by mode (as config/region.json's transit.modeColours). */
+const MODE_COLOURS: Record<string, string> = { train: '#6b7280', subway: '#5c6ac4', light_rail: '#5c6ac4', monorail: '#b04fa0' };
+const lineColour = (leg: JourneyLeg) => leg.line?.colour ?? MODE_COLOURS[leg.line?.mode ?? ''] ?? COLOUR;
 /** What a journey may ride. */
 const RIDES: { id: JourneyMode; label: string }[] = [
   { id: 'train', label: t('journey.train') },
@@ -408,10 +411,13 @@ export class DistancePanel implements Panel {
   /** A journey by train, metro and monorail: its time, trains and changes, and each leg in order. */
   private showJourney(j: Journey): void {
     this.ctx.inspector.close();
+    // Rides in their line's colour, walks dashed, and the stations where each ride starts and ends.
+    const rides = j.legs.filter((leg) => leg.type === 'ride');
     this.ctx.map.setSelection({
       type: 'FeatureCollection',
       features: [
-        ...j.legs.map((leg) => ({ type: 'Feature' as const, geometry: leg.geometry, properties: { colour: COLOUR, width: leg.type === 'ride' ? 6 : 4, dashed: leg.type === 'walk' } })),
+        ...j.legs.map((leg) => ({ type: 'Feature' as const, geometry: leg.geometry, properties: leg.type === 'ride' ? { colour: lineColour(leg), width: 6 } : { colour: COLOUR, width: 4, dashed: true } })),
+        ...rides.flatMap((leg) => [leg.from, leg.to].map((s) => ({ type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [s.lon, s.lat] }, properties: { role: 'stop', colour: lineColour(leg), name: s.name } }))),
         ...this.endFeatures(),
       ],
     });
