@@ -78,6 +78,11 @@
   box-sizing: border-box;
 }
 
+/* The hidden attribute always hides, also on elements laid out with flex or grid. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
