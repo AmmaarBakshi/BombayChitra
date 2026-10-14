@@ -5,6 +5,7 @@ import type { AppContext } from '../context.ts';
 import { clear, h } from '../dom.ts';
 import { formatDate, formatDistance, formatNumber } from '../format.ts';
 import { categoryBadge } from '../icons.ts';
+import { NearMe } from '../near-me.ts';
 import type { Panel } from './panel.ts';
 import type { LayersPanel } from './layers.ts';
 
@@ -19,8 +20,11 @@ export class ExplorePanel implements Panel {
   private resultsEl = h('div', {});
   private focused: string | null = null;
   private abort: AbortController | null = null;
+  private readonly nearMe: NearMe;
 
-  constructor(private readonly ctx: AppContext, private readonly layers: LayersPanel) {}
+  constructor(private readonly ctx: AppContext, private readonly layers: LayersPanel) {
+    this.nearMe = new NearMe(ctx);
+  }
 
   render(body: HTMLElement): void {
     this.body = body;
@@ -46,6 +50,7 @@ export class ExplorePanel implements Panel {
           )
           : null,
       ),
+      this.nearMe.render(),
       h('section', { class: 'section' }, h('h3', {}, t('explore.glance')), this.statsEl),
       h('section', { class: 'section' },
         h('h3', {}, t('explore.findInView'), h('button', { class: 'link-btn', type: 'button', onclick: () => this.unfocus() }, t('explore.clear'))),
