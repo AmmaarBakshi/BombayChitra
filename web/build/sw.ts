@@ -24,7 +24,7 @@ export function serviceWorkerPlugin(publicDir: string): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       const assets = Object.keys(bundle).filter((f) => f.startsWith('assets/') && /\.(m?js|css)$/.test(f)).map((f) => `/${f}`);
-      const precache = ['/', '/favicon.svg', '/manifest.webmanifest', ...assets, ...publicFiles(publicDir, 'fonts')].sort();
+      const precache = ['/', '/favicon.svg', '/manifest.webmanifest', '/offline.html', ...assets, ...publicFiles(publicDir, 'fonts')].sort();
       const version = createHash('sha256').update(template).update(precache.join('\n')).digest('hex').slice(0, 12);
       const source = template.replace("'__BC_VERSION__'", JSON.stringify(version)).replace('__BC_PRECACHE__', JSON.stringify(precache, null, 2));
       this.emitFile({ type: 'asset', fileName: 'sw.js', source });

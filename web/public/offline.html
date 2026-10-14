@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline · BombayChitra</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f3efe7;
+        --surface: #fffdf8;
+        --text: #1f2328;
+        --muted: #5c6370;
+        --accent: #e8590c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #11151b;
+          --surface: #1a2029;
+          --text: #e9ecef;
+          --muted: #a3aab4;
+        }
+      }
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main {
+        max-width: 420px;
+        margin: 16px;
+        padding: 28px;
+        border-radius: 16px;
+        background: var(--surface);
+        text-align: center;
+      }
+      h1 {
+        margin: 12px 0 6px;
+        font-size: 20px;
+      }
+      p {
+        margin: 0 0 18px;
+        color: var(--muted);
+      }
+      a,
+      button {
+        display: inline-block;
+        margin: 4px;
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font: 600 14px system-ui, sans-serif;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      a {
+        background: transparent;
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg width="48" height="48" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#e8590c"/><path d="M7 22c3-1 5-6 9-6s5 4 9 3M9 11l7-4 7 4M16 7v9" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h1>You're offline</h1>
+      <p>This page needs a connection. The map still opens offline, with any areas you saved for offline use.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+      <a href="/">Open the map</a>
+    </main>
+  </body>
+</html>
