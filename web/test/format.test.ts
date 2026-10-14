@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capitalise, distance, formatArea, formatCoord, formatDistance, formatDMS, formatDuration, formatNumber, formatOsmDate, isRecent, parseOsmDate } from '../src/ui/format.ts';
+import { capitalise, distance, formatArea, formatBytes, formatCoord, formatDistance, formatDMS, formatDuration, formatNumber, formatOsmDate, isRecent, parseOsmDate } from '../src/ui/format.ts';
 
 describe('formatDistance', () => {
   it('uses metres below a kilometre', () => {
@@ -93,5 +93,14 @@ describe('OpenStreetMap dates', () => {
     expect(isRecent('1853', now)).toBe(false);
     expect(isRecent('2027-03', now)).toBe(false); // not open yet
     expect(isRecent(undefined, now)).toBe(false);
+  });
+});
+
+describe('formatBytes', () => {
+  it('picks KB, MB or GB', () => {
+    expect(formatBytes(200)).toBe('1 KB');
+    expect(formatBytes(870_000)).toBe('850 KB');
+    expect(formatBytes(1_462_520)).toBe('1.4 MB');
+    expect(formatBytes(10_742_190_000)).toBe('10 GB');
   });
 });
