@@ -68,3 +68,25 @@ test('plan a train journey and open a station from it', async ({ page }) => {
   await expect(page).toHaveURL(/sel=place:\d+/);
   expect(errors).toEqual([]);
 });
+
+test.describe('near me', () => {
+  // Standing outside Andheri station.
+  test.use({ geolocation: { latitude: 19.1197, longitude: 72.8464 }, permissions: ['geolocation'] });
+
+  test('find the nearest station and get directions there', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto('/');
+    await page.locator('.near-me button[data-near="station"]').click();
+    const first = page.locator('.near-me .near-item').first();
+    await expect(first).toContainText('Andheri');
+    await expect(first).toContainText('min walk');
+
+    await first.getByRole('button', { name: 'Directions' }).click();
+    await expect(page.locator('#tab-distance')).toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'From place' })).toHaveValue('You are here');
+    await expect(page.locator('.travel-modes button[data-travel="foot"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.route-summary')).toContainText('on foot');
+    expect(errors).toEqual([]);
+  });
+});
