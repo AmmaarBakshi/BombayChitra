@@ -23,67 +23,68 @@ The code is far ahead of the release process. `CHANGELOG.md` is still all `[Unre
 
 ## 1. Testing & quality gaps
 
-Only the Go server has tests (`routing`, `geo`, `pmtiles`, `httpapi`). CI just *compiles* the pipeline and
-type-checks the web app.
+Done: the pipeline, the server and the web app are tested in CI, and the weekly data release is gated on a regression
+check, an API contract test and end-to-end tests of the map.
 
-- [ ] **Pipeline tests (JUnit)** — taxonomy matching (`Taxonomy.java`, the `"!*"` rule), Overture ↔ OSM
+- [x] **Pipeline tests (JUnit)** — taxonomy matching (`Taxonomy.java`, the `"!*"` rule), Overture ↔ OSM
       de-duplication, bridge span clustering, route-relation → ordered stations.
-- [ ] **Web tests** — Vitest for `format.ts`, `taxonomy.ts`, URL/shareable-link parsing; one Playwright smoke test
+- [x] **Web tests** — Vitest for `format.ts`, `taxonomy.ts`, URL/shareable-link parsing; one Playwright smoke test
       (load map → search "CST" → open card → "Route here").
-- [ ] **Data regression check** in `data.yml`: compare the weekly build against the previous release (place count
+- [x] **Data regression check** in `data.yml`: compare the weekly build against the previous release (place count
       per category, bridge count, line count, route length of Line 3) and fail/flag on a > 5 % drop — catches
       upstream OSM vandalism or Overture schema changes.
-- [ ] **API contract test**: validate live responses against `api/openapi.yaml` so docs and server can't drift.
+- [x] **API contract test**: validate live responses against `api/openapi.yaml` so docs and server can't drift.
 
 ## 2. Routing — the biggest feature gap
 
-`/api/v1/route` is car-only. Most Mumbaikars walk + train.
+Most Mumbaikars walk and take the train. Routes now go by car, two-wheeler or on foot, and `/api/v1/journey` plans
+trips on the locals, the metro and the monorail.
 
-- [ ] **Walking profile** — the road graph already has footpaths and foot-over-bridges; add a `mode=foot` cost
+- [x] **Walking profile** — the road graph already has footpaths and foot-over-bridges; add a `mode=foot` cost
       model (ignore one-ways, allow `highway=footway|steps|pedestrian`, use FOBs).
-- [ ] **Two-wheeler profile** — allow roads cars can, forbid sea link / freeways where two-wheelers are banned
+- [x] **Two-wheeler profile** — allow roads cars can, forbid sea link / freeways where two-wheelers are banned
       (Bandra–Worli Sea Link, Atal Setu, Eastern Freeway).
-- [ ] **Train + metro journey planner** — a station graph with interchanges (Dadar, Ghatkopar, Andheri, Thane…)
+- [x] **Train + metro journey planner** — a station graph with interchanges (Dadar, Ghatkopar, Andheri, Thane…)
       and average inter-station times → "Andheri to CST: Western to Dadar, change to Central, ~55 min". Later:
       import GTFS if MMRDA/BEST/railways publish one.
 - [ ] **Isochrones** — "where can I reach in 30 min from Kharghar" (`/api/v1/isochrone`), drawn as a polygon.
-- [ ] **Turn-by-turn steps** in the route response (street names + manoeuvres), not just geometry.
-- [ ] **Toll awareness** — flag Atal Setu, Sea Link, expressway tolls; `avoid=toll` option.
+- [x] **Turn-by-turn steps** in the route response (street names + manoeuvres), not just geometry.
+- [x] **Toll awareness** — flag Atal Setu, Sea Link, expressway tolls; `avoid=toll` option.
 
 ## 3. Mumbai-specific layers (what Google Maps doesn't do well)
 
-- [ ] **Monsoon waterlogging hotspots** — a toggleable layer of flood-prone spots + a warning on routes passing
+- [x] **Monsoon waterlogging hotspots** — a toggleable layer of flood-prone spots + a warning on routes passing
       through them during June–September.
-- [ ] **BMC wards (A–T)** and **PIN codes** as areas — `/api/v1/areas?type=ward|pincode` and per-ward stats
+- [x] **BMC wards (A–T)** and **PIN codes** as areas — `/api/v1/areas?type=ward|pincode` and per-ward stats
       (hospitals, schools, buildings per ward).
-- [ ] **Heritage layer** — Grade I/II/III heritage structures and precincts (Fort, Kala Ghoda, Ballard Estate).
+- [x] **Heritage layer** — Grade I/II/III heritage structures and precincts (Fort, Kala Ghoda, Ballard Estate).
 - [ ] **Local-train extras** — platform side, first/last train, ladies/AC coach info at stations where OSM has it.
-- [ ] **Navi Mumbai International Airport** & new metro stations — a "recently opened" badge from OSM
+- [x] **Navi Mumbai International Airport** & new metro stations — a "recently opened" badge from OSM
       `start_date`.
 
 ## 4. Language & accessibility
 
-- [ ] **Marathi / Hindi UI and labels** — a language switch that changes map labels and UI strings.
-- [ ] **Transliterated search** — "chhatrapati" vs "chatrapati", "vile parle" vs "vileparle": a normalised search
+- [x] **Marathi / Hindi UI and labels** — a language switch that changes map labels and UI strings.
+- [x] **Transliterated search** — "chhatrapati" vs "chatrapati", "vile parle" vs "vileparle": a normalised search
       column in the FTS5 index.
-- [ ] **Accessibility pass** — keyboard navigation for panels, focus states, screen-reader labels for buttons,
+- [x] **Accessibility pass** — keyboard navigation for panels, focus states, screen-reader labels for buttons,
       colour contrast on both themes (metro line colours on the dark map especially).
 
 ## 5. Offline & mobile
 
-- [ ] **Installable PWA** with a service worker caching the app shell, styles and fonts.
-- [ ] **Offline area download** — cache the tiles of a chosen area (e.g. "my neighbourhood") in the Cache API.
+- [x] **Installable PWA** with a service worker caching the app shell, styles and fonts.
+- [x] **Offline area download** — cache the tiles of a chosen area (e.g. "my neighbourhood") in the Cache API.
       Useful on trains with no signal.
-- [ ] **"Locate me"** and "nearest station / hospital / ATM to me" shortcuts.
+- [x] **"Locate me"** and "nearest station / hospital / ATM to me" shortcuts.
 
 ## 6. API & developer experience
 
-- [ ] **Rate limiting** (per-IP token bucket) and an optional API-key mode before the public demo goes live —
+- [x] **Rate limiting** (per-IP token bucket) and an optional API-key mode before the public demo goes live —
       routing loads a ~100 MB graph and is the obvious thing to abuse.
 - [ ] **Generated SDKs** — `bombaychitra` clients for npm and PyPI generated from `openapi.yaml`.
 - [ ] **Batch geocoding** — `POST /api/v1/search/batch` with a list of addresses.
 - [ ] **Distance matrix** — `POST /api/v1/matrix` (N origins × M destinations) built on the same search.
-- [ ] **`/api/v1/health` + Prometheus `/metrics`** for anyone self-hosting.
+- [x] **`/api/v1/health` + Prometheus `/metrics`** for anyone self-hosting.
 
 ## 7. Community & data improvement
 
