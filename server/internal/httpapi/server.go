@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/config"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/journey"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/ratelimit"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
@@ -24,17 +25,18 @@ var Version = "dev"
 
 // Server bundles the data sources and the static web assets.
 type Server struct {
-	cfg     config.Config
-	store   *store.Store
-	tiles   *pmtiles.Reader
-	web     fs.FS
-	static  *staticHandler
-	routes  *routing.Service
-	limiter *ratelimit.Limiter // nil when rate limiting is off
-	keys    map[[32]byte]bool  // SHA-256 digests of the API keys
-	started time.Time
-	metrics *serverMetrics
-	styles  sync.Map // base URL + name → rendered style bytes
+	cfg      config.Config
+	store    *store.Store
+	tiles    *pmtiles.Reader
+	web      fs.FS
+	static   *staticHandler
+	routes   *routing.Service
+	journeys *journey.Service
+	limiter  *ratelimit.Limiter // nil when rate limiting is off
+	keys     map[[32]byte]bool  // SHA-256 digests of the API keys
+	started  time.Time
+	metrics  *serverMetrics
+	styles   sync.Map // base URL + name → rendered style bytes
 }
 
 // New creates a server. web is the built web app (embedded or on disk) and may be nil.
@@ -42,6 +44,7 @@ func New(cfg config.Config, st *store.Store, tiles *pmtiles.Reader, web fs.FS) *
 	s := &Server{cfg: cfg, store: st, tiles: tiles, web: web, started: time.Now()}
 	if st != nil {
 		s.routes = routing.NewService(st.DB(), 4)
+		s.journeys = journey.NewService(st.DB())
 	}
 	if web != nil {
 		s.static = newStaticHandler(web)
@@ -90,6 +93,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/transit/routes/{id}", s.handleTransitRoute)
 	mux.HandleFunc("GET /api/v1/transit/stations", s.handleStations)
 	mux.HandleFunc("GET /api/v1/route", s.handleRoute)
+	mux.HandleFunc("GET /api/v1/journey", s.handleJourney)
 	mux.HandleFunc("GET /api/v1/heritage", s.handleHeritage)
 	mux.HandleFunc("GET /api/v1/hotspots", s.handleHotspots)
 	mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) { s.notFound(w, r) })
