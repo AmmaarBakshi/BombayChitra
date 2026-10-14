@@ -1,5 +1,6 @@
-import type { Journey, JourneyLeg, JourneyMode, RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
+import type { Journey, JourneyLeg, JourneyMode, JourneyStop, RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
 import { stepText, t } from '../../i18n.ts';
+import { luminance } from '../../map/style/contrast.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h, storageGet, storageSet } from '../dom.ts';
 import { formatDistance, formatDuration } from '../format.ts';
@@ -430,7 +431,7 @@ export class DistancePanel implements Panel {
         h('div', {}, h('b', { class: 'route-big' }, formatDuration(j.duration_s)), h('span', { class: 'sub' }, j.rides ? t('journey.byTransit') : t('journey.walkOnly'))),
         h('div', {}, h('b', { class: 'route-big' }, j.rides ? trains : formatDistance(j.distance_m)), h('span', { class: 'sub' }, j.rides ? changes : t('route.onFoot'))),
       ),
-      h('ol', { class: 'journey-legs' }, ...j.legs.map((leg) => h('li', {}, this.legText(leg)))),
+      h('ol', { class: 'journey-legs' }, ...j.legs.map((leg) => this.legItem(leg))),
       h('div', { class: 'btn-row', style: 'margin-top:10px' },
         h('button', { class: 'btn', type: 'button', onclick: () => this.ctx.map.fitBounds(j.bbox, 16) }, icon('route', 15), t('route.show')),
         h('button', { class: 'btn', type: 'button', onclick: () => this.share() }, icon('link', 15), t('route.share')),
@@ -440,14 +441,46 @@ export class DistancePanel implements Panel {
     ]);
   }
 
-  /** One leg in words: "Walk to Dadar", "Central Line towards Kasara: board at Dadar, get off at Ghatkopar". */
-  private legText(leg: JourneyLeg): string {
+  /**
+   * One leg on the journey timeline. Walks give their distance and time; rides give the line and direction, the
+   * station to board at and the one to get off at (each opens its card), the wait, the time and the stops passed.
+   * Choosing a leg's heading shows where it starts.
+   */
+  private legItem(leg: JourneyLeg): HTMLLIElement {
+    const flyTo = () => this.ctx.map.flyTo([leg.from.lon, leg.from.lat], 16);
+    const station = (s: JourneyStop, text: string) => s.place
+      ? h('button', { class: 'link-btn journey-station', type: 'button', onclick: () => void this.ctx.inspector.place(s.place!, true) }, text)
+      : h('span', { class: 'journey-station' }, text);
     if (leg.type === 'walk') {
-      const walk = !leg.to.name ? t('journey.walkToEnd') : leg.from.name ? t('journey.change', { place: leg.to.name }) : t('journey.walkTo', { place: leg.to.name });
-      return `${walk} · ${formatDistance(leg.distance_m)}, ${formatDuration(leg.duration_s)}`;
+      const text = !leg.to.name ? t('journey.walkToEnd') : leg.from.name ? t('journey.change', { place: leg.to.name }) : t('journey.walkTo', { place: leg.to.name });
+      return h('li', { class: 'journey-leg walk' },
+        h('span', { class: 'journey-icon', 'aria-hidden': 'true' }, icon('walk', 15)),
+        h('div', { class: 'journey-body' },
+          h('button', { class: 'journey-head', type: 'button', onclick: flyTo }, text),
+          h('span', { class: 'sub' }, `${formatDistance(leg.distance_m)} · ${formatDuration(leg.duration_s)}`),
+        ),
+      );
     }
+    const colour = lineColour(leg);
     const stops = leg.stops === 1 ? t('journey.oneStop') : t('journey.stops', { n: leg.stops ?? 0 });
-    return `${leg.line?.label ?? ''} ${t('journey.towards', { place: leg.headsign ?? '' })}: ${t('journey.board', { place: leg.from.name ?? '' })}, ${t('journey.getOff', { place: leg.to.name ?? '' })} · ${stops}, ${formatDuration(leg.duration_s)}`;
+    const via = leg.via ?? [];
+    const timing = [leg.wait_s ? t('journey.wait', { min: Math.max(1, Math.round(leg.wait_s / 60)) }) : '', formatDuration(leg.duration_s)].filter(Boolean).join(' · ');
+    return h('li', { class: 'journey-leg ride', style: `--line:${colour};--on-line:${luminance(colour) > 0.45 ? '#1f2328' : '#fff'}` },
+      h('span', { class: 'journey-icon', 'aria-hidden': 'true' }, icon('train', 15)),
+      h('div', { class: 'journey-body' },
+        h('button', { class: 'journey-head', type: 'button', onclick: flyTo },
+          h('span', { class: 'line-chip' }, leg.line?.ref ?? leg.line?.label ?? ''),
+          h('span', {}, `${leg.line?.label ?? ''} ${t('journey.towards', { place: leg.headsign ?? '' })}`),
+          leg.express ? h('span', { class: 'pill fast' }, t('journey.express')) : null,
+        ),
+        station(leg.from, t('journey.board', { place: leg.from.name ?? '' })),
+        h('span', { class: 'sub' }, timing),
+        via.length
+          ? h('details', { class: 'journey-via' }, h('summary', {}, stops), h('ol', {}, ...via.map((s) => h('li', {}, s.name ?? ''))))
+          : h('span', { class: 'sub' }, stops),
+        station(leg.to, t('journey.getOff', { place: leg.to.name ?? '' })),
+      ),
+    );
   }
 
   /** Waterlogging hotspots on the route: a warning in the monsoon, a note the rest of the year. */

@@ -510,6 +510,108 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   box-shadow: inset 3px 0 0 #1c7ed6;
 }
 
+/* Journey timeline: an icon per leg joined by a line, solid in the line's colour for rides and dotted for walks. */
+.journey-legs {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journey-leg {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.journey-leg::before {
+  content: '';
+  position: absolute;
+  top: 30px;
+  bottom: 3px;
+  left: 12px;
+  border-left: 3px solid var(--line, var(--faint));
+}
+
+.journey-leg.walk::before {
+  border-left: 3px dotted var(--faint);
+}
+
+.journey-leg:last-child::before {
+  display: none;
+}
+
+.journey-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.journey-leg.ride .journey-icon {
+  background: var(--line);
+  color: var(--on-line, #fff);
+}
+
+.journey-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.journey-head {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 4px 0 2px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.journey-head .line-chip {
+  margin: 0;
+}
+
+.journey-head .pill {
+  margin: 0;
+}
+
+.pill.fast {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.journey-station {
+  font-size: 13px;
+  text-align: left;
+}
+
+.journey-via summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.journey-via ol {
+  margin: 4px 0 2px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
 .route-directions {
   margin-top: 12px;
 }
