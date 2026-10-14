@@ -853,6 +853,92 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { description: 'The dataset has no routing graph (`routing_unavailable`), or was built before travel modes and only routes cars (`mode_unavailable`)' }
 
+  /api/v1/journey:
+    get:
+      tags: [Routing]
+      operationId: journey
+      summary: Journey by train, metro and monorail
+      description: |
+        The quickest journey between two points on the suburban railway, the metro and the monorail: a walk to a
+        station, one or more rides with changes, and a walk to the destination. Every ride gives its line (with its
+        colour), the direction it is heading (`headsign`), the stations where you board and get off (with their
+        `place` ids for `/api/v1/places/{id}`), the stations it calls at in between, the wait and the riding time.
+        A destination within walking distance is reached on foot when that is quicker.
+
+        Journeys are **estimates, not a timetable**: each boarding waits half the line's usual daytime gap between
+        trains (`transit.headways` in the region config; twice as long for express patterns), rides run at the mode's
+        typical speed with an allowance per stop, and a change takes a minute and a half for platforms plus any walk
+        between stations. Walks follow streets, footpaths and foot over-bridges at 4.8 km/h. Only lines in service
+        are used. With `format=geojson` returns a FeatureCollection: a line per leg (`role: leg`, rides with their
+        line and colour), the stations where rides start and end (`board`, `alight`) and the two ends, with the totals
+        on `from`.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Start as `lat,lon`.
+          schema: { type: string }
+          example: 19.0190,72.8430
+        - name: to
+          in: query
+          required: true
+          description: Destination as `lat,lon`.
+          schema: { type: string }
+          example: 19.0864,72.9087
+        - name: modes
+          in: query
+          description: 'Comma-separated modes to ride: `train` (suburban railway), `metro` and `monorail`. Default: all.'
+          schema: { type: string, example: 'train,metro' }
+        - name: max_walk
+          in: query
+          description: The furthest walk to the first station and from the last, in metres as the crow flies.
+          schema: { type: number, minimum: 200, maximum: 3000, default: 1500 }
+        - $ref: '#/components/parameters/format'
+      responses:
+        '200':
+          description: Journey
+          content:
+            application/json:
+              example:
+                from: { lat: 19.019, lon: 72.843 }
+                to: { lat: 19.0864, lon: 72.9087 }
+                duration_s: 1533
+                distance_m: 11069
+                walk_m: 694
+                rides: 1
+                changes: 0
+                straight_m: 10191
+                legs:
+                  - type: walk
+                    from: { lat: 19.019, lon: 72.843 }
+                    to: { name: Dadar (Central), lat: 19.017207, lon: 72.843175, place: 26300750031 }
+                    distance_m: 525
+                    duration_s: 418
+                    geometry: { type: LineString, coordinates: [[72.843, 19.019], [72.842975, 19.019132]] }
+                  - type: ride
+                    from: { name: Dadar (Central), lat: 19.017207, lon: 72.843175, place: 26300750031 }
+                    to: { name: Ghatkopar, lat: 19.085542, lon: 72.908078, place: 42645394301 }
+                    distance_m: 10375
+                    duration_s: 829
+                    wait_s: 120
+                    line: { key: 'Mumbai Suburban Railway:C', label: Central Line, ref: C, mode: train, network: Mumbai Suburban Railway, colour: '#ff0000' }
+                    route: 11514142
+                    headsign: Kasara
+                    stops: 2
+                    via: [{ name: Kurla, lat: 19.064927, lon: 72.879234, place: 26634476401 }]
+                    geometry: { type: LineString, coordinates: [[72.843154, 19.01722], [72.844704, 19.019493]] }
+                  - type: walk
+                    from: { name: Ghatkopar, lat: 19.085542, lon: 72.908078, place: 42645394301 }
+                    to: { lat: 19.0864, lon: 72.9087 }
+                    distance_m: 169
+                    duration_s: 165
+                    geometry: { type: LineString, coordinates: [[72.908078, 19.085542], [72.908172, 19.085529]] }
+                bbox: [72.841792, 19.016769, 72.908717, 19.0864]
+                note: Estimated from typical gaps between trains and running times, not from a timetable.
+        '400': { description: 'Missing or invalid `from`, `to`, `modes` or `max_walk`' }
+        '422': { description: 'No station within `max_walk` of a point that is not within walking distance of the other (`no_station`), or no journey connects the points (`no_journey`)' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/v1/heritage:
     get:
       tags: [Mumbai layers]
