@@ -510,6 +510,17 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   box-shadow: inset 3px 0 0 #1c7ed6;
 }
 
+.offline-progress progress {
+  width: 100%;
+  height: 8px;
+  margin: 8px 0 2px;
+  accent-color: var(--accent);
+}
+
+.offline-progress .btn-row {
+  justify-content: space-between;
+}
+
 /* Journey timeline: an icon per leg joined by a line, solid in the line's colour for rides and dotted for walks. */
 .journey-legs {
   margin: 4px 0 0;

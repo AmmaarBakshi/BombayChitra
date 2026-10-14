@@ -5,6 +5,7 @@ import type { AppContext } from '../context.ts';
 import { clear, h, storageGet, storageSet } from '../dom.ts';
 import { formatNumber } from '../format.ts';
 import { categoryBadge, icon } from '../icons.ts';
+import { OfflineAreas } from '../offline-areas.ts';
 import type { Panel } from './panel.ts';
 
 const HIDDEN_KEY = 'bc-hidden-categories';
@@ -29,8 +30,10 @@ export class LayersPanel implements Panel {
   private counts = new Map<string, number>();
   private body: HTMLElement | null = null;
   private overlayListeners: ((key: keyof Overlays, on: boolean) => void)[] = [];
+  private readonly offline: OfflineAreas | null;
 
   constructor(private readonly ctx: AppContext) {
+    this.offline = OfflineAreas.supported ? new OfflineAreas(ctx) : null;
     let initial: string[] = [];
     try {
       initial = JSON.parse(storageGet(HIDDEN_KEY) ?? '[]') as string[];
@@ -76,6 +79,7 @@ export class LayersPanel implements Panel {
           return h('label', { class: 'switch-row' }, input, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, h('div', { class: 'title' }, o.label), h('div', { class: 'sub' }, o.hint)));
         }),
       ),
+      ...(this.offline ? [this.offline.render()] : []),
       h('section', { class: 'section' },
         h('h3', {}, 'Places',
           h('span', {},
