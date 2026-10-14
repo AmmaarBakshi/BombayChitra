@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"net/http"
@@ -66,6 +67,7 @@ func (s *Server) handleJourney(w http.ResponseWriter, r *http.Request) {
 	p := newParams(r.URL)
 	from, to := p.pair("from"), p.pair("to")
 	maxWalk := p.float("max_walk", 1500, 200, 3000)
+	format := p.oneOf("format", "json", "json", "geojson")
 	var modes map[string]bool
 	for _, m := range p.list("modes") {
 		planner, ok := journeyModes[strings.ToLower(m)]
@@ -105,7 +107,54 @@ func (s *Server) handleJourney(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	walks := s.measureWalks(r.Context(), n, j, *from, *to)
-	s.writeJSON(w, r, http.StatusOK, describeJourney(n, j, *from, *to, walks))
+	out := describeJourney(n, j, *from, *to, walks)
+	if format == "geojson" {
+		fc, err := journeyFeatures(out)
+		if err != nil {
+			s.handleErr(w, r, err)
+			return
+		}
+		s.writeGeoJSON(w, r, fc)
+		return
+	}
+	s.writeJSON(w, r, http.StatusOK, out)
+}
+
+// journeyFeatures presents a journey as GeoJSON: a line per leg (rides carry their line and colour), the stations
+// where rides start and end, and the two ends of the journey with its totals on the "from" point.
+func journeyFeatures(out journeyResponse) (featureCollection, error) {
+	fc := featureCollection{Type: "FeatureCollection", Features: []feature{}}
+	for i, l := range out.Legs {
+		geometry, err := json.Marshal(l.Geometry)
+		if err != nil {
+			return fc, err
+		}
+		props := map[string]any{"role": "leg", "leg": i, "type": l.Type, "from": l.From.Name, "to": l.To.Name,
+			"distance_m": l.DistanceM, "duration_s": l.DurationS}
+		if l.Type == "ride" {
+			props["line"], props["line_key"], props["mode"], props["colour"] = l.Line.Label, l.Line.Key, l.Line.Mode, l.Line.Colour
+			props["route"], props["headsign"], props["express"] = l.Route, l.Headsign, l.Express
+			props["stops"], props["wait_s"] = l.Stops, l.WaitS
+		}
+		fc.Features = append(fc.Features, feature{Type: "Feature", Geometry: geometry, Properties: props})
+		if l.Type == "ride" {
+			for _, end := range []struct {
+				role string
+				stop journeyStop
+			}{{"board", l.From}, {"alight", l.To}} {
+				fc.Features = append(fc.Features, feature{Type: "Feature", Geometry: pointGeometry(end.stop.Lon, end.stop.Lat),
+					Properties: map[string]any{"role": end.role, "leg": i, "name": end.stop.Name, "place": end.stop.Place,
+						"line": l.Line.Label, "colour": l.Line.Colour}})
+			}
+		}
+	}
+	fc.Features = append(fc.Features,
+		feature{Type: "Feature", Geometry: pointGeometry(out.From.Lon, out.From.Lat), Properties: map[string]any{
+			"role": "from", "duration_s": out.DurationS, "distance_m": out.DistanceM, "walk_m": out.WalkM,
+			"rides": out.Rides, "changes": out.Changes, "note": out.Note}},
+		feature{Type: "Feature", Geometry: pointGeometry(out.To.Lon, out.To.Lat), Properties: map[string]any{"role": "to"}},
+	)
+	return fc, nil
 }
 
 // measureWalks routes each walk along streets and footpaths with the foot router, replacing the planner's
