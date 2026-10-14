@@ -7,6 +7,7 @@ import { hashParams, parseSelection, updateHash } from './ui/hash.ts';
 import { type Language, language, setLanguage, t } from './i18n.ts';
 import { icon } from './ui/icons.ts';
 import { Inspector } from './ui/inspector.ts';
+import { setupInstall } from './ui/install.ts';
 import { MeasureTool } from './ui/measure.ts';
 import { BridgesPanel } from './ui/panels/bridges.ts';
 import { BuildingsPanel } from './ui/panels/buildings.ts';
@@ -195,6 +196,9 @@ export function createApp(): void {
   measure = new MeasureTool(map, measureBtn);
   measureBtn.addEventListener('click', () => measure!.toggle());
   $('.toolbar a').append(icon('docs', 19));
+  const installBtn = $('#tool-install') as HTMLButtonElement;
+  installBtn.append(icon('install', 19));
+  setupInstall(installBtn, (message) => ctx.toast(message));
 
   // Interface language (also the map's label language); switching reloads the app in the new language.
   const toolTitles: [string, Parameters<typeof t>[0]][] = [['#tool-3d', 'tool.3d'], ['#tool-bridges', 'tool.bridges'], ['#tool-route', 'tool.route'], ['#tool-measure', 'tool.measure'], ['.toolbar a', 'tool.docs']];
