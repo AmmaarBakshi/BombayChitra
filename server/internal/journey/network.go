@@ -15,10 +15,12 @@ import (
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/geo"
 )
 
+// WalkSpeed is the walking speed in m/s, the same as the foot router's.
+const WalkSpeed = 4.8 / 3.6
+
 const (
 	mergeM    = 300.0 // stops of one mode with the same name closer than this are one station
 	transferM = 450.0 // the furthest walk between two stations to change lines
-	walkSpeed = 1.25  // m/s, about 4.5 km/h
 	detour    = 1.3   // metres walked per metre of straight line
 	platformS = 90.0  // changing platforms within a station
 	exitS     = 60.0  // leaving one station and entering another when changing lines
@@ -326,7 +328,7 @@ func (n *Network) link() {
 }
 
 // walkTime estimates the time to walk between two points the given straight-line distance apart.
-func walkTime(straightM float64) float64 { return straightM * detour / walkSpeed }
+func walkTime(straightM float64) float64 { return straightM * detour / WalkSpeed }
 
 func stopPoint(s Stop) geo.Point { return geo.Point{Lon: s.Lon, Lat: s.Lat} }
 

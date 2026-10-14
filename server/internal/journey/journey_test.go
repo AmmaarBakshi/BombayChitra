@@ -89,6 +89,13 @@ func TestPlanRideChangeAndWalk(t *testing.T) {
 	if math.Abs(total-j.DurationS) > 1e-6 {
 		t.Errorf("legs add up to %.0f s, journey says %.0f", total, j.DurationS)
 	}
+	j.SetWalk(2, 400, 300)
+	if j.Legs[2].DistanceM != 400 || j.Legs[2].DurationS != 300+exitS {
+		t.Errorf("measured change walk %+v, want 400 m in 300 s plus leaving and entering the stations", j.Legs[2])
+	}
+	if math.Abs(j.DurationS-(total-change.DurationS+300+exitS)) > 1e-6 {
+		t.Errorf("journey %.0f s after measuring the change walk", j.DurationS)
+	}
 	if got := n.Via(first); len(got) != 1 || n.Stations[got[0]].Name != "A2" {
 		t.Errorf("via %v, want A2", got)
 	}

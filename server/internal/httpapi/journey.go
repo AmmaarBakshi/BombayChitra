@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"math"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/geo"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/journey"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
 )
 
 // journeyNote says what journey times are based on.
@@ -102,11 +104,44 @@ func (s *Server) handleJourney(w http.ResponseWriter, r *http.Request) {
 		s.handleErr(w, r, err)
 		return
 	}
-	s.writeJSON(w, r, http.StatusOK, describeJourney(n, j, *from, *to))
+	walks := s.measureWalks(r.Context(), n, j, *from, *to)
+	s.writeJSON(w, r, http.StatusOK, describeJourney(n, j, *from, *to, walks))
 }
 
-// describeJourney turns a planned journey into the API's response.
-func describeJourney(n *journey.Network, j *journey.Journey, from, to geo.Point) journeyResponse {
+// measureWalks routes each walk along streets and footpaths with the foot router, replacing the planner's
+// straight-line estimate, and returns the paths by leg. Walks the router cannot find (or a dataset without a routing
+// graph) keep the estimate and a straight line.
+func (s *Server) measureWalks(ctx context.Context, n *journey.Network, j *journey.Journey, from, to geo.Point) map[int][][2]float64 {
+	paths := map[int][][2]float64{}
+	if s.routes == nil {
+		return paths
+	}
+	point := func(station int, end geo.Point) geo.Point {
+		if station < 0 {
+			return end
+		}
+		return n.Stations[station].Point()
+	}
+	for i, l := range j.Legs {
+		if l.Ride {
+			continue
+		}
+		a, b := point(l.From, from), point(l.To, to)
+		res, err := s.routes.Route(ctx, a.Lon, a.Lat, b.Lon, b.Lat, routing.Options{Mode: routing.Foot})
+		if err != nil {
+			continue
+		}
+		// The router starts and ends on the nearest path; add the steps to and from it.
+		offsets := res.From.DistM + res.To.DistM
+		j.SetWalk(i, res.DistanceM+offsets, res.DurationS+offsets/journey.WalkSpeed)
+		path := append([][2]float64{{a.Lon, a.Lat}}, res.Path...)
+		paths[i] = append(path, [2]float64{b.Lon, b.Lat})
+	}
+	return paths
+}
+
+// describeJourney turns a planned journey into the API's response; walks are the measured walking paths by leg.
+func describeJourney(n *journey.Network, j *journey.Journey, from, to geo.Point, walks map[int][][2]float64) journeyResponse {
 	stop := func(i int, end geo.Point) journeyStop {
 		if i < 0 {
 			return journeyStop{Lat: end.Lat, Lon: end.Lon}
@@ -123,7 +158,7 @@ func describeJourney(n *journey.Network, j *journey.Journey, from, to geo.Point)
 		Note:      journeyNote,
 	}
 	bbox := []float64{math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1)}
-	for _, l := range j.Legs {
+	for i, l := range j.Legs {
 		leg := journeyLeg{Type: "walk", From: stop(l.From, from), To: stop(l.To, to),
 			DistanceM: math.Round(l.DistanceM), DurationS: math.Round(l.DurationS)}
 		var path [][2]float64
@@ -138,7 +173,10 @@ func describeJourney(n *journey.Network, j *journey.Journey, from, to geo.Point)
 			path = n.RideGeometry(l)
 			out.Rides++
 		} else {
-			path = [][2]float64{{leg.From.Lon, leg.From.Lat}, {leg.To.Lon, leg.To.Lat}}
+			path = walks[i]
+			if path == nil {
+				path = [][2]float64{{leg.From.Lon, leg.From.Lat}, {leg.To.Lon, leg.To.Lat}}
+			}
 			out.WalkM += leg.DistanceM
 		}
 		out.DistanceM += leg.DistanceM

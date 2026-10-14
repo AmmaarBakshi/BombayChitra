@@ -38,6 +38,20 @@ func (n *Network) RideGeometry(l Leg) [][2]float64 {
 	return append(out, interpolate(r.track, r.trackAt, b))
 }
 
+// SetWalk replaces the estimate for walk i with a measured walk (along footpaths), keeping the time for leaving and
+// entering stations on a change, and updates the journey's duration.
+func (j *Journey) SetWalk(i int, distanceM, durationS float64) {
+	l := &j.Legs[i]
+	if l.Ride {
+		return
+	}
+	if l.From >= 0 && l.To >= 0 {
+		durationS += exitS
+	}
+	j.DurationS += durationS - l.DurationS
+	l.DistanceM, l.DurationS = distanceM, durationS
+}
+
 // Stats describes the network's size.
 type Stats struct {
 	Lines    int `json:"lines"`
