@@ -90,3 +90,19 @@ test.describe('near me', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test('save an area and open the map offline', async ({ page, context }) => {
+  // Fort, zoomed in: a few dozen tiles.
+  await page.goto('/#map=15.5/18.9322/72.8347');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.getByRole('tab', { name: 'Layers' }).click();
+  await page.getByRole('button', { name: 'Save this area' }).click();
+  await expect(page.locator('.offline-list li').first()).toContainText('tiles', { timeout: 60_000 });
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('#map canvas.maplibregl-canvas')).toBeVisible();
+  // The saved tiles draw the streets of Fort without a connection.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { bombaychitra: { map: { queryRenderedFeatures: () => unknown[] } } }).bombaychitra.map.queryRenderedFeatures().length), { timeout: 15_000 }).toBeGreaterThan(100);
+  await context.setOffline(false);
+});
