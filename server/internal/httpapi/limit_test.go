@@ -59,6 +59,13 @@ func TestRouteCostsMore(t *testing.T) {
 	if rec := request(h, "/api/v1/meta", "198.51.100.1:1", nil); rec.Code != http.StatusOK {
 		t.Fatalf("a cheap request still fits: %d", rec.Code)
 	}
+	// Journeys route their walks, so they cost as much as a route.
+	if rec := request(h, "/api/v1/journey", "198.51.100.2:1", nil); rec.Code != http.StatusOK {
+		t.Fatalf("first journey: %d", rec.Code)
+	}
+	if rec := request(h, "/api/v1/journey", "198.51.100.2:1", nil); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("second journey within a second: %d, want 429", rec.Code)
+	}
 }
 
 func TestAPIKeys(t *testing.T) {

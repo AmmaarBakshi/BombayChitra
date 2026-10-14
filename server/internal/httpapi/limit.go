@@ -10,11 +10,11 @@ import (
 	"strings"
 )
 
-// requestCost is how many rate-limit tokens an API request spends: searches over the road graph cost more than
-// lookups in the database.
+// requestCost is how many rate-limit tokens an API request spends: searches over the road graph (routes, and the
+// walks of a journey) cost more than lookups in the database.
 func requestCost(path string) float64 {
 	switch path {
-	case "/api/v1/route":
+	case "/api/v1/route", "/api/v1/journey":
 		return 5
 	}
 	return 1

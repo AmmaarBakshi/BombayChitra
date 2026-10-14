@@ -86,14 +86,15 @@ func (s *Server) handleJourney(w http.ResponseWriter, r *http.Request) {
 		s.badRequest(w, r, p.err.Error())
 		return
 	}
+	// The search time includes loading the network on first use and measuring the walks.
 	start := time.Now()
+	defer func() { s.metrics.routeDuration.Observe(time.Since(start).Seconds(), "transit") }()
 	n, err := s.journeys.Network(r.Context())
 	if err != nil {
 		s.handleErr(w, r, err)
 		return
 	}
 	j, err := n.Plan(*from, *to, journey.Options{MaxWalkM: maxWalk, Modes: modes})
-	s.metrics.routeDuration.Observe(time.Since(start).Seconds(), "transit")
 	s.metrics.routeSearches.Inc("transit", journeyOutcome(err))
 	switch {
 	case errors.Is(err, journey.ErrNoStation):
