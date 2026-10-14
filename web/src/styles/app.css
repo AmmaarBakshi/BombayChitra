@@ -465,19 +465,27 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   color: var(--text);
 }
 
+/* Four ways to travel side by side: the icon over the label, so the row fits narrow panels and longer translations. */
 .travel-modes {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   width: 100%;
 }
 
 .travel-modes button {
-  display: inline-flex;
-  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding-inline: 6px;
-  white-space: nowrap;
+  gap: 3px;
+  padding: 6px 4px;
+  font-size: 11.5px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.ride-modes {
+  margin: 0;
 }
 
 .switch-row.compact {

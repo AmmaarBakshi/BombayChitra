@@ -1,4 +1,4 @@
-import type { RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
+import type { Journey, JourneyLeg, JourneyMode, RouteResult, RouteStep, SearchResult, TravelMode } from '../../api/types.ts';
 import { stepText, t } from '../../i18n.ts';
 import type { AppContext } from '../context.ts';
 import { append, clear, debounce, h, storageGet, storageSet } from '../dom.ts';
@@ -15,12 +15,22 @@ export interface RoutePoint {
   label: string;
 }
 
+/** How to travel: by road in one of the routing modes, or by train, metro and monorail. */
+type Travel = TravelMode | 'transit';
+
 const COLOUR = '#e8590c';
 const MODE_KEY = 'bc-route-mode';
-const MODES: { id: TravelMode; label: string; icon: string; fastest: string }[] = [
+const MODES: { id: Travel; label: string; icon: string; fastest: string }[] = [
   { id: 'car', label: t('route.car'), icon: 'car', fastest: t('route.fastestDrive') },
   { id: 'two_wheeler', label: t('route.twoWheeler'), icon: 'scooter', fastest: t('route.fastestRide') },
   { id: 'foot', label: t('route.walk'), icon: 'walk', fastest: t('route.fastestWalk') },
+  { id: 'transit', label: t('route.transit'), icon: 'train', fastest: t('journey.byTransit') },
+];
+/** What a journey may ride. */
+const RIDES: { id: JourneyMode; label: string }[] = [
+  { id: 'train', label: t('journey.train') },
+  { id: 'metro', label: t('journey.metro') },
+  { id: 'monorail', label: t('journey.monorail') },
 ];
 /** Rotation of the direction arrow for each step modifier (degrees, clockwise). */
 const ARROW: Record<string, number> = { straight: 0, slight_right: 40, right: 90, sharp_right: 135, uturn: 180, sharp_left: -135, left: -90, slight_left: -40 };
@@ -28,8 +38,9 @@ const COORD = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
 const LABEL: Record<RouteEndName, string> = { from: 'From', to: 'To' };
 
 /**
- * "Distance by road": the driving distance and time between two places over the road network, with the route drawn on
- * the map. Ends are chosen by search, by clicking the map or from any place card ("Route here").
+ * "Distance by road": the distance and time between two places over the road network by car, two-wheeler or on
+ * foot, or a journey by train, metro and monorail, drawn on the map. Ends are chosen by search, by clicking the map or
+ * from any place card ("Route here").
  */
 export class DistancePanel implements Panel {
   readonly id = 'distance';
@@ -42,10 +53,17 @@ export class DistancePanel implements Panel {
 
   private points: Record<RouteEndName, RoutePoint | null> = { from: null, to: null };
   private optimize: 'time' | 'distance' = 'time';
-  private mode: TravelMode = (MODES.find((m) => m.id === storageGet(MODE_KEY))?.id) ?? 'car';
+  private mode: Travel = (MODES.find((m) => m.id === storageGet(MODE_KEY))?.id) ?? 'car';
   private avoidTolls = false;
-  private available: TravelMode[] = MODES.map((m) => m.id);
+  /** Road travel modes the dataset routes; journeys are always available. */
+  private available: TravelMode[] = ['car', 'two_wheeler', 'foot'];
+  private rides = new Set<JourneyMode>(RIDES.map((r) => r.id));
   private readonly travelButtons: HTMLButtonElement[] = [];
+  private readonly rideButtons: HTMLButtonElement[] = [];
+  private readonly rideRow = h('div', { class: 'segmented ride-modes', role: 'group', 'aria-label': 'Ride' });
+  private readonly optimizeGroup = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' });
+  private readonly title = h('div', { class: 'title' });
+  private readonly subtitle = h('div', { class: 'sub', style: 'white-space:normal' });
   private readonly tollToggle = h('input', { type: 'checkbox' }) as HTMLInputElement;
   private readonly tollRow = h('label', { class: 'switch-row compact' }, this.tollToggle, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'grow' }, t('route.avoidTolls')));
   private readonly inputs: Record<RouteEndName, HTMLInputElement>;
@@ -102,21 +120,24 @@ export class DistancePanel implements Panel {
     for (const m of MODES) {
       this.travelButtons.push(h('button', { type: 'button', 'aria-pressed': String(m.id === this.mode), 'data-travel': m.id, title: m.label, 'aria-label': m.label, onclick: () => this.setMode(m.id) }, icon(m.icon, 16), h('span', {}, m.label)));
     }
+    for (const r of RIDES) {
+      this.rideButtons.push(h('button', { type: 'button', 'aria-pressed': String(this.rides.has(r.id)), 'data-ride': r.id, onclick: () => this.toggleRide(r.id) }, r.label));
+    }
+    this.optimizeGroup.append(...this.modeButtons);
+    this.rideRow.append(...this.rideButtons);
     this.tollToggle.addEventListener('change', () => {
       this.avoidTolls = this.tollToggle.checked;
       if (this.points.from && this.points.to) void this.compute();
     });
-    this.tollRow.hidden = this.mode === 'foot';
+    this.applyTravel();
     this.applyAvailability();
     body.append(
-      h('div', { class: 'route-head' },
-        h('div', { class: 'title' }, t('route.title')),
-        h('div', { class: 'sub', style: 'white-space:normal' }, t('route.subtitle')),
-      ),
+      h('div', { class: 'route-head' }, this.title, this.subtitle),
       h('div', { class: 'segmented travel-modes', role: 'group', 'aria-label': 'Travel by' }, ...this.travelButtons),
       h('div', { class: 'route-form' }, row('from'), row('to')),
       h('div', { class: 'route-tools' },
-        h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' }, ...this.modeButtons),
+        this.optimizeGroup,
+        this.rideRow,
         h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', 'aria-label': 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), t('route.swap')),
         'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), t('route.me')) : null,
       ),
@@ -167,10 +188,13 @@ export class DistancePanel implements Panel {
     if (!route) return false;
     if (params.get('opt') === 'distance') this.optimize = 'distance';
     const travel = MODES.find((m) => m.id === params.get('mode'));
-    if (travel && this.available.includes(travel.id)) this.mode = travel.id;
+    if (travel && this.usable(travel.id)) this.mode = travel.id;
+    const rides = (params.get('ride') ?? '').split(',').filter((r): r is JourneyMode => RIDES.some((x) => x.id === r));
+    if (rides.length) this.rides = new Set(rides);
+    this.rideButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(this.rides.has(btn.dataset.ride as JourneyMode))));
     this.avoidTolls = params.get('avoid') === 'toll';
     this.tollToggle.checked = this.avoidTolls;
-    this.tollRow.hidden = this.mode === 'foot';
+    this.applyTravel();
     const [a, b] = [route.from, route.to];
     this.modeButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === this.optimize)));
     this.travelButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.travel === this.mode)));
@@ -206,22 +230,45 @@ export class DistancePanel implements Panel {
   setAvailableModes(modes: TravelMode[]): void {
     this.available = modes.length ? modes : ['car'];
     this.applyAvailability();
-    if (!this.available.includes(this.mode)) this.setMode(this.available[0]);
+    if (!this.usable(this.mode)) this.setMode(this.available[0]);
+  }
+
+  private usable(mode: Travel): boolean {
+    return mode === 'transit' || this.available.includes(mode);
   }
 
   private applyAvailability(): void {
     for (const btn of this.travelButtons) {
-      const ok = this.available.includes(btn.dataset.travel as TravelMode);
+      const ok = this.usable(btn.dataset.travel as Travel);
       btn.disabled = !ok;
       btn.title = ok ? (MODES.find((m) => m.id === btn.dataset.travel)?.label ?? '') : 'Not available with this dataset';
     }
   }
 
-  private setMode(mode: TravelMode): void {
+  /** Shows the controls for the travel mode: fastest/shortest and tolls by road, what to ride for journeys. */
+  private applyTravel(): void {
+    const transit = this.mode === 'transit';
+    this.tollRow.hidden = this.mode === 'foot' || transit;
+    this.optimizeGroup.hidden = transit;
+    this.rideRow.hidden = !transit;
+    this.title.textContent = transit ? t('journey.title') : t('route.title');
+    this.subtitle.textContent = transit ? t('journey.subtitle') : t('route.subtitle');
+  }
+
+  private setMode(mode: Travel): void {
     this.mode = mode;
     storageSet(MODE_KEY, mode);
     this.travelButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.travel === mode)));
-    this.tollRow.hidden = mode === 'foot';
+    this.applyTravel();
+    if (this.points.from && this.points.to) void this.compute();
+  }
+
+  /** Turns one kind of train on or off for journeys; at least one stays on. */
+  private toggleRide(ride: JourneyMode): void {
+    if (this.rides.has(ride) && this.rides.size === 1) return;
+    if (this.rides.has(ride)) this.rides.delete(ride);
+    else this.rides.add(ride);
+    this.rideButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(this.rides.has(btn.dataset.ride as JourneyMode))));
     if (this.points.from && this.points.to) void this.compute();
   }
 
@@ -292,6 +339,11 @@ export class DistancePanel implements Panel {
     clear(this.result);
     this.result.append(h('div', { class: 'skeleton', style: 'height:64px' }), h('div', { class: 'skeleton' }));
     try {
+      if (this.mode === 'transit') {
+        const modes = this.rides.size === RIDES.length ? undefined : [...this.rides];
+        this.showJourney(await this.ctx.api.journey([from.lon, from.lat], [to.lon, to.lat], { modes }, this.abort.signal));
+        return;
+      }
       const avoid: 'toll'[] = this.avoidTolls && this.mode !== 'foot' ? ['toll'] : [];
       const res = await this.ctx.api.route([from.lon, from.lat], [to.lon, to.lat], { mode: this.mode, optimize: this.optimize, avoid }, this.abort.signal);
       this.show(res);
@@ -351,6 +403,45 @@ export class DistancePanel implements Panel {
         ? 'Walking at 4.8 km/h along roads, footpaths, steps and foot over-bridges; one-way rules do not apply. Expressways, sea links and freeways are closed to pedestrians.'
         : `Estimated from road types and one-way rules, without live traffic; peak-hour journeys take longer. Turn restrictions are not considered.${res.mode === 'two_wheeler' ? ' Two-wheelers are not allowed on expressways, sea links and freeways.' : ''}`),
     ]);
+  }
+
+  /** A journey by train, metro and monorail: its time, trains and changes, and each leg in order. */
+  private showJourney(j: Journey): void {
+    this.ctx.inspector.close();
+    this.ctx.map.setSelection({
+      type: 'FeatureCollection',
+      features: [
+        ...j.legs.map((leg) => ({ type: 'Feature' as const, geometry: leg.geometry, properties: { colour: COLOUR, width: leg.type === 'ride' ? 6 : 4, dashed: leg.type === 'walk' } })),
+        ...this.endFeatures(),
+      ],
+    });
+    this.ctx.map.fitBounds(j.bbox, 16);
+    const trains = j.rides === 1 ? t('journey.oneRide') : t('journey.rides', { n: j.rides });
+    const changes = j.changes === 0 ? t('journey.noChanges') : j.changes === 1 ? t('journey.oneChange') : t('journey.changes', { n: j.changes });
+    clear(this.result);
+    append(this.result, [
+      h('div', { class: 'route-summary' },
+        h('div', {}, h('b', { class: 'route-big' }, formatDuration(j.duration_s)), h('span', { class: 'sub' }, j.rides ? t('journey.byTransit') : t('journey.walkOnly'))),
+        h('div', {}, h('b', { class: 'route-big' }, j.rides ? trains : formatDistance(j.distance_m)), h('span', { class: 'sub' }, j.rides ? changes : t('route.onFoot'))),
+      ),
+      h('ol', { class: 'journey-legs' }, ...j.legs.map((leg) => h('li', {}, this.legText(leg)))),
+      h('div', { class: 'btn-row', style: 'margin-top:10px' },
+        h('button', { class: 'btn', type: 'button', onclick: () => this.ctx.map.fitBounds(j.bbox, 16) }, icon('route', 15), t('route.show')),
+        h('button', { class: 'btn', type: 'button', onclick: () => this.share() }, icon('link', 15), t('route.share')),
+        h('button', { class: 'btn', type: 'button', onclick: () => this.reset() }, icon('close', 15), t('route.clear')),
+      ),
+      h('p', { class: 'foot-note' }, t('journey.note')),
+    ]);
+  }
+
+  /** One leg in words: "Walk to Dadar", "Central Line towards Kasara: board at Dadar, get off at Ghatkopar". */
+  private legText(leg: JourneyLeg): string {
+    if (leg.type === 'walk') {
+      const walk = !leg.to.name ? t('journey.walkToEnd') : leg.from.name ? t('journey.change', { place: leg.to.name }) : t('journey.walkTo', { place: leg.to.name });
+      return `${walk} · ${formatDistance(leg.distance_m)}, ${formatDuration(leg.duration_s)}`;
+    }
+    const stops = leg.stops === 1 ? t('journey.oneStop') : t('journey.stops', { n: leg.stops ?? 0 });
+    return `${leg.line?.label ?? ''} ${t('journey.towards', { place: leg.headsign ?? '' })}: ${t('journey.board', { place: leg.from.name ?? '' })}, ${t('journey.getOff', { place: leg.to.name ?? '' })} · ${stops}, ${formatDuration(leg.duration_s)}`;
   }
 
   /** Waterlogging hotspots on the route: a warning in the monsoon, a note the rest of the year. */
@@ -416,13 +507,15 @@ export class DistancePanel implements Panel {
   private writeHash(remove = false): void {
     const { from, to } = this.points;
     if (remove || !from || !to) {
-      updateHash({ dist: null, opt: null, mode: null, avoid: null });
+      updateHash({ dist: null, opt: null, mode: null, avoid: null, ride: null });
     } else {
+      const transit = this.mode === 'transit';
       updateHash({
         dist: formatRoute([from.lat, from.lon], [to.lat, to.lon]),
-        opt: this.optimize === 'distance' ? 'distance' : null,
+        opt: this.optimize === 'distance' && !transit ? 'distance' : null,
         mode: this.mode === 'car' ? null : this.mode,
-        avoid: this.avoidTolls && this.mode !== 'foot' ? 'toll' : null,
+        avoid: this.avoidTolls && (this.mode === 'car' || this.mode === 'two_wheeler') ? 'toll' : null,
+        ride: transit && this.rides.size < RIDES.length ? [...this.rides].join(',') : null,
       });
     }
   }
