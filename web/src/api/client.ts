@@ -22,7 +22,12 @@ import type {
   TransitLine,
   TransitRoute,
   Bridge,
+  Journey,
+  JourneyMode,
 } from './types.ts';
+
+/** A lon/lat point as the API's `lat,lon` parameter. */
+const latLon = (p: [number, number]) => `${p[1].toFixed(6)},${p[0].toFixed(6)}`;
 
 export class ApiError extends Error {
   constructor(
@@ -173,7 +178,11 @@ export class BombayChitraClient {
 
   /** Route between two lon/lat points by car (default), two-wheeler or on foot ("distance by road"). */
   route(from: [number, number], to: [number, number], opts: { mode?: TravelMode; optimize?: 'time' | 'distance'; avoid?: 'toll'[]; steps?: boolean } = {}, signal?: AbortSignal) {
-    const pair = (p: [number, number]) => `${p[1].toFixed(6)},${p[0].toFixed(6)}`;
-    return this.get<RouteResult>('/route', { from: pair(from), to: pair(to), mode: opts.mode, optimize: opts.optimize, avoid: opts.avoid, steps: opts.steps === false ? false : undefined }, signal);
+    return this.get<RouteResult>('/route', { from: latLon(from), to: latLon(to), mode: opts.mode, optimize: opts.optimize, avoid: opts.avoid, steps: opts.steps === false ? false : undefined }, signal);
+  }
+
+  /** Journey between two lon/lat points by suburban railway, metro and monorail, with the walks at either end. */
+  journey(from: [number, number], to: [number, number], opts: { modes?: JourneyMode[]; maxWalk?: number } = {}, signal?: AbortSignal) {
+    return this.get<Journey>('/journey', { from: latLon(from), to: latLon(to), modes: opts.modes, max_walk: opts.maxWalk }, signal);
   }
 }

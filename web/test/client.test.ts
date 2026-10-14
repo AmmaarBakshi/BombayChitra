@@ -37,6 +37,16 @@ describe('BombayChitraClient', () => {
     expect(url.searchParams.has('steps')).toBe(false);
   });
 
+  it('asks for journeys with modes and a walking limit', async () => {
+    const fetch = mockFetch(200, {});
+    await new BombayChitraClient('').journey([72.843, 19.019], [72.9087, 19.0864], { modes: ['train', 'metro'], maxWalk: 800 });
+    const url = new URL(fetch.mock.calls[0][0], 'http://localhost');
+    expect(url.pathname).toBe('/api/v1/journey');
+    expect(url.searchParams.get('from')).toBe('19.019000,72.843000');
+    expect(url.searchParams.get('modes')).toBe('train,metro');
+    expect(url.searchParams.get('max_walk')).toBe('800');
+  });
+
   it('turns error envelopes into ApiError', async () => {
     mockFetch(422, { error: { status: 422, code: 'no_route', message: 'the points are not connected by drivable roads' } });
     const err = await new BombayChitraClient('').route([72.8, 19.0], [72.9, 19.1]).catch((e: unknown) => e);

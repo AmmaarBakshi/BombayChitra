@@ -330,6 +330,53 @@ export interface RouteResult {
   geometry: GeoJSON.LineString;
 }
 
+/** What a journey can ride: the suburban railway, the metro lines and the monorail. */
+export type JourneyMode = 'train' | 'metro' | 'monorail';
+
+/** Where a journey leg starts or ends: a station (with its place id), or the journey's origin or destination. */
+export interface JourneyStop {
+  name?: string;
+  lat: number;
+  lon: number;
+  place?: number;
+}
+
+export interface JourneyLeg {
+  type: 'walk' | 'ride';
+  from: JourneyStop;
+  to: JourneyStop;
+  distance_m: number;
+  duration_s: number;
+  /** Rides: waiting for the train, and changing platforms after another ride. */
+  wait_s?: number;
+  line?: { key: string; label: string; ref?: string; mode: string; network?: string; colour?: string };
+  /** Rides: the transit route ridden (`/api/v1/transit/routes/{id}`). */
+  route?: number;
+  /** Rides: where the train is going. */
+  headsign?: string;
+  express?: boolean;
+  /** Rides: stops ridden. */
+  stops?: number;
+  /** Rides: stations called at between boarding and getting off. */
+  via?: JourneyStop[];
+  geometry: GeoJSON.LineString;
+}
+
+/** A journey by train, metro and monorail (estimated from typical frequencies, not a timetable). */
+export interface Journey {
+  from: JourneyStop;
+  to: JourneyStop;
+  duration_s: number;
+  distance_m: number;
+  walk_m: number;
+  rides: number;
+  changes: number;
+  straight_m: number;
+  legs: JourneyLeg[];
+  bbox: BBox;
+  note: string;
+}
+
 export interface TransitLine {
   key: string;
   label: string;
