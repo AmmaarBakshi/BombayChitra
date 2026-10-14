@@ -61,6 +61,10 @@ curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680"
 curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&mode=foot"
 curl "$B/api/v1/route?from=18.9985,72.8580&to=18.9310,73.0300&mode=two_wheeler&avoid=toll&steps=false"
 curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&optimize=distance&format=geojson"
+
+# By train, metro and monorail: Dadar to Ghatkopar, and the same trip by metro only
+curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087"
+curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087&modes=metro&format=geojson"
 ```
 
 ## Common tasks
@@ -137,6 +141,45 @@ Notes:
 - Routes are computed with A* on a graph of about 200,000 junctions in a few milliseconds; the graph is loaded on
   the first request and each mode's costs are prepared on its first use. Route requests cost five rate-limit tokens.
 
+### Train, metro and monorail journeys
+
+`/api/v1/journey` plans the quickest trip on the suburban railway, the metro lines and the monorail between two
+points: a walk to a station, rides with any changes, and a walk to the destination.
+
+```bash
+curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087"   # Dadar to Ghatkopar
+```
+
+```json
+{
+  "duration_s": 1533, "distance_m": 11069, "walk_m": 694, "rides": 1, "changes": 0,
+  "legs": [
+    { "type": "walk", "to": { "name": "Dadar (Central)", "place": 26300750031, … }, "distance_m": 525, "duration_s": 418, … },
+    { "type": "ride", "line": { "key": "Mumbai Suburban Railway:C", "label": "Central Line", "colour": "#ff0000", … },
+      "headsign": "Kasara", "from": { "name": "Dadar (Central)", … }, "to": { "name": "Ghatkopar", … },
+      "stops": 2, "via": [{ "name": "Kurla", … }], "wait_s": 120, "duration_s": 829, "distance_m": 10375, … },
+    { "type": "walk", "from": { "name": "Ghatkopar", … }, "distance_m": 169, "duration_s": 165, … }
+  ],
+  "note": "Estimated from typical gaps between trains and running times, not from a timetable."
+}
+```
+
+Every leg has a `geometry` to draw: rides follow the line's track, walks follow streets, footpaths and foot
+over-bridges. Stations carry their `place` id, so `/api/v1/places/{id}` gives their platforms, lines and opening
+date. With `format=geojson` the journey is a FeatureCollection ready for a map (see the [reference](/docs/api-reference/)).
+
+- **How times are estimated.** Each boarding waits half the line's usual daytime gap between trains — 4 minutes
+  on the Western and Central lines, 7 on the Harbour line, 5 to 10 on the Mumbai Metro lines (`transit.headways` in
+  `config/region.json`), and twice as long for express patterns. Trains run at a typical speed for their mode with an
+  allowance for every stop, and a change adds a minute and a half for platforms plus any walk between stations
+  (for example Marol Naka on Lines 1 and 3). There is no timetable in OpenStreetMap, so peak crowding, late trains
+  and the last train of the night are not known.
+- `modes` picks what to ride (`train`, `metro`, `monorail`); `max_walk` (200–3000 m, default 1500) limits the walk
+  at either end, as the crow flies. A destination within walking distance is reached on foot when that is quicker.
+- Errors: `422` with code `no_station` (no station within `max_walk` of a point) or `no_journey`.
+- The station network (about 230 stations on 15 lines) is built on the first request; journeys take a few
+  milliseconds plus the walks. Journey requests cost five rate-limit tokens.
+
 ### Wards and PIN codes
 
 ```bash
@@ -194,6 +237,8 @@ TypeScript users can copy `web/src/api/client.ts`, a dependency-free typed clien
 
 ## Rate limits and fair use
 
-The server does not rate-limit by itself. If you expose it publicly, put it behind a reverse proxy or CDN and apply
-limits there (see [Deployment](deployment.md)). For bulk use, prefer the [data downloads](data.md#downloads) over
-crawling the API.
+Public servers may limit each client (see [Server](server.md#rate-limiting-and-api-keys)). Over the limit the API
+answers `429 Too Many Requests` with `Retry-After`; every limited response carries `X-RateLimit-Limit` and
+`X-RateLimit-Remaining`. Most requests cost one token; routes and journeys cost five. An API key, sent in the
+`X-API-Key` header, lifts the limit. For bulk use, prefer the [data downloads](data.md#downloads) over crawling the
+API.

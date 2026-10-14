@@ -65,7 +65,7 @@ bombaychitra serve --rate-limit 300 --rate-burst 40 --trust-proxy
 ```
 
 - Each client gets a **token bucket** of `--rate-burst` tokens that refills at `--rate-limit` tokens per minute.
-  Most requests cost one token; `/api/v1/route` costs five.
+  Most requests cost one token; `/api/v1/route` and `/api/v1/journey` cost five.
 - Clients are identified by **IP address** — IPv6 clients by their `/64` network. Behind a reverse proxy, pass
   `--trust-proxy` so the address the proxy saw (`X-Real-IP`, or the right-most `X-Forwarded-For` entry) is used;
   without it every request appears to come from the proxy.
