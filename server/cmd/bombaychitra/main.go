@@ -6,6 +6,7 @@
 //	bombaychitra info   [--data data/build]
 //	bombaychitra download [--data data/build] [--release data-latest]
 //	bombaychitra route --from 19.1197,72.8464 --to 19.0660,72.8680 [--mode foot]
+//	bombaychitra journey --from 19.0190,72.8430 --to 19.0864,72.9087 [--modes metro]
 //	bombaychitra version
 package main
 
@@ -33,7 +34,9 @@ import (
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/config"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/download"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/export"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/geo"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/httpapi"
+	"github.com/AmmaarBakshi/BombayChitra/server/internal/journey"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/pmtiles"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/routing"
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/store"
@@ -48,6 +51,7 @@ Usage:
   bombaychitra info     [flags]   print dataset information
   bombaychitra download [flags]   download the published dataset (no Java needed)
   bombaychitra route    [flags]   print a route and its directions
+  bombaychitra journey  [flags]   print a journey by train, metro and monorail
   bombaychitra version            print the version
 
 Run "bombaychitra <command> -h" for command flags.
@@ -70,6 +74,8 @@ func main() {
 		err = runDownload(os.Args[2:])
 	case "route":
 		err = runRoute(os.Args[2:])
+	case "journey":
+		err = runJourney(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println("bombaychitra", httpapi.Version)
 	case "help", "-h", "--help":
@@ -331,6 +337,100 @@ func runRoute(args []string) error {
 			}
 		}
 		fmt.Printf("%3d. %-60s %8s\n", i+1, s.Instruction, dist)
+	}
+	return nil
+}
+
+func runJourney(args []string) error {
+	fs := flag.NewFlagSet("journey", flag.ContinueOnError)
+	data := fs.String("data", envOr("BC_DATA", filepath.Join("data", "build")), "data directory [BC_DATA]")
+	from := fs.String("from", "", "start as lat,lon")
+	to := fs.String("to", "", "destination as lat,lon")
+	modes := fs.String("modes", "", "comma-separated: train, metro, monorail (default all)")
+	maxWalk := fs.Float64("max-walk", 1500, "furthest walk to the first station and from the last, in metres as the crow flies")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	a, err := latLon(*from)
+	if err != nil {
+		return fmt.Errorf("--from: %w", err)
+	}
+	b, err := latLon(*to)
+	if err != nil {
+		return fmt.Errorf("--to: %w", err)
+	}
+	opts := journey.Options{MaxWalkM: *maxWalk}
+	for _, m := range split(*modes) {
+		planner := map[string][]string{"train": {"train"}, "metro": {"subway", "light_rail"}, "monorail": {"monorail"}}[m]
+		if planner == nil {
+			return fmt.Errorf("--modes must be train, metro or monorail")
+		}
+		if opts.Modes == nil {
+			opts.Modes = map[string]bool{}
+		}
+		for _, pm := range planner {
+			opts.Modes[pm] = true
+		}
+	}
+	st, err := store.Open(filepath.Join(*data, "bombaychitra.db"))
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	n, err := journey.Load(context.Background(), st.DB())
+	if err != nil {
+		return err
+	}
+	j, err := n.Plan(geo.Point{Lon: a[1], Lat: a[0]}, geo.Point{Lon: b[1], Lat: b[0]}, opts)
+	if err != nil {
+		return err
+	}
+	rides := 0
+	for _, l := range j.Legs {
+		if l.Ride {
+			rides++
+		}
+	}
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	minutes := func(s float64) string { return strconv.Itoa(int(math.Round(s/60))) + " min" }
+	fmt.Printf("%s, %s, %s (estimated from typical gaps between trains, not a timetable)\n", minutes(j.DurationS),
+		plural(rides, "ride", "rides"), plural(max(0, rides-1), "change", "changes"))
+	name := func(i int) string {
+		if i < 0 {
+			return "your destination"
+		}
+		return n.Stations[i].Name
+	}
+	for i, l := range j.Legs {
+		var text, took string
+		switch {
+		case l.Ride:
+			r, express := n.RouteOf(l)
+			kind := ""
+			if express {
+				kind = " express"
+			}
+			text = fmt.Sprintf("%s%s towards %s: %s to %s, %s", r.Line.Label, kind, r.Headsign, name(l.From), name(l.To),
+				plural(l.ToStop-l.FromStop, "stop", "stops"))
+			took = minutes(l.DurationS) + " + " + minutes(l.WaitS) + " wait"
+		case l.From >= 0 && l.To >= 0:
+			a, b := name(l.From), name(l.To)
+			if a == b { // Andheri railway station to Andheri metro station
+				kind := map[string]string{"train": "railway", "subway": "metro", "light_rail": "metro", "monorail": "monorail"}
+				a, b = a+" "+kind[n.Stations[l.From].Mode], b+" "+kind[n.Stations[l.To].Mode]
+			}
+			text = fmt.Sprintf("Walk %.0f m from %s to %s", l.DistanceM, a, b)
+			took = minutes(l.DurationS)
+		default:
+			text = fmt.Sprintf("Walk %.0f m to %s", l.DistanceM, name(l.To))
+			took = minutes(l.DurationS)
+		}
+		fmt.Printf("%3d. %-78s %s\n", i+1, text, took)
 	}
 	return nil
 }

@@ -11,6 +11,7 @@ bombaychitra export   [flags]   export data as GeoJSON, NDJSON or CSV
 bombaychitra info     [flags]   print dataset information
 bombaychitra download [flags]   download the published dataset
 bombaychitra route    [flags]   print a route and its directions
+bombaychitra journey  [flags]   print a journey by train, metro and monorail
 bombaychitra version            print the version
 ```
 
@@ -203,6 +204,30 @@ $ bombaychitra route --from 19.1197,72.8464 --to 19.1209,72.8481 --mode foot
 | `--shortest` | Minimise distance instead of time |
 | `--avoid-tolls` | Keep off toll roads |
 | `--json` | Print the full result as JSON |
+| `--data` | Data directory (`BC_DATA`, default `data/build`) |
+
+## `journey`
+
+Plans a journey by suburban railway, metro and monorail straight from the database, like `/api/v1/journey` but with
+walks estimated as the crow flies (the API routes them along footpaths):
+
+```text
+$ bombaychitra journey --from 19.2290,72.8566 --to 19.1860,72.9750
+68 min, 3 rides, 2 changes (estimated from typical gaps between trains, not a timetable)
+  1. Walk 120 m to Borivali                                                         1 min
+  2. Western Line express towards Churchgate: Borivali to Andheri, 1 stop           15 min + 4 min wait
+  3. Walk 428 m from Andheri railway to Andheri metro                               6 min
+  4. Line 1 towards Ghatkopar: Andheri to Ghatkopar, 8 stops                        14 min + 4 min wait
+  5. Walk 108 m from Ghatkopar metro to Ghatkopar railway                           2 min
+  6. Central Line towards Khopoli: Ghatkopar to Thane, 1 stop                       16 min + 4 min wait
+  7. Walk 148 m to your destination                                                 2 min
+```
+
+| Flag | Description |
+|---|---|
+| `--from`, `--to` | Ends as `lat,lon` |
+| `--modes` | Comma-separated `train`, `metro`, `monorail` (default all) |
+| `--max-walk` | Furthest walk to the first station and from the last, in metres as the crow flies (default 1500) |
 | `--data` | Data directory (`BC_DATA`, default `data/build`) |
 
 ## `download`
