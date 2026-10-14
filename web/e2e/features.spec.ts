@@ -42,3 +42,29 @@ test('show the heritage overlay', async ({ page }) => {
   });
   expect(ids).toContain('csmt');
 });
+
+test('plan a train journey and open a station from it', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+
+  // Dadar to Ghatkopar: one Central line train.
+  await page.goto('/#dist=19.0190,72.8430~19.0864,72.9087&mode=transit');
+  await expect(page.locator('.travel-modes button[data-travel="transit"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.route-summary')).toContainText('1 train');
+  const rides = page.locator('.journey-leg.ride');
+  await expect(rides).toHaveCount(1);
+  await expect(rides.first()).toContainText('Central Line');
+
+  // Metro only: Line 3, then Line 1 from Marol Naka.
+  await page.locator('.ride-modes button[data-ride="train"]').click();
+  await expect(page).toHaveURL(/ride=metro/);
+  await expect(page.locator('.route-summary')).toContainText('2 trains');
+  await expect(rides.first()).toContainText('Line 3');
+  await expect(rides.last()).toContainText('Line 1');
+
+  // The station to board at opens its card.
+  await rides.first().getByRole('button', { name: /^Board at/ }).click();
+  await expect(page.locator('#inspector h2')).toBeVisible();
+  await expect(page).toHaveURL(/sel=place:\d+/);
+  expect(errors).toEqual([]);
+});
