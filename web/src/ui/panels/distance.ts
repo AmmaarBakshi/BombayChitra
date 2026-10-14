@@ -17,7 +17,7 @@ export interface RoutePoint {
 }
 
 /** How to travel: by road in one of the routing modes, or by train, metro and monorail. */
-type Travel = TravelMode | 'transit';
+export type Travel = TravelMode | 'transit';
 
 const COLOUR = '#e8590c';
 const MODE_KEY = 'bc-route-mode';
@@ -162,6 +162,18 @@ export class DistancePanel implements Panel {
       this.drawEnds();
       this.renderEmpty();
     }
+  }
+
+  /** Plans between two places, optionally switching how to travel (e.g. "Directions" from "Near me"). */
+  plan(from: RoutePoint, to: RoutePoint, mode?: Travel): void {
+    if (mode && this.usable(mode)) {
+      this.mode = mode;
+      this.travelButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.travel === mode)));
+      this.applyTravel();
+    }
+    this.points.from = from;
+    this.inputs.from.value = from.label;
+    this.setPoint('to', to);
   }
 
   get missing(): RouteEndName | null {

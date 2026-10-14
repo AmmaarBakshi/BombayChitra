@@ -75,7 +75,15 @@ export class NearMe {
         this.results.append(h('p', { class: 'empty-state' }, t('near.none')));
         return;
       }
-      this.results.append(h('ul', { class: 'list' }, ...res.items.map((p) => this.item(p))));
+      this.results.append(h('ul', { class: 'list' }, ...res.items.map((p) => this.item(p, origin))));
+      // Where you are, and the places found.
+      this.ctx.map.setSelection({
+        type: 'FeatureCollection',
+        features: [
+          ...(origin.located ? [{ type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [origin.lon, origin.lat] }, properties: { role: 'stop', colour: '#1c7ed6', name: t('near.you') } }] : []),
+          ...res.items.map((p) => ({ type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] }, properties: { role: 'stop', colour: '#e8590c', name: p.name ?? '' } })),
+        ],
+      });
       const nearest = res.items[0];
       this.ctx.map.fitBounds([Math.min(origin.lon, nearest.lon), Math.min(origin.lat, nearest.lat), Math.max(origin.lon, nearest.lon), Math.max(origin.lat, nearest.lat)], 17);
     } catch (err) {
@@ -85,18 +93,23 @@ export class NearMe {
     }
   }
 
-  private item(p: Place): HTMLLIElement {
+  /** A place found, opening its card; with your location known, "Directions" plans the way there. */
+  private item(p: Place, origin: Origin): HTMLLIElement {
     const metres = p.distance_m ?? 0;
     const minutes = Math.max(1, Math.round((metres * DETOUR) / WALK_SPEED / 60));
-    return h('li', {},
+    const name = p.name ?? categoryById.get(p.category)?.label ?? p.category;
+    // Walk there when it is close, otherwise take the train or metro.
+    const directions = () => this.ctx.directions({ lon: origin.lon, lat: origin.lat, label: t('near.you') }, { lon: p.lon, lat: p.lat, label: name }, metres <= 2000 ? 'foot' : 'transit');
+    return h('li', { class: 'near-item' },
       h('button', { class: 'list-item', type: 'button', onclick: () => void this.ctx.inspector.place(p.id, true) },
         categoryBadge(p.category, 26),
         h('span', { class: 'grow' },
-          h('div', { class: 'title' }, p.name ?? categoryById.get(p.category)?.label ?? p.category),
+          h('div', { class: 'title' }, name),
           h('div', { class: 'sub' }, t('near.walk', { min: minutes })),
         ),
         h('span', { class: 'meta' }, formatDistance(metres)),
       ),
+      origin.located ? h('button', { class: 'link-btn', type: 'button', onclick: directions }, t('near.directions')) : null,
     );
   }
 }

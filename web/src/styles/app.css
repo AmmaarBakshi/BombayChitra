@@ -535,6 +535,17 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   border-top: 1px solid var(--border);
 }
 
+.near-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.near-item .list-item {
+  flex: 1;
+  min-width: 0;
+}
+
 .link-btn.danger {
   color: #e03131;
 }

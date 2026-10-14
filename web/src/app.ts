@@ -76,6 +76,10 @@ export function createApp(): void {
       distance!.setPoint('to', point);
       if (distance!.missing === 'from') distance!.startPick('from');
     },
+    directions(from, to, mode) {
+      openDistance();
+      distance!.plan(from, to, mode);
+    },
   };
   inspector.attach(ctx);
   map.setArea(area);
