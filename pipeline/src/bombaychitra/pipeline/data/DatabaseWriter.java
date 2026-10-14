@@ -355,6 +355,10 @@ public final class DatabaseWriter {
     }
     LOGGER.info("Transit lines: {} routes ({} assembled from tracks), {} stops", written, assembled,
       allStops.size());
+    var unknown = region.headways().lines().keySet().stream().filter(k -> !searchedKeys.contains(k)).sorted().toList();
+    if (!unknown.isEmpty()) {
+      LOGGER.warn("transit.headways lists lines that are not in this build: {}", unknown);
+    }
     return allStops;
   }
 
@@ -994,6 +998,7 @@ public final class DatabaseWriter {
     boolean overture = extraMeta.containsKey("overture_release");
     meta.put("attribution", "© OpenStreetMap contributors (ODbL)" + (overture ? "; © Overture Maps Foundation" : ""));
     meta.put("license", "ODbL-1.0");
+    meta.put("transit_headways", json(Map.of("modes", region.headways().modes(), "lines", region.headways().lines())));
     meta.putAll(extraMeta);
     meta.putAll(routingMeta);
     try (Statement st = db.createStatement()) {
