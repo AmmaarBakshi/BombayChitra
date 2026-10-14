@@ -327,6 +327,27 @@
       "tram": "#B04FA0",
       "train": "#6B7280"
     },
+    "headways": {
+      "notes": "Typical daytime gap between trains, in minutes, by mode and by line key (network:ref). The journey planner waits half a gap at each boarding; express patterns of a line run half as often. Estimates, not a timetable.",
+      "modes": { "train": 10, "subway": 8, "light_rail": 8, "monorail": 18, "tram": 10 },
+      "lines": {
+        "Mumbai Suburban Railway:W": 4,
+        "Mumbai Suburban Railway:C": 4,
+        "Mumbai Suburban Railway:H": 7,
+        "Mumbai Suburban Railway:T": 15,
+        "Mumbai Suburban Railway:U": 50,
+        "Mumbai Suburban Railway:MEMU": 90,
+        "Mumbai Suburban Railway:VR": 90,
+        "Mumbai Metro:1": 5,
+        "Mumbai Metro:2A": 9,
+        "Mumbai Metro:2B": 10,
+        "Mumbai Metro:3": 7,
+        "Mumbai Metro:7": 9,
+        "Mumbai Metro:9": 10,
+        "Mumbai Monorail:Monorail": 18,
+        "Navi Mumbai Metro:N1": 15
+      }
+    },
     "routeOverrides": [
       { "match": { "route": "subway", "network": "Mumbai Metro", "ref": "2" }, "ref": "2A", "label": "Line 2A" },
       { "match": { "route": "subway", "ref": "4", "name": ["Green Line (u/c)", "Green Line"] }, "network": "Mumbai Metro", "label": "Line 4" },

@@ -34,6 +34,16 @@ class RegionConfigTest {
   }
 
   @Test
+  void shippedHeadwaysCoverTheBusyLines() throws Exception {
+    var headways = shipped().headways();
+    assertEquals(4.0, headways.lines().get("Mumbai Suburban Railway:W"));
+    assertTrue(headways.lines().containsKey("Mumbai Metro:3"));
+    for (String mode : new String[]{"train", "subway", "monorail"}) {
+      assertTrue(headways.modes().containsKey(mode), "no default gap for " + mode);
+    }
+  }
+
+  @Test
   void coloursAreNormalised() throws Exception {
     var region = shipped();
     assertEquals("#2b6cd4", region.normaliseColour("blue"));
@@ -61,6 +71,8 @@ class RegionConfigTest {
       valid.replace("\"maxzoom\": 15", "\"maxzoom\": 18"),
       valid.replace("\"source\": { \"file\": \"x.osm.pbf\" }", "\"source\": {}"),
       valid.replace("\"source\"", "\"transit\": { \"trackLines\": [ { \"match\": { \"name\": \"L\" }, \"mode\": \"bus\", \"ref\": \"1\" } ] }, \"source\""),
+      valid.replace("\"source\"", "\"transit\": { \"headways\": { \"modes\": { \"train\": 0 } } }, \"source\""),
+      valid.replace("\"source\"", "\"transit\": { \"headways\": { \"lines\": { \"Metro 1\": 5 } } }, \"source\""),
     }) {
       Path file = dir.resolve("broken.json");
       Files.writeString(file, broken);

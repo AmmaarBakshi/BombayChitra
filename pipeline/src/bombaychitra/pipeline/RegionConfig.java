@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -69,8 +70,22 @@ public record RegionConfig(
     Map<String, String> colourAliases,
     Map<String, String> modeColours,
     List<LineSpec> routeOverrides,
-    List<LineSpec> trackLines
+    List<LineSpec> trackLines,
+    Headways headways
   ) {}
+
+  /**
+   * Typical gaps between trains in minutes, by mode and by line key ({@code network:ref}), from which the journey
+   * planner estimates waits. Lines without an entry use their mode's gap.
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record Headways(Map<String, Double> modes, Map<String, Double> lines) {
+
+    public Headways {
+      modes = modes == null ? Map.of() : modes;
+      lines = lines == null ? Map.of() : lines;
+    }
+  }
 
   /**
    * A transit line description. In {@code routeOverrides} it corrects the metadata of the OSM route relations whose
@@ -124,6 +139,25 @@ public record RegionConfig(
         throw new IllegalArgumentException(context + ": needs a ref or a label");
       }
     }
+    var gaps = new LinkedHashMap<String, Double>();
+    headways().modes().forEach((mode, minutes) -> gaps.put("modes." + mode, minutes));
+    headways().lines().forEach((line, minutes) -> gaps.put("lines." + line, minutes));
+    gaps.forEach((key, minutes) -> {
+      if (minutes == null || !(minutes > 0 && minutes <= 240)) {
+        throw new IllegalArgumentException(
+          "region.json: transit.headways." + key + " must be between 0 and 240 minutes");
+      }
+    });
+    for (var line : headways().lines().keySet()) {
+      if (!line.contains(":")) {
+        throw new IllegalArgumentException(
+          "region.json: transit.headways.lines." + line + " must be a line key (network:ref)");
+      }
+    }
+  }
+
+  public Headways headways() {
+    return transit == null || transit.headways() == null ? new Headways(null, null) : transit.headways();
   }
 
   public List<LineSpec> routeOverrides() {
