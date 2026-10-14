@@ -5,6 +5,7 @@ import { docsPlugin } from './build/docs.ts';
 import { iconsPlugin } from './build/icons.ts';
 import { precompressPlugin } from './build/precompress.ts';
 import { stylesPlugin } from './build/styles.ts';
+import { serviceWorkerPlugin } from './build/sw.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '..');
@@ -16,6 +17,7 @@ export default defineConfig({
   plugins: [
     iconsPlugin(path.join(repo, 'config', 'categories.json'), ['marker']),
     stylesPlugin(),
+    serviceWorkerPlugin(path.join(here, 'public')),
     docsPlugin({ docsDir: path.join(repo, 'docs'), openapi: path.join(repo, 'api', 'openapi.yaml'), repoUrl: 'https://github.com/AmmaarBakshi/BombayChitra' }),
     precompressPlugin(outDir),
   ],
