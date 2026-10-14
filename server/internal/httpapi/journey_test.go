@@ -107,3 +107,21 @@ func TestJourneyGeoJSON(t *testing.T) {
 		t.Errorf("feature roles %v", roles)
 	}
 }
+
+func TestHealthReportsTheJourneyNetwork(t *testing.T) {
+	h := testServer(t)
+	journeys := func() map[string]any {
+		_, body := get(t, h, "/api/v1/health")
+		check, _ := body["checks"].(map[string]any)["journeys"].(map[string]any)
+		return check
+	}
+	if c := journeys(); c["status"] != "not_loaded" {
+		t.Errorf("before any journey: %v", c)
+	}
+	get(t, h, "/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087")
+	c := journeys()
+	detail, _ := c["detail"].(map[string]any)
+	if c["status"] != "ok" || detail["stations"].(float64) < 150 || detail["lines"].(float64) < 10 {
+		t.Errorf("after a journey: %v", c)
+	}
+}

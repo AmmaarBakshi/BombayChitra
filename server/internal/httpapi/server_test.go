@@ -157,7 +157,7 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("health: %d %v", rec.Code, body)
 	}
 	checks, _ := body["checks"].(map[string]any)
-	for _, name := range []string{"database", "tiles", "routing"} {
+	for _, name := range []string{"database", "tiles", "routing", "journeys"} {
 		if _, ok := checks[name]; !ok {
 			t.Errorf("health is missing the %s check", name)
 		}
