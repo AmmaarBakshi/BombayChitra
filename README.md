@@ -32,6 +32,10 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
   places (fastest or shortest). Cars follow one-way streets; two-wheelers stay off the sea links, Atal Setu and the
   freeways; walkers use footpaths, steps and foot over-bridges. Toll roads are flagged and can be avoided. From the
   toolbar, any place card ("Route here"), the API or `bombaychitra route`.
+- **Journeys by train, metro and monorail** — the quickest way on the locals, the metro lines and the monorail, with
+  the walk to the station, each train's line, direction and stops, changes of line (Dadar, Ghatkopar, Andheri,
+  Marol Naka…) and the walk at the end, estimated from the usual gap between trains. In the app, at
+  `/api/v1/journey` and with `bombaychitra journey`.
 - **All of transport** — Western, Central, Harbour, Trans-Harbour and Uran suburban lines; every metro line in
   service (1, 2A, 2B, 3, 7, 9, Navi Mumbai Line 1), under construction (2B, 4, 4A, 5, 6, 7A, 9 extensions, Navi
   Mumbai Line 1 Stage 2) and proposed (10, 11, Thane Ring Metro), and the monorail, in their official colours with
@@ -49,6 +53,8 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
   September; station details and a "recently opened" badge for new metro stations.
 - **English, Marathi and Hindi** — the interface and the map's labels, and search that forgives spelling
   ("bandup", "vileparle", "chatrapati" find Bhandup, Vile Parle and Chhatrapati).
+- **In your pocket** — install the app, open it offline, save the map of your neighbourhood for use without a
+  connection, and find the nearest station, hospital or ATM from where you are, with directions there.
 - **Light and dark themes**, a dashboard you can hide (`H`) for a full-screen map, unified search with autocomplete,
   shareable links, a measuring tool and a mobile layout.
 - **Use it anywhere** — REST API with an OpenAPI 3.1 spec, MapLibre styles for web, Android, iOS, Flutter and
@@ -135,7 +141,7 @@ The docs are served by the app at `/docs/` and are readable on GitHub:
 
 | | |
 |---|---|
-| **Introduction** | [Overview](docs/index.md) · [Getting started](docs/getting-started.md) · [Architecture](docs/architecture.md) |
+| **Introduction** | [Overview](docs/index.md) · [Getting started](docs/getting-started.md) · [The web app](docs/app.md) · [Architecture](docs/architecture.md) |
 | **Data** | [Data & coverage](docs/data.md) · [Vector tiles](docs/tiles.md) · [Database](docs/database.md) · [Configuration](docs/configuration.md) |
 | **Build & run** | [Pipeline](docs/pipeline.md) · [Server](docs/server.md) · [Deployment](docs/deployment.md) |
 | **Use it** | [API guide](docs/api.md) · [API reference](api/openapi.yaml) · [Integrations](docs/integrations.md) · [Map styles](docs/styles.md) |
