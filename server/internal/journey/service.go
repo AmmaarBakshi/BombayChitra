@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/AmmaarBakshi/BombayChitra/server/internal/geo"
 )
@@ -25,6 +26,7 @@ type Service struct {
 	once sync.Once
 	net  *Network
 	err  error
+	done atomic.Bool
 }
 
 // NewService creates a lazily loading journey planner over the dataset database.
@@ -32,8 +34,19 @@ func NewService(db *sql.DB) *Service { return &Service{db: db} }
 
 // Network returns the network, building it on the first call.
 func (s *Service) Network(ctx context.Context) (*Network, error) {
-	s.once.Do(func() { s.net, s.err = Load(context.WithoutCancel(ctx), s.db) })
+	s.once.Do(func() {
+		s.net, s.err = Load(context.WithoutCancel(ctx), s.db)
+		s.done.Store(true)
+	})
 	return s.net, s.err
+}
+
+// Peek returns the network without building it: ok is false until the first journey request has built it (or failed).
+func (s *Service) Peek() (n *Network, ok bool, err error) {
+	if !s.done.Load() {
+		return nil, false, nil
+	}
+	return s.net, true, s.err
 }
 
 // Load builds the network from the lines in service in transit_lines, with the gaps between trains recorded in

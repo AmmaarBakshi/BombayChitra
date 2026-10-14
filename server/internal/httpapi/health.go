@@ -15,8 +15,8 @@ type check struct {
 	Detail    any      `json:"detail,omitempty"` // always an object
 }
 
-// handleHealthDetail reports the state of every component: database, tiles and routing graph, plus dataset age. It
-// answers 503 when the database cannot be read, so it doubles as a readiness probe.
+// handleHealthDetail reports the state of every component: database, tiles, routing graph and journey network, plus
+// dataset age. It answers 503 when the database cannot be read, so it doubles as a readiness probe.
 func (s *Server) handleHealthDetail(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	status := http.StatusOK
@@ -47,6 +47,15 @@ func (s *Server) handleHealthDetail(w http.ResponseWriter, r *http.Request) {
 		checks["routing"] = check{Status: "unavailable", Error: err.Error()}
 	default:
 		checks["routing"] = check{Status: "ok", Detail: g.Stats()}
+	}
+
+	switch n, ok, err := s.journeys.Peek(); {
+	case !ok:
+		checks["journeys"] = check{Status: "not_loaded", Note: "built on the first journey request"}
+	case err != nil:
+		checks["journeys"] = check{Status: "unavailable", Error: err.Error()}
+	default:
+		checks["journeys"] = check{Status: "ok", Detail: n.Stats()}
 	}
 
 	m := s.store.Meta()

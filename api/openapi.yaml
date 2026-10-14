@@ -205,9 +205,9 @@ paths:
       operationId: getHealth
       summary: Server health
       description: |
-        Checks the database, tile archive and routing graph and reports the dataset age. Answers `503` when the
-        database cannot be read, so it can be used as a readiness probe. Never cached. The routing check is
-        `not_loaded` until the first route request.
+        Checks the database, tile archive, routing graph and journey network and reports the dataset age. Answers
+        `503` when the database cannot be read, so it can be used as a readiness probe. Never cached. The routing
+        check is `not_loaded` until the first route request, and the journeys check until the first journey.
       responses:
         '200':
           description: Healthy
@@ -222,6 +222,7 @@ paths:
                   database: { status: ok, latency_ms: 0.08 }
                   tiles: { status: ok, detail: { tiles: 31744, minzoom: 0, maxzoom: 15 } }
                   routing: { status: ok, detail: { vertices: 170184, segments: 211887, edges: 376888 } }
+                  journeys: { status: ok, detail: { lines: 15, routes: 43, stations: 234 } }
         '503':
           description: The database cannot be read
   /api/v1/meta:

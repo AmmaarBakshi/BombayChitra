@@ -67,9 +67,11 @@ function cases(): Case[] {
 }
 
 describe.skipIf(!base)('API contract', () => {
-  // Load the routing graph first, so /api/v1/health reports it as documented whatever order requests come in.
+  // Load the routing graph and the journey network first, so /api/v1/health reports them as documented whatever order
+  // requests come in.
   beforeAll(async () => {
     await fetch(`${base}/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&steps=false`);
+    await fetch(`${base}/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087`);
   });
 
   it.each(cases())('$name', async ({ url, example, schema }) => {
