@@ -16,6 +16,13 @@ export function formatDuration(seconds: number): string {
   return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
 }
 
+/** A storage size: "850 KB", "12.4 MB", "10 GB". */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${nf.format(Math.max(1, Math.round(bytes / 1024)))} KB`;
+  if (bytes < 1024 ** 3) return `${nf1.format(bytes / (1024 * 1024))} MB`;
+  return `${nf1.format(bytes / 1024 ** 3)} GB`;
+}
+
 export function formatArea(m2: number): string {
   if (m2 < 10_000) return `${nf.format(Math.round(m2))} m²`;
   if (m2 < 1_000_000) return `${nf1.format(m2 / 10_000)} ha`;

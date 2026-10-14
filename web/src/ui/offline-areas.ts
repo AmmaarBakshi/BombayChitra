@@ -4,7 +4,7 @@ import type { BBox } from '../api/types.ts';
 import { offlinePlan, type Tile, tilesFor } from '../offline.ts';
 import type { AppContext } from './context.ts';
 import { clear, h, storageGet, storageSet } from './dom.ts';
-import { formatNumber } from './format.ts';
+import { formatBytes, formatDate, formatNumber } from './format.ts';
 import { icon } from './icons.ts';
 
 const AREAS_KEY = 'bc-offline-areas';
@@ -67,6 +67,8 @@ export class OfflineAreas {
   private readonly estimate = h('p', { class: 'sub', style: 'white-space:normal' });
   private readonly saveButton = h('button', { class: 'btn', type: 'button', onclick: () => void this.save() }, icon('install', 15), 'Save this area') as HTMLButtonElement;
   private readonly progress = h('div', { class: 'offline-progress', hidden: true });
+  private readonly list = h('ul', { class: 'offline-list' });
+  private readonly usage = h('p', { class: 'sub' });
   private abort: AbortController | null = null;
 
   constructor(private readonly ctx: AppContext) {
@@ -85,9 +87,41 @@ export class OfflineAreas {
       this.estimate,
       h('div', { class: 'btn-row' }, this.saveButton),
       this.progress,
+      this.list,
+      this.usage,
     );
     this.update();
+    void this.renderList();
     return this.el;
+  }
+
+  /** The saved areas, each with its size and buttons to show or delete it, and the storage they use. */
+  private async renderList(): Promise<void> {
+    const areas = savedAreas();
+    clear(this.list);
+    for (const area of areas) {
+      this.list.append(h('li', {},
+        h('span', { class: 'grow' },
+          h('div', { class: 'title' }, area.name),
+          h('div', { class: 'sub' }, `${formatNumber(area.tiles)} tiles · ${formatBytes(area.bytes)} · saved ${formatDate(area.saved)}`),
+        ),
+        h('button', { class: 'link-btn', type: 'button', onclick: () => this.ctx.map.fitBounds(area.bbox, 15) }, 'Show'),
+        h('button', { class: 'link-btn danger', type: 'button', 'aria-label': `Delete ${area.name}`, onclick: () => void this.remove(area) }, 'Delete'),
+      ));
+    }
+    this.list.hidden = areas.length === 0;
+    const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
+    this.usage.hidden = !areas.length || !estimate?.usage;
+    if (estimate?.usage) {
+      this.usage.textContent = `The app uses ${formatBytes(estimate.usage)} of storage on this device${estimate.quota ? ` (of ${formatBytes(estimate.quota)} available)` : ''}.`;
+    }
+  }
+
+  private async remove(area: SavedArea): Promise<void> {
+    await caches.delete(`bc-area-${area.id}`);
+    storeAreas(savedAreas().filter((a) => a.id !== area.id));
+    this.ctx.toast(`${area.name} removed from offline maps`);
+    await this.renderList();
   }
 
   private plan() {
@@ -127,6 +161,7 @@ export class OfflineAreas {
       // Ask the browser not to clear saved maps when space runs low.
       void navigator.storage?.persist?.().catch(() => false);
       this.ctx.toast(`${name} is saved for offline use`);
+      await this.renderList();
     } catch (err) {
       await caches.delete(`bc-area-${id}`);
       if ((err as Error).name !== 'AbortError') this.ctx.toast(`Could not save the area: ${(err as Error).message}`);

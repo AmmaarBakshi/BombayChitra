@@ -521,6 +521,24 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   justify-content: space-between;
 }
 
+.offline-list {
+  margin: 10px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.offline-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+}
+
+.link-btn.danger {
+  color: #e03131;
+}
+
 /* Journey timeline: an icon per leg joined by a line, solid in the line's colour for rides and dotted for walks. */
 .journey-legs {
   margin: 4px 0 0;
