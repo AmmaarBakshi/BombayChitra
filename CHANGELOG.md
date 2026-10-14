@@ -76,6 +76,18 @@ project uses [Semantic Versioning](https://semver.org/).
   into cards and back, reduced motion honoured, and contrasting casings for line colours that fail WCAG non-text
   contrast on either theme.
 - The regression check also watches wards, curated layers and indexed spellings.
+- Journeys by train, metro and monorail: `/api/v1/journey` plans the quickest trip with the walk to a station, rides
+  with changes of line and the walk at the end, each ride with its line, direction, stations and wait, and walks
+  routed along footpaths (`format=geojson` too). Waits come from the usual gap between trains on each line
+  (`transit.headways` in `config/region.json`, recorded in the dataset), with express patterns running half as often.
+  Also `bombaychitra journey`, a "Train & metro" option with a journey timeline in the distance panel, and the
+  journey network in `/api/v1/health`.
+- An installable web app that works offline: a service worker caches the app shell and map fonts, the docs show an
+  offline page, an install button appears when the browser offers it, and **offline maps** save the tiles of the area
+  in view (listed with their size, shown or deleted from the Layers panel).
+- "Near me": the nearest stations, hospitals and ATMs from your location (or the centre of the map), with walking
+  time and directions there.
+- A documentation page for the web app: journeys, near me, installing, offline maps, keyboard and shareable links.
 
 ### Fixed
 
@@ -86,3 +98,5 @@ project uses [Semantic Versioning](https://semver.org/).
 - `/api/v1/health` always reports the database latency, and its routing detail is always an object.
 - The API reference's road, bridge and building examples used an id that did not exist.
 - Addresses and locality search details end with the district, not the BMC ward.
+- The "Avoid tolls" switch stayed visible when walking: the `hidden` attribute now hides rows laid out with flex.
+- The API guide said the server had no rate limiting of its own.
