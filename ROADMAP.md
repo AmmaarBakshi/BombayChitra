@@ -47,7 +47,7 @@ trips on the locals, the metro and the monorail.
 - [x] **Train + metro journey planner** — a station graph with interchanges (Dadar, Ghatkopar, Andheri, Thane…)
       and average inter-station times → "Andheri to CST: Western to Dadar, change to Central, ~55 min". Later:
       import GTFS if MMRDA/BEST/railways publish one.
-- [ ] **Isochrones** — "where can I reach in 30 min from Kharghar" (`/api/v1/isochrone`), drawn as a polygon.
+- [x] **Isochrones** — "where can I reach in 30 min from Kharghar" (`/api/v1/isochrone`), drawn as a polygon.
 - [x] **Turn-by-turn steps** in the route response (street names + manoeuvres), not just geometry.
 - [x] **Toll awareness** — flag Atal Setu, Sea Link, expressway tolls; `avoid=toll` option.
 
@@ -81,17 +81,17 @@ trips on the locals, the metro and the monorail.
 
 - [x] **Rate limiting** (per-IP token bucket) and an optional API-key mode before the public demo goes live —
       routing loads a ~100 MB graph and is the obvious thing to abuse.
-- [ ] **Generated SDKs** — `bombaychitra` clients for npm and PyPI generated from `openapi.yaml`.
-- [ ] **Batch geocoding** — `POST /api/v1/search/batch` with a list of addresses.
-- [ ] **Distance matrix** — `POST /api/v1/matrix` (N origins × M destinations) built on the same search.
+- [x] **Generated SDKs** — `bombaychitra` clients for npm and PyPI generated from `openapi.yaml`.
+- [x] **Batch geocoding** — `POST /api/v1/search/batch` with a list of addresses.
+- [x] **Distance matrix** — `POST /api/v1/matrix` (N origins × M destinations) built on the same search.
 - [x] **`/api/v1/health` + Prometheus `/metrics`** for anyone self-hosting.
 
 ## 7. Community & data improvement
 
-- [ ] **"Report a problem" on every card** that opens an OpenStreetMap note at that location.
-- [ ] **Coverage map** — a layer showing where data is thin (few places/buildings per km²) so mappers know where
+- [x] **"Report a problem" on every card** that opens an OpenStreetMap note at that location.
+- [x] **Coverage map** — a layer showing where data is thin (few places/buildings per km²) so mappers know where
       to contribute.
-- [ ] **Overture → OSM import candidates** — export Overture-only places as a MapRoulette challenge.
+- [x] **Overture → OSM import candidates** — export Overture-only places as a MapRoulette challenge.
 
 ---
 
