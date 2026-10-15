@@ -53,7 +53,7 @@ tags:
   - name: Transit
     description: Metro, monorail and suburban railway lines, routes and stations.
   - name: Routing
-    description: Distance, time, route and turn-by-turn directions between two points by car, two-wheeler or on foot.
+    description: Routes by car, two-wheeler or on foot, train and metro journeys, isochrones and distance matrices.
   - name: Mumbai layers
     description: Curated layers OpenStreetMap does not hold — heritage sites and monsoon waterlogging hotspots.
   - name: Tiles
@@ -174,6 +174,12 @@ components:
       example: '5072228152'
 
   schemas:
+    LatLon:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lon: { type: number, minimum: -180, maximum: 180 }
     Error:
       type: object
       properties:
@@ -372,6 +378,45 @@ paths:
                 count: 1
                 items:
                   - { kind: place, id: 311442962, name: Lilavati Hospital, detail: Hospitals · Vaidya Nagar, category: hospital, lon: 72.829166, lat: 19.050936, distance_m: 1252 }
+
+  /api/v1/search/batch:
+    post:
+      tags: [Search]
+      operationId: searchBatch
+      summary: Search for many places at once (batch geocoding)
+      description: |
+        Up to 100 searches in one request — addresses, places, stations, PIN codes — each answered exactly as
+        `/api/v1/search` would, in the order given. By default each query returns its best match; `limit` returns up to
+        10. `near` biases every query towards a point and `kind` limits them to kinds of result. Blank queries return
+        no items. A batch costs ten rate-limit tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [queries]
+              additionalProperties: false
+              properties:
+                queries: { type: array, minItems: 1, maxItems: 100, items: { type: string } }
+                limit: { type: integer, minimum: 1, maximum: 10, default: 1 }
+                kind: { type: array, items: { type: string, enum: [area, locality, line, place, street, bridge, building] } }
+                near: { $ref: '#/components/schemas/LatLon' }
+            example:
+              queries: [CST, '400050', Bandra station]
+      responses:
+        '200':
+          description: One result list per query, in order
+          content:
+            application/json:
+              example:
+                count: 3
+                results:
+                  - { query: CST, count: 1, items: [{ kind: place, id: 121762778881, name: Mumbai CSMT, detail: 'Railway stations · Bori Bunder', category: railway_station, lon: 72.835785, lat: 18.940493 }] }
+                  - { query: '400050', count: 1, items: [{ kind: area, id: '400050', name: PIN 400050, detail: 'PIN code · Bandra West, Linking Road Shopping area and Ranwar Village Square', category: pincode, lon: 72.831, lat: 19.05879, bbox: [72.819255, 19.043642, 72.847378, 19.07631] }] }
+                  - { query: Bandra station, count: 1, items: [{ kind: street, id: 1448, name: Bandra Station Road, detail: 'Arterial road · Qureshi Nagar Hutment Colony', category: secondary, lon: 72.83865, lat: 19.054146 }] }
+        '400': { description: 'The body is not valid: no or more than 100 queries, a limit outside 1–10, an unknown kind or field' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v1/reverse:
     get:
@@ -986,6 +1031,56 @@ paths:
                     properties: { role: from, road: '', offset_m: 29 }
         '400': { description: 'Missing or invalid `from`, `mode` or `minutes`' }
         '422': { description: 'No usable road or path within 1.5 km of the point (`no_road`)' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { description: 'The dataset has no routing graph, or only the car network (`mode_unavailable`)' }
+
+  /api/v1/matrix:
+    post:
+      tags: [Routing]
+      operationId: matrix
+      summary: Times and distances between many places
+      description: |
+        The travel time (seconds) and distance (metres) from every source to every destination, by car, two-wheeler
+        or on foot, with the same costs as `/api/v1/route`: the fastest route (or the shortest with
+        `optimize: distance`) between each pair. Up to 10 sources and 50 destinations; without destinations the
+        sources are used for both, giving a square matrix. A cell is `null` when the destination cannot be reached,
+        and a point with no usable road within 1.5 km has `snapped: null` and a `null` row or column. A matrix costs
+        ten rate-limit tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sources]
+              additionalProperties: false
+              properties:
+                sources: { type: array, minItems: 1, maxItems: 10, items: { $ref: '#/components/schemas/LatLon' } }
+                destinations: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/LatLon' } }
+                mode: { type: string, enum: [car, two_wheeler, foot], default: car }
+                optimize: { type: string, enum: [time, distance], default: time }
+                avoid: { type: array, items: { type: string, enum: [toll] } }
+            example:
+              sources: [{ lat: 19.1197, lon: 72.8464 }, { lat: 19.0544, lon: 72.8402 }]
+              destinations: [{ lat: 19.066, lon: 72.868 }, { lat: 18.94, lon: 72.8355 }]
+              mode: car
+      responses:
+        '200':
+          description: Matrix
+          content:
+            application/json:
+              example:
+                mode: car
+                optimize: time
+                durations: [[950, 1889], [489, 1242]]
+                distances: [[10836, 27660], [4804, 18658]]
+                sources:
+                  - { lat: 19.1197, lon: 72.8464, snapped: { lat: 19.119641, lon: 72.846216, road: Madhavdas Amarshi Marg, offset_m: 20 } }
+                  - { lat: 19.0544, lon: 72.8402, snapped: { lat: 19.054509, lon: 72.839848, road: Gurunanak Marg (Turner Road), offset_m: 39 } }
+                destinations:
+                  - { lat: 19.066, lon: 72.868, snapped: { lat: 19.066015, lon: 72.867986, road: Avenue 3, offset_m: 2 } }
+                  - { lat: 18.94, lon: 72.8355, snapped: { lat: 18.940038, lon: 72.835899, offset_m: 42 } }
+        '400': { description: 'The body is not valid: no or too many sources or destinations, an invalid point, mode, optimize or avoid, or an unknown field' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { description: 'The dataset has no routing graph, or only the car network (`mode_unavailable`)' }
 
