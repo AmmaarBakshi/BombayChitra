@@ -1,0 +1,73 @@
+name: Publish SDKs
+
+# Publishes the generated API clients: sdk/js to npm and sdk/python to PyPI. Run it by hand after bumping the
+# versions in sdk/js/package.json, sdk/python/pyproject.toml and sdk/python/bombaychitra/__init__.py. npm needs an
+# NPM_TOKEN secret; PyPI uses trusted publishing from the "pypi" environment.
+on:
+  workflow_dispatch:
+    inputs:
+      npm:
+        description: Publish the JavaScript client to npm
+        type: boolean
+        default: true
+      pypi:
+        description: Publish the Python client to PyPI
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: pip install pyyaml
+      - run: python scripts/generate-sdk.py --check
+      - run: python -m unittest discover -s sdk/python/tests
+      - run: node --test sdk/js/test.mjs
+
+  npm:
+    name: npm
+    needs: check
+    if: inputs.npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm publish --provenance --access public
+        working-directory: sdk/js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  pypi:
+    name: PyPI
+    needs: check
+    if: inputs.pypi
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: pip install build && python -m build sdk/python
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdk/python/dist

@@ -26,3 +26,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.log
+
+# SDK builds
+sdk/python/dist/
+sdk/python/*.egg-info/
