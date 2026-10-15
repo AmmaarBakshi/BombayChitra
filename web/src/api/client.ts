@@ -181,6 +181,11 @@ export class BombayChitraClient {
     return this.get<RouteResult>('/route', { from: latLon(from), to: latLon(to), mode: opts.mode, optimize: opts.optimize, avoid: opts.avoid, steps: opts.steps === false ? false : undefined }, signal);
   }
 
+  /** Areas reachable from a lon/lat point within the given minutes (default 10, 20, 30): GeoJSON, largest first, then the start. */
+  isochrone(from: [number, number], opts: { mode?: TravelMode; minutes?: number[] } = {}, signal?: AbortSignal) {
+    return this.get<GeoJSON.FeatureCollection>('/isochrone', { from: latLon(from), mode: opts.mode, minutes: opts.minutes?.map(String) }, signal);
+  }
+
   /** Journey between two lon/lat points by suburban railway, metro and monorail, with the walks at either end. */
   journey(from: [number, number], to: [number, number], opts: { modes?: JourneyMode[]; maxWalk?: number } = {}, signal?: AbortSignal) {
     return this.get<Journey>('/journey', { from: latLon(from), to: latLon(to), modes: opts.modes, max_walk: opts.maxWalk }, signal);

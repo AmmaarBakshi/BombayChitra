@@ -36,6 +36,7 @@ const UI: Record<string, string> = {
   wheelchair: '<circle cx="12" cy="4" r="1.6"/><path d="M12 7v6h5l2 5M12 10h4M9 9.5a6 6 0 1 0 7.5 8"/>',
   directions: '<path d="M12 2 2 12l10 10 10-10z"/><path d="M9 14v-2a2 2 0 0 1 2-2h4M13 8l2 2-2 2"/>',
   sidebar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1.5M5.5 11h1.5"/>',
+  reach: '<circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="6" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="10"/>',
   swap: '<path d="M7 4v16M7 4 4 7M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/>',
   crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
   car: '<path d="M5 16V11l2-5h10l2 5v5M3 11h18M5 16h14v3H5zM7.5 13.5h1M15.5 13.5h1"/>',

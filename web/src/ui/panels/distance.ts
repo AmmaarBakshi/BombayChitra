@@ -30,6 +30,9 @@ const MODES: { id: Travel; label: string; icon: string; fastest: string }[] = [
 /** Colours for lines without one of their own, by mode (as config/region.json's transit.modeColours). */
 const MODE_COLOURS: Record<string, string> = { train: '#6b7280', subway: '#5c6ac4', light_rail: '#5c6ac4', monorail: '#b04fa0' };
 const lineColour = (leg: JourneyLeg) => leg.line?.colour ?? MODE_COLOURS[leg.line?.mode ?? ''] ?? COLOUR;
+/** Isochrone bands, inside out: the times asked for and their colours. */
+const REACH_MINUTES = [10, 20, 30];
+const REACH_COLOURS: Record<number, string> = { 10: '#e8590c', 20: '#f59f00', 30: '#fcc419' };
 /** What a journey may ride. */
 const RIDES: { id: JourneyMode; label: string }[] = [
   { id: 'train', label: t('journey.train') },
@@ -66,6 +69,7 @@ export class DistancePanel implements Panel {
   private readonly rideButtons: HTMLButtonElement[] = [];
   private readonly rideRow = h('div', { class: 'segmented ride-modes', role: 'group', 'aria-label': 'Ride' });
   private readonly optimizeGroup = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Route' });
+  private readonly reachButton = h('button', { class: 'btn', type: 'button', title: t('reach.title'), onclick: () => void this.reach() }, icon('reach', 15), t('route.reach')) as HTMLButtonElement;
   private readonly title = h('div', { class: 'title' });
   private readonly subtitle = h('div', { class: 'sub', style: 'white-space:normal' });
   private readonly tollToggle = h('input', { type: 'checkbox' }) as HTMLInputElement;
@@ -144,6 +148,7 @@ export class DistancePanel implements Panel {
         this.rideRow,
         h('button', { class: 'btn', type: 'button', title: 'Swap start and destination', 'aria-label': 'Swap start and destination', onclick: () => this.swap() }, icon('swap', 15), t('route.swap')),
         'geolocation' in navigator ? h('button', { class: 'btn', type: 'button', title: 'Start from my location', onclick: () => this.useMyLocation() }, icon('locate', 15), t('route.me')) : null,
+        this.reachButton,
       ),
       this.tollRow,
       this.result,
@@ -267,6 +272,7 @@ export class DistancePanel implements Panel {
     this.tollRow.hidden = this.mode === 'foot' || transit;
     this.optimizeGroup.hidden = transit;
     this.rideRow.hidden = !transit;
+    this.reachButton.hidden = transit;
     this.title.textContent = transit ? t('journey.title') : t('route.title');
     this.subtitle.textContent = transit ? t('journey.subtitle') : t('route.subtitle');
   }
@@ -419,6 +425,52 @@ export class DistancePanel implements Panel {
         ? 'Walking at 4.8 km/h along roads, footpaths, steps and foot over-bridges; one-way rules do not apply. Expressways, sea links and freeways are closed to pedestrians.'
         : `Estimated from road types and one-way rules, without live traffic; peak-hour journeys take longer. Turn restrictions are not considered.${res.mode === 'two_wheeler' ? ' Two-wheelers are not allowed on expressways, sea links and freeways.' : ''}`),
     ]);
+  }
+
+  /** Where you can get to from the start in 10, 20 and 30 minutes by the current way of travelling. */
+  private async reach(): Promise<void> {
+    const from = this.points.from;
+    if (!from || this.mode === 'transit') {
+      this.ctx.toast(t('reach.needStart'));
+      return;
+    }
+    const mode = this.mode;
+    this.abort?.abort();
+    this.abort = new AbortController();
+    clear(this.result);
+    this.result.append(h('div', { class: 'skeleton', style: 'height:64px' }), h('div', { class: 'skeleton' }));
+    try {
+      const fc = await this.ctx.api.isochrone([from.lon, from.lat], { mode, minutes: REACH_MINUTES }, this.abort.signal);
+      const bands = fc.features.filter((f) => f.properties?.role === 'isochrone');
+      // Each band's polygons as their own features, so the map fills them; largest first so smaller ones draw on top.
+      const polygons = bands.flatMap((f) => (f.geometry as GeoJSON.MultiPolygon).coordinates.map((coordinates) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates },
+        properties: { colour: REACH_COLOURS[f.properties!.minutes] ?? COLOUR, opacity: 0.2, width: 1.5, thin: true },
+      })));
+      this.ctx.inspector.close();
+      this.ctx.map.setSelection({ type: 'FeatureCollection', features: [...polygons, ...this.endFeatures().slice(0, 1)] });
+      const all = polygons.flatMap((p) => p.geometry.coordinates[0]);
+      if (all.length) {
+        const lons = all.map((c) => c[0]);
+        const lats = all.map((c) => c[1]);
+        this.ctx.map.fitBounds([Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], 15);
+      }
+      clear(this.result);
+      append(this.result, [
+        h('h3', {}, t('reach.title')),
+        h('ul', { class: 'reach-legend' }, ...[...bands].reverse().map((f) => h('li', {},
+          h('span', { class: 'swatch', style: `background:${REACH_COLOURS[f.properties!.minutes] ?? COLOUR}` }),
+          h('span', { class: 'grow' }, t('reach.within', { min: f.properties!.minutes })),
+          h('span', { class: 'mono' }, `${f.properties!.area_km2} km²`),
+        ))),
+        h('p', { class: 'foot-note' }, t('reach.note')),
+      ]);
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
+      clear(this.result);
+      this.result.append(h('p', { class: 'error-state' }, (err as Error).message));
+    }
   }
 
   /** A journey by train, metro and monorail: its time, trains and changes, and each leg in order. */
