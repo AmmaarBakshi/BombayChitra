@@ -47,6 +47,23 @@ describe('BombayChitraClient', () => {
     expect(url.searchParams.get('max_walk')).toBe('800');
   });
 
+  it('posts matrices and batch searches as JSON', async () => {
+    const fetch = mockFetch(200, {});
+    const api = new BombayChitraClient('', { headers: { 'X-API-Key': 'k' } });
+    await api.matrix([[72.8464, 19.1197], [72.8402, 19.0544]], undefined, { mode: 'foot' });
+    let [url, init] = fetch.mock.calls[0];
+    expect(url).toBe('/api/v1/matrix');
+    expect(init?.method).toBe('POST');
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
+    expect(new Headers(init?.headers).get('X-API-Key')).toBe('k');
+    expect(JSON.parse(init?.body as string)).toEqual({ sources: [{ lat: 19.1197, lon: 72.8464 }, { lat: 19.0544, lon: 72.8402 }], mode: 'foot' });
+
+    await api.searchBatch(['CST', 'Bandra'], { near: [72.87, 19.07] });
+    [url, init] = fetch.mock.calls[1];
+    expect(url).toBe('/api/v1/search/batch');
+    expect(JSON.parse(init?.body as string)).toEqual({ queries: ['CST', 'Bandra'], near: { lon: 72.87, lat: 19.07 } });
+  });
+
   it('turns error envelopes into ApiError', async () => {
     mockFetch(422, { error: { status: 422, code: 'no_route', message: 'the points are not connected by drivable roads' } });
     const err = await new BombayChitraClient('').route([72.8, 19.0], [72.9, 19.1]).catch((e: unknown) => e);

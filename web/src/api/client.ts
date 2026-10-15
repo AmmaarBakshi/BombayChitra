@@ -24,6 +24,7 @@ import type {
   Bridge,
   Journey,
   JourneyMode,
+  Matrix,
 } from './types.ts';
 
 /** A lon/lat point as the API's `lat,lon` parameter. */
@@ -68,7 +69,18 @@ export class BombayChitraClient {
       params.set(key, Array.isArray(value) ? value.join(',') : String(value));
     }
     const qs = params.toString();
-    const res = await fetch(`${this.base}/api/v1${path}${qs ? `?${qs}` : ''}`, { ...this.init, signal });
+    return this.send<T>(`${this.base}/api/v1${path}${qs ? `?${qs}` : ''}`, { ...this.init, signal });
+  }
+
+  /** POSTs a JSON body (matrices, batch searches). */
+  async post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+    const headers = new Headers(this.init.headers);
+    headers.set('Content-Type', 'application/json');
+    return this.send<T>(`${this.base}/api/v1${path}`, { ...this.init, method: 'POST', headers, body: JSON.stringify(body), signal });
+  }
+
+  private async send<T>(url: string, init: RequestInit): Promise<T> {
+    const res = await fetch(url, init);
     if (!res.ok) {
       let code = 'http_error';
       let message = res.statusText;
@@ -184,6 +196,21 @@ export class BombayChitraClient {
   /** Areas reachable from a lon/lat point within the given minutes (default 10, 20, 30): GeoJSON, largest first, then the start. */
   isochrone(from: [number, number], opts: { mode?: TravelMode; minutes?: number[] } = {}, signal?: AbortSignal) {
     return this.get<GeoJSON.FeatureCollection>('/isochrone', { from: latLon(from), mode: opts.mode, minutes: opts.minutes?.map(String) }, signal);
+  }
+
+  /** Travel times (s) and distances (m) from each lon/lat source to each destination (the sources again by default). */
+  matrix(sources: [number, number][], destinations?: [number, number][], opts: { mode?: TravelMode; optimize?: 'time' | 'distance'; avoid?: 'toll'[] } = {}, signal?: AbortSignal) {
+    const points = (list: [number, number][]) => list.map(([lon, lat]) => ({ lat, lon }));
+    return this.post<Matrix>('/matrix', { sources: points(sources), destinations: destinations && points(destinations), ...opts }, signal);
+  }
+
+  /** Searches for many places at once (batch geocoding): one result list per query, in order. */
+  searchBatch(queries: string[], opts: { limit?: number; near?: [number, number]; kind?: SearchKind[] } = {}, signal?: AbortSignal) {
+    return this.post<{ count: number; results: (ListResponse<SearchResult> & { query: string })[] }>(
+      '/search/batch',
+      { queries, limit: opts.limit, kind: opts.kind, near: opts.near && { lon: opts.near[0], lat: opts.near[1] } },
+      signal,
+    );
   }
 
   /** Journey between two lon/lat points by suburban railway, metro and monorail, with the walks at either end. */

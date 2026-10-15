@@ -330,6 +330,16 @@ export interface RouteResult {
   geometry: GeoJSON.LineString;
 }
 
+/** A distance matrix: seconds and metres from each source to each destination, null where unreachable. */
+export interface Matrix {
+  mode: TravelMode;
+  optimize: 'time' | 'distance';
+  durations: (number | null)[][];
+  distances: (number | null)[][];
+  sources: { lat: number; lon: number; snapped: RouteEnd['snapped'] | null }[];
+  destinations: { lat: number; lon: number; snapped: RouteEnd['snapped'] | null }[];
+}
+
 /** What a journey can ride: the suburban railway, the metro lines and the monorail. */
 export type JourneyMode = 'train' | 'metro' | 'monorail';
 
