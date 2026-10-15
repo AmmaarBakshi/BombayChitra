@@ -68,6 +68,12 @@ curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087&modes=metro&form
 
 # Where can I get to from Kharghar in 10, 20 and 30 minutes on a two-wheeler?
 curl "$B/api/v1/isochrone?from=19.0330,73.0700&mode=two_wheeler"
+
+# Driving times between Andheri, Bandra and CSMT, every pair
+curl -X POST "$B/api/v1/matrix" -H 'Content-Type: application/json'   -d '{"sources": [{"lat": 19.1197, "lon": 72.8464}, {"lat": 19.0544, "lon": 72.8402}, {"lat": 18.94, "lon": 72.8355}]}'
+
+# Geocode a list of places in one request
+curl -X POST "$B/api/v1/search/batch" -H 'Content-Type: application/json'   -d '{"queries": ["CST", "400050", "Powai Lake"]}'
 ```
 
 ## Common tasks
@@ -197,6 +203,38 @@ drawing them in order leaves the shorter times on top; the last feature is the s
 (`role: from`). The areas follow every road and path reached and the land beside them, on a 75 m grid on foot and
 200 m by road. Times run from 1 to 60 minutes; an isochrone costs ten rate-limit tokens. In the app, **Reach** in the
 distance panel draws 10, 20 and 30 minutes from the start.
+
+### Distance matrices
+
+`POST /api/v1/matrix` gives the travel time and distance from every source to every destination — for delivery
+planning, "which branch is nearest by road", or choosing a meeting point. Up to 10 sources and 50 destinations; leave
+out `destinations` for every pair of the sources:
+
+```bash
+curl -X POST "$B/api/v1/matrix" -H 'Content-Type: application/json' -d '{
+  "sources": [{"lat": 19.1197, "lon": 72.8464}, {"lat": 19.0544, "lon": 72.8402}],
+  "destinations": [{"lat": 19.066, "lon": 72.868}, {"lat": 18.94, "lon": 72.8355}],
+  "mode": "two_wheeler"
+}'
+```
+
+`durations[i][j]` (seconds) and `distances[i][j]` (metres) go from source `i` to destination `j` along the fastest
+route (or the shortest with `"optimize": "distance"`), exactly as `/api/v1/route` would find it; `null` means the
+destination cannot be reached, and a point with no road within 1.5 km has `"snapped": null`. One search runs per
+source, so a 10 × 50 matrix takes about as long as ten routes. A matrix costs ten rate-limit tokens.
+
+### Batch geocoding
+
+`POST /api/v1/search/batch` runs up to 100 searches in one request and answers each as `/api/v1/search` would, in
+order — handy for turning a spreadsheet of addresses or station names into coordinates:
+
+```bash
+curl -X POST "$B/api/v1/search/batch" -H 'Content-Type: application/json'   -d '{"queries": ["CST", "400050", "Powai Lake"], "near": {"lat": 19.07, "lon": 72.87}}'
+```
+
+Each result has the `query`, a `count` and `items` — the best match by default, up to 10 with `limit`. `kind` limits
+every query to kinds of result (for example `["place"]`). A batch costs ten rate-limit tokens. From JavaScript,
+the bundled client has `matrix()` and `searchBatch()`.
 
 ### Wards and PIN codes
 
