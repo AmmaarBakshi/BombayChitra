@@ -65,6 +65,9 @@ curl "$B/api/v1/route?from=19.1197,72.8464&to=19.0660,72.8680&optimize=distance&
 # By train, metro and monorail: Dadar to Ghatkopar, and the same trip by metro only
 curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087"
 curl "$B/api/v1/journey?from=19.0190,72.8430&to=19.0864,72.9087&modes=metro&format=geojson"
+
+# Where can I get to from Kharghar in 10, 20 and 30 minutes on a two-wheeler?
+curl "$B/api/v1/isochrone?from=19.0330,73.0700&mode=two_wheeler"
 ```
 
 ## Common tasks
@@ -179,6 +182,21 @@ date. With `format=geojson` the journey is a FeatureCollection ready for a map (
 - Errors: `422` with code `no_station` (no station within `max_walk` of a point) or `no_journey`.
 - The station network (about 230 stations on 15 lines) is built on the first request; journeys take a few
   milliseconds plus the walks. Journey requests cost five rate-limit tokens.
+
+### Isochrones: how far in a given time
+
+`/api/v1/isochrone` returns the areas you can reach from a point within up to four times, by car, two-wheeler or on
+foot — the same speeds and one-way rules as routes — as GeoJSON ready to draw:
+
+```bash
+curl "$B/api/v1/isochrone?from=19.0330,73.0700&mode=foot&minutes=10,20"
+```
+
+Each time is a `MultiPolygon` feature (`role: isochrone`) with `minutes`, `mode` and `area_km2`, largest first, so
+drawing them in order leaves the shorter times on top; the last feature is the start snapped to the network
+(`role: from`). The areas follow every road and path reached and the land beside them, on a 75 m grid on foot and
+200 m by road. Times run from 1 to 60 minutes; an isochrone costs ten rate-limit tokens. In the app, **Reach** in the
+distance panel draws 10, 20 and 30 minutes from the start.
 
 ### Wards and PIN codes
 
