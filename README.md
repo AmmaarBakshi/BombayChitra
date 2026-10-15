@@ -36,6 +36,8 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
   the walk to the station, each train's line, direction and stops, changes of line (Dadar, Ghatkopar, Andheri,
   Marol Naka…) and the walk at the end, estimated from the usual gap between trains. In the app, at
   `/api/v1/journey` and with `bombaychitra journey`.
+- **How far, how long** — isochrones ("where can I get to from Kharghar in 30 minutes?") and travel-time matrices
+  between up to 10 × 50 places, plus batch geocoding of up to 100 places in one request.
 - **All of transport** — Western, Central, Harbour, Trans-Harbour and Uran suburban lines; every metro line in
   service (1, 2A, 2B, 3, 7, 9, Navi Mumbai Line 1), under construction (2B, 4, 4A, 5, 6, 7A, 9 extensions, Navi
   Mumbai Line 1 Stage 2) and proposed (10, 11, Thane Ring Metro), and the monorail, in their official colours with
@@ -57,8 +59,11 @@ Mumbai City · Mumbai Suburban · Thane District · Navi Mumbai · Panvel · Vas
   connection, and find the nearest station, hospital or ATM from where you are, with directions there.
 - **Light and dark themes**, a dashboard you can hide (`H`) for a full-screen map, unified search with autocomplete,
   shareable links, a measuring tool and a mobile layout.
-- **Use it anywhere** — REST API with an OpenAPI 3.1 spec, MapLibre styles for web, Android, iOS, Flutter and
-  React Native, vector tiles for QGIS, a SQLite database any language can read, and GeoJSON/CSV exports.
+- **Use it anywhere** — REST API with an OpenAPI 3.1 spec and generated Python and JavaScript clients, MapLibre
+  styles for web, Android, iOS, Flutter and React Native, vector tiles for QGIS, a SQLite database any language can
+  read, and GeoJSON/CSV exports.
+- **Better data for everyone** — "Report a problem" on every card opens an OpenStreetMap note, a coverage map shows
+  where OpenStreetMap is thin, and places only Overture Maps knows can be exported as a MapRoulette challenge.
 
 <table>
   <tr>
