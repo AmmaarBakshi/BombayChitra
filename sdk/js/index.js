@@ -194,6 +194,11 @@ export class BombayChitra {
     return this.request('GET', `/api/v1/heritage`, { status: options.status, format: options.format });
   }
 
+  /** Where OpenStreetMap needs mappers */
+  getCoverage(options = {}) {
+    return this.request('GET', `/api/v1/coverage`, { cell: options.cell });
+  }
+
   /** Waterlogging hotspots */
   listHotspots(options = {}) {
     return this.request('GET', `/api/v1/hotspots`, { format: options.format });

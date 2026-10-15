@@ -98,6 +98,9 @@ export declare class BombayChitra {
   /** Heritage sites */
   listHeritage(options?: { status?: 'unesco' | 'precinct' | 'monument'; format?: 'json' | 'geojson' }): Promise<any>;
 
+  /** Where OpenStreetMap needs mappers */
+  getCoverage(options?: { cell?: number }): Promise<any>;
+
   /** Waterlogging hotspots */
   listHotspots(options?: { format?: 'json' | 'geojson' }): Promise<any>;
 }

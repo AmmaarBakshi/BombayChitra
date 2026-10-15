@@ -1112,6 +1112,37 @@ paths:
                 items:
                   - { id: csmt, status: unesco, name: Chhatrapati Shivaji Maharaj Terminus, year: 2004, place_id: 1074415162, lon: 72.835519, lat: 18.939856, description: 'Victorian Gothic railway terminus by F. W. Stevens, completed in 1888; formerly Victoria Terminus.', wikipedia: 'en:Chhatrapati Shivaji Terminus' }
 
+  /api/v1/coverage:
+    get:
+      tags: [Mumbai layers]
+      operationId: getCoverage
+      summary: Where OpenStreetMap needs mappers
+      description: |
+        A grid over the region with, for each cell, the places in OpenStreetMap (`osm_places`), the places only
+        Overture Maps knows (`overture_places` — businesses and amenities OpenStreetMap does not have yet) and the
+        named buildings. `osm_share` is OpenStreetMap's share of the places, and `level` sums it up: `thin` (under
+        40 %), `partial` (under 70 %), `good`, or `few` when a cell has fewer than five places to judge by. Cells
+        with nothing in them are left out. Always GeoJSON, one square `Polygon` per cell; computed once per cell
+        size.
+      parameters:
+        - name: cell
+          in: query
+          description: Cell size in metres.
+          schema: { type: integer, minimum: 500, maximum: 5000, default: 1000 }
+          example: 2000
+      responses:
+        '200':
+          description: Coverage grid
+          content:
+            application/geo+json:
+              example:
+                type: FeatureCollection
+                features:
+                  - type: Feature
+                    geometry: { type: Polygon, coordinates: [[[72.842779, 19.243142], [72.852298, 19.243142], [72.852298, 19.252186], [72.842779, 19.252186], [72.842779, 19.243142]]] }
+                    properties: { osm_places: 168, overture_places: 207, buildings: 520, osm_share: 0.45, level: partial }
+        '400': { description: '`cell` outside 500–5000' }
+
   /api/v1/hotspots:
     get:
       tags: [Mumbai layers]

@@ -305,6 +305,13 @@ class BombayChitra:
         """
         return self.request("GET", "/api/v1/heritage", {"status": status, "format": format})
 
+    def get_coverage(self, *, cell=None) -> Any:
+        """Where OpenStreetMap needs mappers
+
+        cell: Cell size in metres.
+        """
+        return self.request("GET", "/api/v1/coverage", {"cell": cell})
+
     def list_hotspots(self, *, format=None) -> Any:
         """Waterlogging hotspots
 
