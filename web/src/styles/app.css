@@ -1109,6 +1109,21 @@ body.panel-off .maplibregl-ctrl-bottom-left {
   letter-spacing: 0;
 }
 
+/* "Report a problem" under the card's buttons. */
+.card-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 2px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.card-report:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+
 .tool.tool-text {
   font-size: 12px;
   font-weight: 700;

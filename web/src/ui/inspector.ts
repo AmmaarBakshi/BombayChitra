@@ -6,6 +6,7 @@ import type { AppContext } from './context.ts';
 import { clear, h } from './dom.ts';
 import { capitalise, formatArea, formatCoord, formatDistance, formatDMS, formatNumber, formatOsmDate, isRecent, parseOsmDate } from './format.ts';
 import { updateHash } from './hash.ts';
+import { reportUrl } from './report.ts';
 import { t } from '../i18n.ts';
 import { categoryBadge, icon, kindBadge } from './icons.ts';
 
@@ -637,12 +638,13 @@ export class Inspector {
 
   private actions(lon: number, lat: number, osmUrl?: string, name?: string): HTMLElement {
     const dest = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-    return h('div', { class: 'btn-row', style: 'margin:12px 0 4px' },
+    const report = h('a', { class: 'link-btn card-report', href: reportUrl(lon, lat), target: '_blank', rel: 'noopener', title: t('card.reportTitle') }, icon('flag', 13), t('card.report'));
+    return h('div', {}, h('div', { class: 'btn-row', style: 'margin:12px 0 4px' },
       h('button', { class: 'btn btn-primary', type: 'button', title: 'Distance and route by road to here', onclick: () => this.ctx.routeTo({ lon, lat, label: name ?? dest }) }, icon('directions', 15), t('card.routeHere')),
       h('button', { class: 'btn', type: 'button', onclick: () => this.copy(location.href, 'Link copied') }, icon('link', 15), t('card.share')),
       h('button', { class: 'btn', type: 'button', onclick: () => this.nearbyFrom(lon, lat, name) }, icon('search', 15), t('card.nearby')),
       osmUrl ? h('a', { class: 'btn', href: osmUrl, target: '_blank', rel: 'noopener', title: 'View or edit on OpenStreetMap' }, icon('external', 15), 'OSM') : null,
-    );
+    ), report);
   }
 
   private async nearbyFrom(lon: number, lat: number, name?: string): Promise<void> {
