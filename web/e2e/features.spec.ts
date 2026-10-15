@@ -106,3 +106,21 @@ test('save an area and open the map offline', async ({ page, context }) => {
   await expect.poll(() => page.evaluate(() => (window as unknown as { bombaychitra: { map: { queryRenderedFeatures: () => unknown[] } } }).bombaychitra.map.queryRenderedFeatures().length), { timeout: 15_000 }).toBeGreaterThan(100);
   await context.setOffline(false);
 });
+
+test('show where you can get to, and the data coverage', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  // From Kharghar on a two-wheeler.
+  await page.goto('/#dist=19.0330,73.0700~19.0864,72.9087&mode=two_wheeler');
+  await expect(page.locator('.route-summary')).toBeVisible();
+  await page.getByRole('button', { name: 'Reach' }).click();
+  const legend = page.locator('.reach-legend li');
+  await expect(legend).toHaveCount(3);
+  await expect(legend.first()).toContainText('Within 10 min');
+  await expect(legend.last()).toContainText('km²');
+
+  await page.getByRole('tab', { name: 'Layers' }).click();
+  await page.getByText('Data coverage', { exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { bombaychitra: { map: { queryRenderedFeatures: (o: object) => unknown[] } } }).bombaychitra.map.queryRenderedFeatures({ layers: ['coverage-fill'] }).length), { timeout: 15_000 }).toBeGreaterThan(10);
+  expect(errors).toEqual([]);
+});
