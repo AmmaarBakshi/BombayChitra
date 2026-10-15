@@ -23,7 +23,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 			"/api/v1/streets", "/api/v1/streets/{id}", "/api/v1/roads/{id}", "/api/v1/bridges",
 			"/api/v1/bridges/{id}", "/api/v1/bridges/named", "/api/v1/bridges/named/{id}", "/api/v1/buildings",
 			"/api/v1/buildings/{id}", "/api/v1/transit/lines", "/api/v1/transit/routes/{id}",
-			"/api/v1/transit/stations", "/api/v1/route", "/api/v1/journey", "/api/v1/isochrone", "/api/v1/heritage", "/api/v1/hotspots", "/tiles/bombaychitra.json", "/styles/light.json", "/styles/dark.json",
+			"/api/v1/transit/stations", "/api/v1/route", "/api/v1/journey", "/api/v1/isochrone", "/api/v1/matrix", "/api/v1/heritage", "/api/v1/hotspots", "/tiles/bombaychitra.json", "/styles/light.json", "/styles/dark.json",
 		},
 	})
 }

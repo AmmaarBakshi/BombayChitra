@@ -95,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/route", s.handleRoute)
 	mux.HandleFunc("GET /api/v1/journey", s.handleJourney)
 	mux.HandleFunc("GET /api/v1/isochrone", s.handleIsochrone)
+	mux.HandleFunc("POST /api/v1/matrix", s.handleMatrix)
 	mux.HandleFunc("GET /api/v1/heritage", s.handleHeritage)
 	mux.HandleFunc("GET /api/v1/hotspots", s.handleHotspots)
 	mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) { s.notFound(w, r) })
