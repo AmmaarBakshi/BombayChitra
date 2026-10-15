@@ -21,6 +21,7 @@ export interface Overlays {
   boundaries: boolean;
   heritage: boolean;
   hotspots: boolean;
+  coverage: boolean;
 }
 
 /** Layers that respond to clicks, in priority order (first match wins). */
@@ -40,7 +41,11 @@ const OVERLAY_LAYERS: Record<keyof Overlays, string[]> = {
   boundaries: ['boundary-ward', 'boundary-municipal', 'boundary-district'],
   heritage: ['heritage-sites', 'heritage-labels'],
   hotspots: ['hotspot-area', 'hotspot-icon', 'hotspot-labels'],
+  coverage: ['coverage-fill', 'coverage-line'],
 };
+
+/** Coverage cells by level: red where OpenStreetMap lacks most of the places Overture Maps knows. */
+export const COVERAGE_COLOURS: Record<string, string> = { thin: '#e03131', partial: '#f59f00', good: '#2f9e44' };
 
 /** Colours of curated heritage sites by status. */
 export const HERITAGE_COLOURS: Record<string, string> = { unesco: '#c9a227', precinct: '#9c36b5', monument: '#a0522d' };
@@ -53,6 +58,7 @@ const SEL = 'selection';
 const MEASURE = 'measure';
 const HERITAGE = 'heritage';
 const HOTSPOTS = 'hotspots';
+const COVERAGE = 'coverage';
 /** Metres per pixel at zoom 0 at Mumbai's latitude (19° N), for drawing hotspots at their true radius. */
 const MPP_Z0 = 148_000;
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -60,7 +66,10 @@ const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: 
 /** App-only layers drawn above the basemap: curated Mumbai layers, the current selection and the measuring tool. */
 function overlayLayers(P: Palette): LayerSpecification[] {
   const radius = ['interpolate', ['exponential', 2], ['zoom'], 10, ['/', ['*', ['get', 'radius_m'], 1024], MPP_Z0], 20, ['/', ['*', ['get', 'radius_m'], 1048576], MPP_Z0]] as unknown as number;
+  const level = ['match', ['get', 'level'], 'thin', COVERAGE_COLOURS.thin, 'partial', COVERAGE_COLOURS.partial, COVERAGE_COLOURS.good] as unknown as string;
   return [
+    { id: 'coverage-fill', type: 'fill', source: COVERAGE, filter: ['!=', ['get', 'level'], 'few'], paint: { 'fill-color': level, 'fill-opacity': 0.3 } },
+    { id: 'coverage-line', type: 'line', source: COVERAGE, filter: ['!=', ['get', 'level'], 'few'], minzoom: 11, paint: { 'line-color': level, 'line-width': 0.6, 'line-opacity': 0.5 } },
     { id: 'hotspot-area', type: 'circle', source: HOTSPOTS, minzoom: 10, paint: { 'circle-radius': radius, 'circle-color': HOTSPOT_COLOUR, 'circle-opacity': 0.16, 'circle-stroke-color': HOTSPOT_COLOUR, 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6 } },
     { id: 'hotspot-icon', type: 'circle', source: HOTSPOTS, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5, 14, 6], 'circle-color': HOTSPOT_COLOUR, 'circle-stroke-color': P.halo, 'circle-stroke-width': 2 } },
     { id: 'hotspot-labels', type: 'symbol', source: HOTSPOTS, minzoom: 12, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': 11.5, 'text-anchor': 'top', 'text-offset': [0, 0.8], 'text-optional': true }, paint: { 'text-color': HOTSPOT_COLOUR, 'text-halo-color': P.halo, 'text-halo-width': 1.6 } },
@@ -86,7 +95,9 @@ export class MapController {
   private ready = false;
   private hidden: string[] = [];
   private area = '';
-  private overlays: Overlays = { buildings3d: false, bridges: false, railColours: true, boundaries: true, heritage: false, hotspots: false };
+  private overlays: Overlays = { buildings3d: false, bridges: false, railColours: true, boundaries: true, heritage: false, hotspots: false, coverage: false };
+  /** The coverage grid is large, so it is only fetched once the overlay is first shown. */
+  private coverageUrl: string | null = null;
   private selection: GeoJSON.FeatureCollection = EMPTY;
   private measure: GeoJSON.FeatureCollection = EMPTY;
   private pinMarker: maplibregl.Marker | null = null;
@@ -145,6 +156,7 @@ export class MapController {
     style.state = { hiddenCategories: { default: this.hidden }, area: { default: this.area } };
     style.sources[HERITAGE] = { type: 'geojson', data: `${this.base}/api/v1/heritage?format=geojson` };
     style.sources[HOTSPOTS] = { type: 'geojson', data: `${this.base}/api/v1/hotspots?format=geojson` };
+    style.sources[COVERAGE] = { type: 'geojson', data: this.coverageUrl ?? EMPTY };
     style.sources[SEL] = { type: 'geojson', data: this.selection };
     style.sources[MEASURE] = { type: 'geojson', data: this.measure };
     style.layers.push(...overlayLayers(P));
@@ -194,6 +206,10 @@ export class MapController {
 
   setOverlay<K extends keyof Overlays>(key: K, on: boolean): void {
     this.overlays[key] = on;
+    if (key === 'coverage' && on && !this.coverageUrl) {
+      this.coverageUrl = `${this.base}/api/v1/coverage`;
+      (this.map.getSource(COVERAGE) as maplibregl.GeoJSONSource | undefined)?.setData(this.coverageUrl);
+    }
     this.applyOverlays();
     if (key === 'buildings3d') {
       const duration = (ms: number) => (reducedMotion() ? 0 : ms);

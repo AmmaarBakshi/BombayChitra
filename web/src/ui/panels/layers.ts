@@ -19,6 +19,7 @@ const OVERLAYS: { key: keyof Overlays; label: string; hint: string }[] = [
   { key: 'boundaries', label: 'Boundaries', hint: 'Districts, municipal corporations and wards' },
   { key: 'heritage', label: 'Heritage sites', hint: 'World Heritage Sites, heritage precincts and listed monuments' },
   { key: 'hotspots', label: 'Monsoon waterlogging', hint: 'Spots that flood in heavy rain, June to September' },
+  { key: 'coverage', label: 'Data coverage', hint: 'Red where OpenStreetMap lacks places, green where well mapped' },
 ];
 
 export class LayersPanel implements Panel {
