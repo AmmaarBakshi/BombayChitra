@@ -35,7 +35,7 @@ func TestSearchBatch(t *testing.T) {
 
 	// The same answers as one search at a time.
 	_, single := get(t, h, "/api/v1/search?q=Gateway+of+India&lat=19.07&lon=72.87&limit=1")
-	if a, b := first(3)["ref"], single["items"].([]any)[0].(map[string]any)["ref"]; a != b {
+	if a, b := first(3)["id"], single["items"].([]any)[0].(map[string]any)["id"]; a == nil || a != b {
 		t.Errorf("batch found %v, search found %v", a, b)
 	}
 
