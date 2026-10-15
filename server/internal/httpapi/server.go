@@ -155,7 +155,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 					h.Set("Access-Control-Allow-Origin", s.cfg.CORSOrigin)
 					h.Set("Access-Control-Expose-Headers", "ETag, Content-Length, Content-Range, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining")
 					if r.Method == http.MethodOptions {
-						h.Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+						h.Set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS") // POST: matrices and batch searches
 						h.Set("Access-Control-Allow-Headers", "Range, If-None-Match, If-Match, Content-Type, X-API-Key")
 						h.Set("Access-Control-Max-Age", "86400")
 						w.WriteHeader(http.StatusNoContent)

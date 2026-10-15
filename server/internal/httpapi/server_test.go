@@ -269,6 +269,15 @@ func TestCORSPreflight(t *testing.T) {
 	if rec.Code != http.StatusNoContent || rec.Header().Get("Access-Control-Allow-Origin") != "*" {
 		t.Errorf("preflight: %d %q", rec.Code, rec.Header().Get("Access-Control-Allow-Origin"))
 	}
+	// Browsers ask before posting JSON to /api/v1/matrix from another origin.
+	req = httptest.NewRequest(http.MethodOptions, "/api/v1/matrix", nil)
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	req.Header.Set("Access-Control-Request-Headers", "content-type")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if !strings.Contains(rec.Header().Get("Access-Control-Allow-Methods"), "POST") || !strings.Contains(rec.Header().Get("Access-Control-Allow-Headers"), "Content-Type") {
+		t.Errorf("POST preflight: methods %q, headers %q", rec.Header().Get("Access-Control-Allow-Methods"), rec.Header().Get("Access-Control-Allow-Headers"))
+	}
 }
 
 func TestRouteByRoad(t *testing.T) {
