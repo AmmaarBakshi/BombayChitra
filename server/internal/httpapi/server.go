@@ -76,6 +76,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/areas/{id}", s.handleArea)
 	mux.HandleFunc("GET /api/v1/stats", s.handleStats)
 	mux.HandleFunc("GET /api/v1/search", s.handleSearch)
+	mux.HandleFunc("POST /api/v1/search/batch", s.handleSearchBatch)
 	mux.HandleFunc("GET /api/v1/reverse", s.handleReverse)
 	mux.HandleFunc("GET /api/v1/places", s.handlePlaces)
 	mux.HandleFunc("GET /api/v1/places/{id}", s.handlePlace)

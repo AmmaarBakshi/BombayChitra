@@ -19,7 +19,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"openapi": base + "/openapi.json",
 		"endpoints": []string{
 			"/api/v1/health", "/api/v1/meta", "/api/v1/categories", "/api/v1/areas", "/api/v1/areas/{id}", "/api/v1/stats",
-			"/api/v1/search", "/api/v1/reverse", "/api/v1/places", "/api/v1/places/{id}", "/api/v1/nearby",
+			"/api/v1/search", "/api/v1/search/batch", "/api/v1/reverse", "/api/v1/places", "/api/v1/places/{id}", "/api/v1/nearby",
 			"/api/v1/streets", "/api/v1/streets/{id}", "/api/v1/roads/{id}", "/api/v1/bridges",
 			"/api/v1/bridges/{id}", "/api/v1/bridges/named", "/api/v1/bridges/named/{id}", "/api/v1/buildings",
 			"/api/v1/buildings/{id}", "/api/v1/transit/lines", "/api/v1/transit/routes/{id}",
