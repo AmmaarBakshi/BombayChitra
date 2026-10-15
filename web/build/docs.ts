@@ -114,7 +114,26 @@ interface OpenApiOperation {
   description?: string;
   tags?: string[];
   parameters?: (OpenApiParam | { $ref: string })[];
+  requestBody?: { content?: Record<string, { example?: unknown; schema?: BodySchema }> };
   responses?: Record<string, { description?: string; content?: Record<string, { example?: unknown }> }>;
+}
+
+/** The parts of a request body schema the reference shows: its fields, their types and limits. */
+interface BodyField {
+  type?: string;
+  enum?: string[];
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  minItems?: number;
+  maxItems?: number;
+  items?: BodyField;
+  $ref?: string;
+}
+
+interface BodySchema {
+  required?: string[];
+  properties?: Record<string, BodyField>;
 }
 
 interface OpenApiDoc {
@@ -155,7 +174,10 @@ function renderApiReference(spec: OpenApiDoc): Omit<Page, 'slug'> {
       const exampleQuery = params.filter((x) => x.in === 'query' && x.example !== undefined).map((x) => `${x.name}=${encodeURIComponent(String(x.example))}`).join('&');
       let examplePath = p;
       for (const x of params.filter((q) => q.in === 'path')) examplePath = examplePath.replace(`{${x.name}}`, String(x.example ?? `{${x.name}}`));
-      const curl = `curl "http://localhost:8080${examplePath}${exampleQuery ? `?${exampleQuery}` : ''}"`;
+      const body = op.requestBody?.content && Object.values(op.requestBody.content)[0];
+      const curl = body
+        ? `curl -X ${method.toUpperCase()} "http://localhost:8080${examplePath}" \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(body.example ?? {})}'`
+        : `curl "http://localhost:8080${examplePath}${exampleQuery ? `?${exampleQuery}` : ''}"`;
       const ok = op.responses?.['200'];
       const example = ok?.content && Object.values(ok.content)[0]?.example;
       out.push(`<section class="endpoint" id="${opId}">`);
@@ -169,6 +191,26 @@ function renderApiReference(spec: OpenApiDoc): Omit<Page, 'slug'> {
           const type = s.enum ? s.enum.map((e) => `<code>${escapeHtml(e)}</code>`).join(' | ') : escapeHtml(s.type ?? 'string');
           const bounds = [s.default !== undefined ? `default <code>${escapeHtml(String(s.default))}</code>` : '', s.maximum !== undefined ? `max ${s.maximum}` : ''].filter(Boolean).join(', ');
           out.push(`<tr><td><code>${escapeHtml(x.name)}</code>${x.required ? ' <span class="req">required</span>' : ''}</td><td>${x.in}</td><td>${type}</td><td>${md.parseInline(x.description ?? '') as string}${bounds ? ` <span class="muted">(${bounds})</span>` : ''}</td></tr>`);
+        }
+        out.push('</tbody></table></div>');
+      }
+      if (body?.schema?.properties) {
+        const typeOf = (f: BodyField): string => {
+          if (f.$ref) return escapeHtml(f.$ref.split('/').pop()!);
+          if (f.enum) return f.enum.map((e) => `<code>${escapeHtml(e)}</code>`).join(' | ');
+          if (f.type === 'array' && f.items) return `array of ${typeOf(f.items)}`;
+          return escapeHtml(f.type ?? 'object');
+        };
+        out.push('<div class="table"><table><thead><tr><th>Body field</th><th>Type</th><th>Limits</th></tr></thead><tbody>');
+        for (const [name, f] of Object.entries(body.schema.properties)) {
+          const limits = [
+            f.default !== undefined ? `default <code>${escapeHtml(String(f.default))}</code>` : '',
+            f.minimum !== undefined ? `min ${f.minimum}` : '',
+            f.maximum !== undefined ? `max ${f.maximum}` : '',
+            f.minItems !== undefined ? `at least ${f.minItems}` : '',
+            f.maxItems !== undefined ? `at most ${f.maxItems}` : '',
+          ].filter(Boolean).join(', ');
+          out.push(`<tr><td><code>${escapeHtml(name)}</code>${body.schema.required?.includes(name) ? ' <span class="req">required</span>' : ''}</td><td>${typeOf(f)}</td><td>${limits}</td></tr>`);
         }
         out.push('</tbody></table></div>');
       }

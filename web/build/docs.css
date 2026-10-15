@@ -467,6 +467,10 @@ a:hover {
   background: #2b8a3e;
 }
 
+.method.post {
+  background: #1864ab;
+}
+
 .req {
   font-size: 11px;
   font-weight: 700;
