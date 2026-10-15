@@ -940,6 +940,55 @@ paths:
         '422': { description: 'No station within `max_walk` of a point that is not within walking distance of the other (`no_station`), or no journey connects the points (`no_journey`)' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /api/v1/isochrone:
+    get:
+      tags: [Routing]
+      operationId: isochrone
+      summary: Where you can get to in a given time
+      description: |
+        The areas reachable from a point by car, two-wheeler or on foot within one or more times ("where can I get to
+        in 30 minutes from Kharghar"), with the same speeds and one-way rules as `/api/v1/route`. Always GeoJSON: one
+        `MultiPolygon` feature per time (`role: isochrone`), largest first so they can be drawn in order, with the area
+        in km², then the start snapped to the network (`role: from`).
+
+        Areas follow the roads and paths reached and the land beside them, on a grid of 75 m cells on foot and 200 m
+        by road, so a band includes the blocks between the streets it reaches. Isochrones cost ten rate-limit tokens.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Start as `lat,lon`.
+          schema: { type: string }
+          example: 19.0330,73.0700
+        - name: mode
+          in: query
+          description: 'Travel mode: `car`, `two_wheeler` or `foot` (as for `/api/v1/route`).'
+          schema: { type: string, enum: [car, two_wheeler, foot], default: car }
+          example: foot
+        - name: minutes
+          in: query
+          description: Comma-separated travel times, up to four, each 1–60 minutes.
+          schema: { type: string, default: '10,20,30' }
+          example: '10,20'
+      responses:
+        '200':
+          description: Isochrones
+          content:
+            application/geo+json:
+              example:
+                type: FeatureCollection
+                features:
+                  - type: Feature
+                    geometry: { type: MultiPolygon, coordinates: [[[[73.062873, 19.02893], [73.064298, 19.02893], [73.064298, 19.028252], [73.062873, 19.02893]]]] }
+                    properties: { role: isochrone, minutes: 20, mode: foot, area_km2: 2.87 }
+                  - type: Feature
+                    geometry: { type: Point, coordinates: [73.069953, 19.032746] }
+                    properties: { role: from, road: '', offset_m: 29 }
+        '400': { description: 'Missing or invalid `from`, `mode` or `minutes`' }
+        '422': { description: 'No usable road or path within 1.5 km of the point (`no_road`)' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { description: 'The dataset has no routing graph, or only the car network (`mode_unavailable`)' }
+
   /api/v1/heritage:
     get:
       tags: [Mumbai layers]
