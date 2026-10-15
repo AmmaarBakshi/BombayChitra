@@ -123,7 +123,7 @@ class BombayChitra:
         self.timeout = timeout
 
     def request(self, method: str, path: str, query: dict[str, Any] | None = None, body: Any = None) -> Any:
-        """Calls the API; returns parsed JSON, or text for other formats (CSV, NDJSON)."""
+        """Calls the API; returns parsed JSON, or text for a response that is not JSON."""
         params = {{}}
         for key, value in (query or {{}}).items():
             if value is None:
@@ -221,7 +221,7 @@ export class BombayChitra {{
     this.fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   }}
 
-  /** Calls the API; resolves to parsed JSON, or text for other formats (CSV, NDJSON). */
+  /** Calls the API; resolves to parsed JSON, or text for a response that is not JSON. */
   async request(method, path, query = {{}}, body = undefined) {{
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {{

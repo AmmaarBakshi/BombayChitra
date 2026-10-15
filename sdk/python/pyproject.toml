@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bombaychitra"
+version = "0.1.0"
+description = "Client for the BombayChitra API: search, routes, journeys, isochrones and data for the Mumbai Metropolitan Region"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["mumbai", "map", "openstreetmap", "geocoding", "routing"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+
+[project.urls]
+Homepage = "https://github.com/AmmaarBakshi/BombayChitra"
+Documentation = "https://github.com/AmmaarBakshi/BombayChitra/blob/main/docs/api.md"
+
+[tool.setuptools]
+packages = ["bombaychitra"]
