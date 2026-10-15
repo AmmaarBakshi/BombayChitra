@@ -26,9 +26,10 @@ BombayChitra has three components connected by two open file formats.
 |---|---|
 | `config/` | `region.json` (coverage, areas, transit colours) and `categories.json` (place taxonomy). Shared by every component. |
 | `pipeline/` | The data build. One handler class per tile layer in `pipeline/src/bombaychitra/pipeline/layers/`; the SQLite writer in `…/data/`. |
-| `server/` | The Go server: `cmd/bombaychitra` (CLI), `internal/pmtiles` (tile reader), `internal/store` (queries), `internal/httpapi` (HTTP), `internal/export` (GeoJSON/CSV). |
+| `server/` | The Go server: `cmd/bombaychitra` (CLI), `internal/pmtiles` (tile reader), `internal/store` (queries), `internal/routing` (routes, isochrones, matrices), `internal/journey` (train and metro journeys), `internal/httpapi` (HTTP), `internal/export` (GeoJSON, CSV, MapRoulette). |
 | `web/` | The web app (`src/`), the map style builder (`src/map/style/`) and build plugins for docs, styles, icons and precompression (`build/`). |
-| `api/openapi.yaml` | The API contract; also renders the API reference and lets you generate clients. |
+| `api/openapi.yaml` | The API contract; renders the API reference and generates the clients in `sdk/`. |
+| `sdk/` | Python and JavaScript clients generated from the API contract by `scripts/generate-sdk.py`. |
 | `docs/` | This documentation, rendered into the web build. |
 | `examples/` | Small programs using the API and the database from many languages. |
 | `scripts/` | Data build scripts for Bash and PowerShell, the pipeline test runner and the data regression check. |
@@ -79,6 +80,22 @@ destination's. The path is then walked once more to assemble the geometry, the r
 consecutive segments of one road merge into one step, the turn angle between headings names the manoeuvre, and
 unnamed paths are described for walkers ("Cross the foot over-bridge").
 
+The same graph answers the other questions. An **isochrone** runs the search without a target until the time limit,
+recording every point reached with its time; points are binned into a grid (75 m on foot, 200 m by road), each cell
+grows by its neighbours to cover the blocks beside the roads, and the cells within each time are traced into
+polygons with holes. A **matrix** runs one search per source and stops once every destination's road is settled.
+
+## How journeys work
+
+`internal/journey` builds a station network from the transit lines in the database when the first journey is asked
+for: stops of one mode with the same name become one station, stations within 450 m are joined by short walks for
+changing lines, and each route (a line in one direction, stopping or fast) runs along its track. A ride takes the
+distance at the mode's running speed plus an allowance per stop; boarding waits half the line's usual gap between
+trains (`transit.headways` in `config/region.json`, recorded in the dataset), twice as long for express patterns. A
+journey is a Dijkstra search from every station within walking distance of the start to the stations near the
+destination, and its walks are then routed along footpaths with the foot profile. Times are estimates, not a
+timetable.
+
 ## Data flow for a click on the map
 
 1. MapLibre hit-tests the rendered vector features under the cursor.
@@ -94,4 +111,4 @@ unnamed paths are described for walkers ("Cross the foot over-bridge").
   update from it.
 - **Change the region:** edit `config/region.json` (bounds, source extract, areas). See [Configuration](configuration.md).
 - **Add an API endpoint:** add a query to `server/internal/store`, a handler to `server/internal/httpapi`, and
-  document it in `api/openapi.yaml`.
+  document it in `api/openapi.yaml`; then run `python scripts/generate-sdk.py` to add it to the clients.
