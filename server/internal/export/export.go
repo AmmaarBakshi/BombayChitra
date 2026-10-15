@@ -1,4 +1,5 @@
-// Package export writes dataset subsets as GeoJSON, newline-delimited GeoJSON or CSV for use in other tools.
+// Package export writes dataset subsets as GeoJSON, newline-delimited GeoJSON or CSV for use in other tools, and the
+// places only Overture Maps knows as a MapRoulette challenge for mappers.
 package export
 
 import (
@@ -14,10 +15,10 @@ import (
 )
 
 // Kinds that can be exported.
-var Kinds = []string{"places", "buildings", "bridges", "streets", "lines"}
+var Kinds = []string{"places", "overture", "buildings", "bridges", "streets", "lines"}
 
-// Formats that can be written.
-var Formats = []string{"geojson", "ndjson", "csv"}
+// Formats that can be written. maproulette is line-by-line GeoJSON with one FeatureCollection — one task — per line.
+var Formats = []string{"geojson", "ndjson", "csv", "maproulette"}
 
 // Options selects what to export.
 type Options struct {
@@ -61,8 +62,14 @@ func (w *writer) feature(f feature) error {
 	if w.format == "geojson" && w.count > 0 {
 		w.out.WriteByte(',')
 	}
+	if w.format == "maproulette" {
+		w.out.WriteString(`{"type":"FeatureCollection","features":[`)
+	}
 	w.out.Write(b)
-	if w.format == "ndjson" {
+	if w.format == "maproulette" {
+		w.out.WriteString("]}")
+	}
+	if w.format == "ndjson" || w.format == "maproulette" {
 		w.out.WriteByte('\n')
 	}
 	w.count++
@@ -101,6 +108,8 @@ func Run(ctx context.Context, st *store.Store, opt Options, out io.Writer) (int,
 	switch opt.Kind {
 	case "places":
 		err = places(ctx, st, opt, w)
+	case "overture":
+		err = overture(ctx, st, opt, w)
 	case "buildings":
 		err = buildings(ctx, st, opt, w)
 	case "bridges":
@@ -132,6 +141,54 @@ func places(ctx context.Context, st *store.Store, opt Options, w *writer) error 
 		}
 		return w.feature(feature{Type: "Feature", ID: p.ID, Geometry: point(p.Lon, p.Lat), Properties: p})
 	})
+}
+
+// overture writes the places only Overture Maps knows — businesses and amenities OpenStreetMap may be missing — with
+// what Overture says about them, as hints to check on the ground or against street-level imagery before mapping. With
+// the maproulette format each place is a task, identified by its Overture id.
+func overture(ctx context.Context, st *store.Store, opt Options, w *writer) error {
+	if w.csv != nil {
+		w.csv.Write([]string{"overture_id", "name", "category", "lon", "lat", "locality", "address", "postcode", "phone",
+			"website", "confidence", "sources"})
+	}
+	list, err := st.Places(ctx, store.PlaceQuery{Categories: opt.Categories, Groups: opt.Groups, Area: opt.Area, Limit: -1})
+	if err != nil {
+		return err
+	}
+	for _, item := range list {
+		if item.OSMType != "overture" {
+			continue
+		}
+		p, err := st.Place(ctx, item.ID)
+		if err != nil {
+			return err
+		}
+		var tags struct {
+			ID         string  `json:"overture:id"`
+			Confidence float64 `json:"overture:confidence"`
+			Sources    string  `json:"overture:sources"`
+		}
+		_ = json.Unmarshal(p.Tags, &tags)
+		if w.csv != nil {
+			if err := w.row([]string{tags.ID, p.Name, p.CategoryLabel, ftoa(p.Lon), ftoa(p.Lat), p.Locality, p.Address,
+				p.Postcode, p.Phone, p.Website, ftoa(tags.Confidence), tags.Sources}); err != nil {
+				return err
+			}
+			continue
+		}
+		props := map[string]any{"name": p.Name, "category": p.CategoryLabel, "confidence": tags.Confidence,
+			"sources": tags.Sources, "source": "Overture Maps"}
+		for k, v := range map[string]string{"locality": p.Locality, "address": p.Address, "postcode": p.Postcode,
+			"phone": p.Phone, "website": p.Website} {
+			if v != "" {
+				props[k] = v
+			}
+		}
+		if err := w.feature(feature{Type: "Feature", ID: "overture:" + tags.ID, Geometry: point(p.Lon, p.Lat), Properties: props}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func buildings(ctx context.Context, st *store.Store, opt Options, w *writer) error {
