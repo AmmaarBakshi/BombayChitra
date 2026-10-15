@@ -72,6 +72,9 @@ curl "$B/api/v1/isochrone?from=19.0330,73.0700&mode=two_wheeler"
 # Driving times between Andheri, Bandra and CSMT, every pair
 curl -X POST "$B/api/v1/matrix" -H 'Content-Type: application/json'   -d '{"sources": [{"lat": 19.1197, "lon": 72.8464}, {"lat": 19.0544, "lon": 72.8402}, {"lat": 18.94, "lon": 72.8355}]}'
 
+# Where OpenStreetMap needs mappers: a 2 km grid of how much is mapped
+curl "$B/api/v1/coverage?cell=2000"
+
 # Geocode a list of places in one request
 curl -X POST "$B/api/v1/search/batch" -H 'Content-Type: application/json'   -d '{"queries": ["CST", "400050", "Powai Lake"]}'
 ```
@@ -235,6 +238,15 @@ curl -X POST "$B/api/v1/search/batch" -H 'Content-Type: application/json'   -d '
 Each result has the `query`, a `count` and `items` — the best match by default, up to 10 with `limit`. `kind` limits
 every query to kinds of result (for example `["place"]`). A batch costs ten rate-limit tokens. From JavaScript,
 the bundled client has `matrix()` and `searchBatch()`.
+
+### Data coverage
+
+`/api/v1/coverage` is a grid over the region (1 km cells by default, `cell` from 500 to 5000 m) showing how much of
+each cell is mapped in OpenStreetMap: `osm_places`, the places only Overture Maps knows (`overture_places`), named
+`buildings`, OpenStreetMap's share of the places (`osm_share`) and a `level` — `thin` (under 40 %), `partial`
+(under 70 %), `good`, or `few` when a cell has under five places to judge by. It is GeoJSON, one square per cell,
+and drives the app's **Data coverage** overlay; see [Improve the map data](contributing.md#improve-the-map-data) for
+how to act on it.
 
 ### Wards and PIN codes
 
