@@ -111,7 +111,9 @@ db = sqlite3.connect("file:data/build/bombaychitra.db?mode=ro", uri=True)
 db.execute("SELECT name, phone FROM places WHERE category = 'hospital' LIMIT 5").fetchall()
 ```
 
-Runnable examples for Python, JavaScript, Go, Java, C#, PHP, Ruby, Rust, R and SQL are in [`examples/`](examples/README.md).
+Client libraries for Python (`pip install bombaychitra`) and JavaScript/TypeScript (`npm install bombaychitra`) are
+generated from the OpenAPI spec in [`sdk/`](sdk/); runnable examples for Python, JavaScript, Go, Java, C#, PHP, Ruby,
+Rust, R and SQL are in [`examples/`](examples/README.md).
 
 ## How it works
 

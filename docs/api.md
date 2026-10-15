@@ -279,17 +279,38 @@ sorts by distance and adds `distance_m`.
 Any list endpoint accepts `area=<id>`. Area ids are listed by `/api/v1/areas`; `/api/v1/areas/{id}` returns the
 boundary geometry and statistics.
 
-## Generating a client
+## Client libraries
 
-Any [OpenAPI Generator](https://openapi-generator.tech/) target works:
+Official clients for Python and JavaScript/TypeScript are generated from `api/openapi.yaml`, so every endpoint is a
+method named after its operation (`search`, `route`, `journey`, `isochrone`, `matrix`, `list_places` /
+`listPlaces`…). Both have no dependencies, send an API key when given one and raise an error carrying the API's
+status, code and message.
 
 ```bash
-npx @openapitools/openapi-generator-cli generate -i http://localhost:8080/openapi.json -g python -o bombaychitra-python
+pip install bombaychitra       # sdk/python
+npm install bombaychitra       # sdk/js
+```
+
+```python
+from bombaychitra import BombayChitra
+api = BombayChitra("http://localhost:8080")
+api.route("19.1197,72.8464", "18.9400,72.8355", mode="two_wheeler")["duration_s"]
+```
+
+```js
+import { BombayChitra } from 'bombaychitra';
+const api = new BombayChitra('http://localhost:8080');
+const journey = await api.journey('19.0190,72.8430', '19.0864,72.9087', { modes: ['metro'] });
+```
+
+After changing the spec, run `python scripts/generate-sdk.py` (CI fails while the clients are out of date). For other
+languages any [OpenAPI Generator](https://openapi-generator.tech/) target works:
+
+```bash
 npx @openapitools/openapi-generator-cli generate -i http://localhost:8080/openapi.json -g kotlin -o bombaychitra-kotlin
 ```
 
-TypeScript users can copy `web/src/api/client.ts`, a dependency-free typed client used by the web app itself. See
-[Integrations](integrations.md) for examples in other languages.
+See [Integrations](integrations.md) for examples in other languages.
 
 ## Rate limits and fair use
 

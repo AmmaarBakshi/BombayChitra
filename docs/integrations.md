@@ -92,6 +92,19 @@ For analysis, export layers to GeoJSON with `bombaychitra export` and add them a
 
 ### Python
 
+The `bombaychitra` package ([`sdk/python`](https://github.com/AmmaarBakshi/BombayChitra/tree/main/sdk/python)) wraps
+every endpoint:
+
+```python
+from bombaychitra import BombayChitra
+
+api = BombayChitra("https://maps.example.com")
+for p in api.nearby(19.0178, 72.8478, radius=1000, category="hospital")["items"]:
+    print(f'{p.get("name", "Hospital"):45} {p["distance_m"]:>6.0f} m')
+```
+
+Or with plain `requests`:
+
 ```python
 import requests
 
@@ -112,12 +125,13 @@ const { items } = await res.json();
 console.log(items.map((r) => `${r.name} — ${r.detail}`));
 ```
 
-The typed client in `web/src/api/client.ts` has no dependencies and works in browsers and Node 18+:
+The `bombaychitra` package on npm ([`sdk/js`](https://github.com/AmmaarBakshi/BombayChitra/tree/main/sdk/js)) has
+no dependencies, works in browsers and Node 18+ and comes with TypeScript types:
 
 ```ts
-import { BombayChitraClient } from './client';
-const api = new BombayChitraClient('https://maps.example.com');
-const { items } = await api.namedBridges({ kind: ['road'], limit: 5 });
+import { BombayChitra } from 'bombaychitra';
+const api = new BombayChitra('https://maps.example.com');
+const { items } = await api.listNamedBridges({ kind: 'road', limit: 5 });
 ```
 
 ### Go
