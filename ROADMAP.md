@@ -97,9 +97,10 @@ trips on the locals, the metro and the monorail.
 
 ## Suggested order
 
+Everything in sections 1–7 is done except the local-train extras (October 2026; see `CHANGELOG.md`). What is left:
+
 | Phase | Items | Why |
 |---|---|---|
-| **Now** | 0 (release, demo, GIF), rate limiting | Nothing else matters if nobody can try it |
-| **Next** | Walking routing, Marathi labels, BMC wards/PIN codes, pipeline tests | High value, builds on data we already have |
-| **Then** | Train journey planner, waterlogging layer, PWA/offline | Signature features — what makes it *the* Mumbai map |
-| **Later** | Isochrones, matrix/batch APIs, SDKs, coverage map | Developer and community growth |
+| **Now** | 0 — tag `v0.1.0`, host the demo, record the GIF, open the issues | Nothing else matters if nobody can try it |
+| **Next** | Publish the SDKs (the "Publish SDKs" workflow), local-train extras | The API is ready for other people's apps |
+| **Later** | GTFS import if MMRDA, BEST or the railways publish timetables; bus routes | Real timetables instead of estimates |
