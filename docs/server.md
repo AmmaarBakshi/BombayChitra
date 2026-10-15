@@ -172,8 +172,8 @@ bombaychitra export --kind places --category hospital --area makabo --format geo
 
 | Flag | Description |
 |---|---|
-| `--kind` | `places`, `buildings`, `bridges` (named), `streets` or `lines` |
-| `--format` | `geojson` (FeatureCollection), `ndjson` (one feature per line) or `csv` |
+| `--kind` | `places`, `overture` (places only Overture Maps knows), `buildings`, `bridges` (named), `streets` or `lines` |
+| `--format` | `geojson` (FeatureCollection), `ndjson` (one feature per line), `csv`, or `maproulette` (one task per line, for a [MapRoulette](https://maproulette.org) challenge) |
 | `--category`, `--group` | Comma-separated filters (places only) |
 | `--area` | Restrict to an area id |
 | `--data` / `--db` | Where the database is |

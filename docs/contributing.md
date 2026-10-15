@@ -67,8 +67,24 @@ endpoint's documented example, or breaks its schema — so change `api/openapi.y
 | Add an area | `config/region.json` → `areas` |
 | Improve the map's look | `web/src/map/style/` (see [Map styles](styles.md)) |
 | Add a tile layer or attribute | `pipeline/…/layers/` + style + `docs/tiles.md` |
-| Add an API endpoint | `server/internal/store` + `server/internal/httpapi` + `api/openapi.yaml` |
+| Add an API endpoint | `server/internal/store` + `server/internal/httpapi` + `api/openapi.yaml`, then `python scripts/generate-sdk.py` to update the clients in `sdk/` |
 | Add an example in a new language | `examples/<language>/` + `examples/README.md` |
+
+## Improve the map data
+
+BombayChitra is only as good as OpenStreetMap, and every fix made there reaches the map in the next weekly build:
+
+- **Report a problem** on any card opens a new OpenStreetMap note at that place — a wrong name, a closed shop, a
+  missing road. Local mappers watch notes and fix them.
+- **Layers → Data coverage** (and `/api/v1/coverage`) shades the map by how many of the places Overture Maps knows
+  are already in OpenStreetMap: red cells are where mapping helps most.
+- **MapRoulette:** `bombaychitra export --kind overture --format maproulette --area makabo -o tasks.geojson` writes
+  the places only Overture Maps knows as a line-by-line GeoJSON challenge, one task per place with its name,
+  category, address, phone and website. Treat the tasks as hints to survey, not data to copy: OpenStreetMap only takes
+  what mappers verify themselves or data under a compatible licence, so check each place on the ground or on
+  imagery OpenStreetMap allows, and read the [import](https://wiki.openstreetmap.org/wiki/Import/Guidelines) and
+  [organised editing](https://wiki.openstreetmap.org/wiki/Organised_Editing_Guidelines) guidelines before running a
+  challenge.
 
 ## Translations
 
