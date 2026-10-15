@@ -37,6 +37,7 @@ type Server struct {
 	started  time.Time
 	metrics  *serverMetrics
 	styles   sync.Map // base URL + name → rendered style bytes
+	coverage sync.Map // cell size → coverage grid
 }
 
 // New creates a server. web is the built web app (embedded or on disk) and may be nil.
@@ -99,6 +100,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/matrix", s.handleMatrix)
 	mux.HandleFunc("GET /api/v1/heritage", s.handleHeritage)
 	mux.HandleFunc("GET /api/v1/hotspots", s.handleHotspots)
+	mux.HandleFunc("GET /api/v1/coverage", s.handleCoverage)
 	mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) { s.notFound(w, r) })
 
 	mux.HandleFunc("GET /tiles/bombaychitra.json", s.handleTileJSON)
