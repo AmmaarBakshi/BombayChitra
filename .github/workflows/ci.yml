@@ -73,6 +73,25 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s scripts -p 'test_*.py' -v
 
+  sdk:
+    name: SDKs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: pip install pyyaml
+      - name: Generated from the current API spec
+        run: python scripts/generate-sdk.py --check
+      - name: Python client
+        run: python -m unittest discover -s sdk/python/tests -v
+      - name: JavaScript client
+        run: node --test sdk/js/test.mjs
+
   pipeline:
     name: Data pipeline
     runs-on: ubuntu-latest
