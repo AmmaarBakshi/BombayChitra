@@ -88,6 +88,19 @@ project uses [Semantic Versioning](https://semver.org/).
 - "Near me": the nearest stations, hospitals and ATMs from your location (or the centre of the map), with walking
   time and directions there.
 - A documentation page for the web app: journeys, near me, installing, offline maps, keyboard and shareable links.
+- Isochrones: `/api/v1/isochrone` returns the areas reachable from a point within up to four times by car,
+  two-wheeler or on foot, as GeoJSON polygons with holes; "Reach" in the distance panel draws 10, 20 and 30 minutes.
+- Distance matrices: `POST /api/v1/matrix` gives times and distances between up to 10 sources and 50 destinations, as
+  the route would find them, with one search per source.
+- Batch geocoding: `POST /api/v1/search/batch` answers up to 100 searches in one request. CORS preflight allows POST,
+  and the API reference shows request bodies.
+- Client libraries for Python (`sdk/python`) and JavaScript/TypeScript (`sdk/js`), generated from the OpenAPI spec by
+  `scripts/generate-sdk.py`; CI checks they are current and tests them, and a manual workflow publishes them to PyPI
+  and npm.
+- Better OpenStreetMap data: "Report a problem" on every card opens an OpenStreetMap note at the place;
+  `/api/v1/coverage` and the **Data coverage** overlay show where OpenStreetMap lacks the places Overture Maps knows;
+  `bombaychitra export --kind overture --format maproulette` writes those places as a MapRoulette challenge.
+- Examples: a meeting point from a distance matrix and isochrones (Python), and a journey leg by leg (JavaScript).
 
 ### Fixed
 
