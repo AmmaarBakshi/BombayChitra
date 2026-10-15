@@ -53,3 +53,19 @@ func (s *Service) Route(ctx context.Context, fromLon, fromLat, toLon, toLat floa
 	}
 	return g.Route(fromLon, fromLat, toLon, toLat, opts)
 }
+
+// Reach explores what can be reached from a point within limitS seconds (see Graph.Reach), waiting for a free search
+// slot.
+func (s *Service) Reach(ctx context.Context, lon, lat float64, mode Mode, limitS float64, visit func(lon, lat, seconds float64)) (Snap, int, error) {
+	g, err := s.Graph(ctx)
+	if err != nil {
+		return Snap{}, 0, err
+	}
+	select {
+	case s.slots <- struct{}{}:
+		defer func() { <-s.slots }()
+	case <-ctx.Done():
+		return Snap{}, 0, ctx.Err()
+	}
+	return g.Reach(lon, lat, mode, limitS, visit)
+}

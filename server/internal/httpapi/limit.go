@@ -16,6 +16,8 @@ func requestCost(path string) float64 {
 	switch path {
 	case "/api/v1/route", "/api/v1/journey":
 		return 5
+	case "/api/v1/isochrone":
+		return 10 // explores every road within the time, not a single path
 	}
 	return 1
 }
