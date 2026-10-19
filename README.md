@@ -129,7 +129,7 @@ Overture Maps ─┘                                         └──► bombay
                   server/ (Go, single static binary) ◄─────────────────┘
                   REST API · tiles · styles · web app · docs
                                 │
-                  web/ (TypeScript + MapLibre GL JS): map UI, light/dark styles, docs site
+                  web/ (TypeScript + MapLibre GL JS): map UI, light/dark styles, docs site 
 ```
 
 | Component | Stack | Why |
